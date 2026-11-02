@@ -766,6 +766,7 @@ export type Database = {
           sort_order: number;
           updated_at: string;
           updated_by: string | null;
+          version: number;
           visit_id: string;
           zone_key: string;
           zone_label: string;
@@ -778,6 +779,7 @@ export type Database = {
           sort_order?: number;
           updated_at?: string;
           updated_by?: string | null;
+          version?: number;
           visit_id: string;
           zone_key: string;
           zone_label: string;
@@ -789,6 +791,7 @@ export type Database = {
           sort_order?: number;
           updated_at?: string;
           updated_by?: string | null;
+          version?: number;
           visit_id?: string;
           zone_key?: string;
           zone_label?: string;
@@ -1081,6 +1084,7 @@ export type Database = {
           created_at: string;
           created_by: string;
           done_reserves_count: number | null;
+          filled_zones_count: number | null;
           id: string;
           last_report_at: string | null;
           open_reserves_count: number | null;
@@ -1099,6 +1103,7 @@ export type Database = {
           version: number;
           visit_date: string;
           writer_id: string | null;
+          zones_count: number | null;
         };
         ComputedFields: never;
         Relationships: [

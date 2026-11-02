@@ -367,6 +367,7 @@ export interface VisitSummaries {
   created_at: Timestamp | null;
   created_by: string | null;
   done_reserves_count: number | null;
+  filled_zones_count: number | null;
   id: string | null;
   last_report_at: Timestamp | null;
   open_reserves_count: number | null;
@@ -385,6 +386,7 @@ export interface VisitSummaries {
   version: number | null;
   visit_date: string | null;
   writer_id: string | null;
+  zones_count: number | null;
 }
 
 export interface VisitZoneNotes {
@@ -394,6 +396,10 @@ export interface VisitZoneNotes {
   sort_order: Generated<number>;
   updated_at: Generated<Timestamp>;
   updated_by: string | null;
+  /**
+   * Version de la note, incrémentée par trigger à chaque changement de contenu (concurrence optimiste par zone).
+   */
+  version: Generated<number>;
   visit_id: string;
   /**
    * Clé de zone : une clé de la trame, ou custom-… pour une zone ajoutée.

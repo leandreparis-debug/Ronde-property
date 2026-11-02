@@ -70,6 +70,7 @@ erDiagram
         text zone_key
         text zone_label
         text content
+        integer version
     }
     photos {
         uuid id PK
@@ -164,11 +165,11 @@ erDiagram
 
 ## Valeurs dérivées (jamais stockées)
 
-| Valeur                 | Où                               | Calcul                                                                                                                              |
-| ---------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Retard d'une réserve   | `reserves_with_state.is_overdue` | `due_date < date du jour en Europe/Paris` et `status <> 'done'` (`private.is_reserve_overdue`).                                     |
-| Code affiché           | `reserves_with_state.code`       | `'R-'                                                                                                                               |     | lpad(number, 2, '0')` → « R-07 ». |
-| Compteurs d'une visite | `visit_summaries`                | Réserves ouvertes (`status <> 'done'`), en retard, levées ; nombre de photos ; date du dernier rapport. Visites supprimées exclues. |
+| Valeur                 | Où                               | Calcul                                                                                                                                                                                                                                                 |
+| ---------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Retard d'une réserve   | `reserves_with_state.is_overdue` | `due_date < date du jour en Europe/Paris` et `status <> 'done'` (`private.is_reserve_overdue`).                                                                                                                                                        |
+| Code affiché           | `reserves_with_state.code`       | `'R-'                                                                                                                                                                                                                                                  |     | lpad(number, 2, '0')` → « R-07 ». |
+| Compteurs d'une visite | `visit_summaries`                | Réserves ouvertes (`status <> 'done'`), en retard, levées ; nombre de photos ; date du dernier rapport ; zones (`zones_count`) et zones renseignées (`filled_zones_count`, contenu non vide une fois les espaces retirés). Visites supprimées exclues. |
 
 Les deux vues sont en `security_invoker` : la RLS des tables s'applique à l'appelant.
 
@@ -243,6 +244,19 @@ similarité, et exclut les sites inactifs par défaut.
 `profiles_never_deleted` refuse toute suppression de profil (y compris en cascade depuis
 `auth.users`) avec le message « RONDE: un compte ne se supprime pas, il se désactive (historique
 attribué) ».
+
+## Notes par zone et versions (migration 12)
+
+Deux niveaux de concurrence optimiste :
+
+| Niveau             | Colonne                    | Incrémentée quand                                                                                    | Trigger                                                                                                                    |
+| ------------------ | -------------------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Note (contenu)     | `visit_zone_notes.version` | le **contenu** change (et seulement lui) ; `updated_by` et `updated_at` suivent le contenu           | `zone_notes_before_update` (ligne) ; `visit_id` et `zone_key` immuables                                                    |
+| Visite (structure) | `visits.version`           | ajout ou retrait d'une zone, changement de libellé ou d'ordre ; **pas** sur un changement de contenu | `touch_parent_visit_{insert,delete,update}` (instruction, tables de transition : une seule incrémentation par instruction) |
+
+Les participants gardent leur trigger par ligne de l'étape 5 (`touch_parent_visit`). Pour les
+notes, le trigger est par instruction parce que l'insertion d'une trame (neuf zones) ou un
+réordonnancement se font en une instruction et ne doivent compter qu'une fois.
 
 ## Accès depuis l'application
 
