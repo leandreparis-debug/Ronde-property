@@ -1,0 +1,82 @@
+# RONDE — consignes pour les sessions de développement
+
+## Projet
+
+RONDE est l'application des visites de site des Responsables Techniques (RT) de Carrefour
+Property : préparer, mener et suivre chaque visite d'entrepôt, jusqu'à la levée des réserves.
+Elle remplace l'outil interne « CR Visites » (aucun code repris).
+
+Utilisateurs : **RT** (saisie sur tablette au doigt et sur PC), **Direction** (lecture seule),
+**Admin** (gestion des comptes).
+
+Étapes : 1 fondations et design system (faite) · 2 modèle de données Supabase et RLS ·
+3 authentification, rôles, audit · 4 référentiel des sites (CSV VIGIE) · 5 visites · 6 notes
+par zone · 7 photos · 8 plans AutoCAD et repères · 9 réserves · 10 rapport PDF · 11 recette et
+déploiement.
+
+## Stack et versions (exactes, pas de `^`)
+
+- Next.js 15.5.28, App Router, dossier `src/` · React 19.3.1 · TypeScript 5.9.3 strict avec
+  `noUncheckedIndexedAccess`.
+- Tailwind CSS 4.3.3 en configuration CSS-first (`@theme` dans `src/app/globals.css`, pas de
+  `tailwind.config.js`).
+- Node 22, pnpm 10 (`packageManager` dans `package.json`).
+- lucide-react, clsx + tailwind-merge (`cn`), class-variance-authority, Radix (dialog, tabs,
+  slot, toast), zod.
+- Qualité : ESLint 9 (config Next + TypeScript), Prettier 3, Vitest 4 + Testing Library + jsdom,
+  Playwright 1.63 + @axe-core/playwright.
+- V1 hébergée sur Vercel + Supabase ; V2 sur serveur interne.
+
+## Commandes
+
+| Commande            | Rôle                                                   |
+| ------------------- | ------------------------------------------------------ |
+| `pnpm dev`          | serveur de développement                               |
+| `pnpm build`        | build de production                                    |
+| `pnpm start`        | serveur de production                                  |
+| `pnpm lint`         | ESLint, zéro avertissement toléré                      |
+| `pnpm format`       | Prettier (écriture)                                    |
+| `pnpm format:check` | Prettier (vérification)                                |
+| `pnpm typecheck`    | `tsc --noEmit`                                         |
+| `pnpm test`         | tests unitaires Vitest                                 |
+| `pnpm test:e2e`     | tests Playwright sur un build de production (Chromium) |
+| `pnpm verify`       | lint → format:check → typecheck → test → build         |
+
+## Arborescence
+
+```
+.github/workflows/ci.yml   CI : verify puis test:e2e
+docs/decisions.md          journal des décisions d'architecture
+docs/design-system.md      règles de la direction artistique
+e2e/                       tests Playwright
+src/app/                   App Router (layout, globals.css, icon.svg, (app)/, design/, not-found)
+src/components/brand/      Galet, Logo, Trail
+src/components/layout/     AppShell, SideNav, BottomNav, TopBar, PageHeader, NavLink
+src/components/ui/         primitives façon shadcn, écrites à la main
+src/lib/                   cn, env (zod), format (dates fr-FR), constants
+src/server/                couche repositories / services (vide à l'étape 1, voir son README)
+tests/                     tests Vitest (miroir de src/)
+```
+
+## Règles permanentes
+
+1. **Pas de couleur en dur** : uniquement les tokens de `globals.css` (`bg-brand`, `text-ink-2`,
+   `var(--color-…)`). La palette Tailwind par défaut est désactivée.
+2. **Un statut est toujours accompagné de son libellé** ; les couleurs de statut ne servent
+   qu'aux statuts ; la couleur de marque n'indique jamais un statut.
+3. **Zones tactiles de 44 px minimum** (48 px pour les actions principales), pas d'interaction
+   réservée au survol, focus clavier visible.
+4. **Textes affichés en français, code en anglais** (identifiants, noms de fichiers, commits).
+   Dates en `fr-FR`, fuseau `Europe/Paris`, via `src/lib/format.ts`.
+5. **Pas d'accès direct à Supabase hors de `src/server/`** : composants, pages et actions passent
+   par les repositories, `StorageService` et `AuthService`.
+6. **Aucune donnée réelle dans le dépôt** : données fictives uniquement (sites, personnes,
+   réserves), et jamais de secret (`.env.local` est ignoré, `.env.example` documente).
+7. **Commit et push après chaque point de spécification**, en Conventional Commits
+   (`feat:`, `fix:`, `chore:`, `test:`, `docs:`, `ci:`), petits et cohérents.
+8. **Ne jamais modifier une migration existante** (à partir de l'étape 2) : en ajouter une.
+9. **`pnpm verify` et `pnpm test:e2e` doivent passer** avant de terminer une étape, en local et
+   dans la CI.
+10. Confirmations par `Dialog`, jamais `window.confirm`. Thème clair uniquement en V1.
+11. JSDoc sur chaque composant et fonction exportés.
+12. Polices auto-hébergées par `next/font` : aucun CDN de polices à l'exécution.
