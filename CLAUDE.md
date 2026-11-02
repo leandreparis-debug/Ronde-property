@@ -106,5 +106,7 @@ tests/                     tests Vitest (miroir de src/)
 20. **Jamais de mot de passe ni d'email en clair dans les logs** ni dans `audit_log` (hash).
     Le mot de passe provisoire est affiché une seule fois et jamais stocké en clair.
 21. `AUTH_PROVIDER=local` est réservé aux tests et au développement (localhost, jamais Vercel).
-22. `audit_log` et `reserve_events` sont en ajout seul : jamais de `update`, `delete` ni
+22. **Un compte ne se supprime jamais** : il se désactive (trigger `profiles_never_deleted`,
+    clés `restrict`). Anonymisation RGPD prévue à l'étape 11.
+23. `audit_log` et `reserve_events` sont en ajout seul : jamais de `update`, `delete` ni
     `truncate`, même en test (seule la réinitialisation complète de `ronde_test` les vide).

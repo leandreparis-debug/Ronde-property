@@ -162,3 +162,21 @@ seulement PostgreSQL. L'application devient testable de bout en bout en local, e
 serveur interne (PostgreSQL) ne change que l'implémentation d'`AuthService` et de
 `StorageService`. La RLS reste la barrière de sécurité : le rôle et `is_active` sont relus dans
 `profiles` à chaque requête, jamais pris dans un cookie ou un JWT.
+
+## 2026-11-02 — `authInterrupts` (expérimental) pour la page 403
+
+**Décision.** `requireRole` appelle `forbidden()` de Next 15.5 (option expérimentale
+`experimental.authInterrupts`) pour rendre `src/app/forbidden.tsx` avec un vrai statut HTTP 403.
+
+**Conséquence.** À revérifier à chaque montée de version de Next : l'option peut changer de nom,
+devenir stable ou disparaître. Le test e2e « Alice reçoit la 403 » vérifie le statut.
+
+## 2026-11-02 — Un compte ne se supprime jamais
+
+**Décision.** Les tables d'historique (`audit_log`, `reserve_events`, `reports`,
+`site_import_runs`) référencent `profiles` avec `on delete restrict`, et un trigger
+`before delete` sur `profiles` refuse toute suppression avec le message « RONDE: un compte ne se
+supprime pas, il se désactive (historique attribué) », y compris en cascade depuis `auth.users`.
+
+**Motivation.** L'historique reste attribué à son auteur. Pour le RGPD, une anonymisation (nom et
+email remplacés, compte désactivé) viendra à l'étape 11.

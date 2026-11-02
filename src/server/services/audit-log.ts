@@ -1,7 +1,9 @@
 import "server-only";
 
+import { sql } from "kysely";
+
 import { requireRoleForAction } from "@/server/auth/session";
-import { withUser } from "@/server/db/context";
+import { type UserRef, withUser } from "@/server/db/context";
 
 export const AUDIT_PAGE_SIZE = 50;
 
@@ -65,12 +67,26 @@ export interface AuditPage {
   actions: string[];
 }
 
+/** `(column at time zone 'Europe/Paris')::date`, as text, for day comparisons. */
+function parisDate(column: string) {
+  return sql<string>`(${sql.ref(column)} at time zone 'Europe/Paris')::date::text`;
+}
+
 /**
  * Pages of the audit log, newest first, read **as the admin** so the RLS policy applies.
- * Filters: action, actor, period (Paris dates).
+ * Filters: action, actor, period (Paris civil dates, inclusive).
  */
 export async function listAuditLog(filters: AuditFilters = {}, page = 1): Promise<AuditPage> {
   const admin = await requireRoleForAction(["admin"]);
+  return queryAuditLog(admin, filters, page);
+}
+
+/** Query behind `listAuditLog`, for a user already checked as admin (also used by tests). */
+export async function queryAuditLog(
+  admin: UserRef,
+  filters: AuditFilters = {},
+  page = 1,
+): Promise<AuditPage> {
   const safePage = Number.isInteger(page) && page >= 1 ? page : 1;
 
   return withUser(admin, async (trx) => {
@@ -99,15 +115,14 @@ export async function listAuditLog(filters: AuditFilters = {}, page = 1): Promis
       query = query.where("audit_log.actor_id", "=", filters.actorId);
       countQuery = countQuery.where("actor_id", "=", filters.actorId);
     }
+    // Day bounds are compared on the Paris civil date, computed in SQL (DST-safe).
     if (filters.from) {
-      const from = new Date(`${filters.from}T00:00:00+01:00`);
-      query = query.where("audit_log.occurred_at", ">=", from);
-      countQuery = countQuery.where("occurred_at", ">=", from);
+      query = query.where(parisDate("audit_log.occurred_at"), ">=", filters.from);
+      countQuery = countQuery.where(parisDate("occurred_at"), ">=", filters.from);
     }
     if (filters.to) {
-      const to = new Date(`${filters.to}T23:59:59.999+02:00`);
-      query = query.where("audit_log.occurred_at", "<=", to);
-      countQuery = countQuery.where("occurred_at", "<=", to);
+      query = query.where(parisDate("audit_log.occurred_at"), "<=", filters.to);
+      countQuery = countQuery.where(parisDate("occurred_at"), "<=", filters.to);
     }
 
     const total = Number((await countQuery.executeTakeFirstOrThrow()).count);

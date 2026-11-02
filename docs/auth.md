@@ -77,6 +77,12 @@ rafraîchit la session, mais **chaque page et chaque action serveur appellent au
 4. Règles : impossible de se désactiver soi-même ou de retirer son propre rôle admin ;
    impossible de désactiver ou de rétrograder le **dernier admin actif**.
 
+**Un compte ne se supprime jamais** : il se désactive. La base le garantit (trigger
+`profiles_never_deleted`, clés `on delete restrict` depuis les tables d'historique), y compris si
+quelqu'un supprime l'utilisateur depuis le tableau de bord Supabase : l'opération échoue avec le
+message « RONDE: un compte ne se supprime pas, il se désactive (historique attribué) ». Une
+anonymisation RGPD (nom et email remplacés) est prévue à l'étape 11.
+
 Pas d'inscription libre ni de « mot de passe oublié » par email en V1. Les messages de
 connexion sont génériques (« Email ou mot de passe incorrect »), sans révéler si le compte
 existe ou s'il est désactivé.
