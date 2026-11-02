@@ -63,7 +63,8 @@ describe("creation", () => {
       title: "Visite d'intégration",
       status: "in_progress",
       createdBy: USERS.alice.id,
-      version: 1,
+      // 1 at insert, +1 when the zone template is inserted (one statement, step 6).
+      version: 2,
     });
     expect(detail?.permissions).toEqual({ canEdit: true, canManage: true });
     expect(await auditActions(id)).toEqual(["visit.created"]);
@@ -96,8 +97,8 @@ describe("optimistic update", () => {
       subject: "Objet",
       writerId: USERS.bruno.id,
     };
-    const first = await repo.update(id, 1, patch);
-    expect(first.version).toBe(2);
+    const first = await repo.update(id, 2, patch);
+    expect(first.version).toBe(3);
     await expect(repo.update(id, 1, { ...patch, title: "Obsolète" })).rejects.toThrow(
       /modifiée entre-temps par Alice Fictive/,
     );
@@ -136,7 +137,7 @@ describe("participants", () => {
     const participants = createParticipantRepository(USERS.alice);
     const { id } = await visits.create(input());
 
-    const added = await participants.add(id, 1, {
+    const added = await participants.add(id, 2, {
       profileId: USERS.emma.id,
       fullName: "Emma Fictive",
       company: null,
@@ -145,9 +146,9 @@ describe("participants", () => {
       isPresent: true,
       sortOrder: 0,
     });
-    expect(added.version).toBe(2);
+    expect(added.version).toBe(3);
     await expect(
-      participants.add(id, 2, {
+      participants.add(id, 3, {
         profileId: USERS.emma.id,
         fullName: "Emma encore",
         company: null,
@@ -157,7 +158,7 @@ describe("participants", () => {
         sortOrder: 1,
       }),
     ).rejects.toThrow(/participe déjà/);
-    const external = await participants.add(id, 2, {
+    const external = await participants.add(id, 3, {
       profileId: null,
       fullName: "Marc Imaginaire",
       company: "Maintenance Fictive SAS",
@@ -166,13 +167,13 @@ describe("participants", () => {
       isPresent: true,
       sortOrder: 1,
     });
-    expect(external.version).toBe(3);
+    expect(external.version).toBe(4);
 
     const list = await participants.list(id);
     expect(list.map((p) => p.fullName)).toEqual(["Emma Fictive", "Marc Imaginaire"]);
     // Each changed participant row bumps the version (two rows swapped here).
-    const reordered = await participants.reorder(id, 3, [external.id, added.id]);
-    expect(reordered.version).toBeGreaterThan(3);
+    const reordered = await participants.reorder(id, 4, [external.id, added.id]);
+    expect(reordered.version).toBeGreaterThan(4);
     expect((await participants.list(id)).map((p) => p.fullName)).toEqual([
       "Marc Imaginaire",
       "Emma Fictive",
@@ -212,7 +213,7 @@ describe("duplication", () => {
         title: "Sortie",
       }),
     );
-    await participants.add(id, 1, {
+    await participants.add(id, 2, {
       profileId: USERS.bruno.id,
       fullName: "Bruno Fictif",
       company: null,
@@ -221,7 +222,7 @@ describe("duplication", () => {
       isPresent: false,
       sortOrder: 0,
     });
-    await participants.add(id, 2, {
+    await participants.add(id, 3, {
       profileId: null,
       fullName: "Externe",
       company: "Soc",
@@ -259,7 +260,7 @@ describe("lifecycle", () => {
   it("completes, reopens and soft-deletes according to roles, with audit entries", async () => {
     const visits = createVisitRepository(USERS.alice);
     const { id } = await visits.create(input({ writerId: USERS.alice.id }));
-    await createParticipantRepository(USERS.alice).add(id, 1, {
+    await createParticipantRepository(USERS.alice).add(id, 2, {
       profileId: USERS.bruno.id,
       fullName: "Bruno Fictif",
       company: null,

@@ -6,7 +6,10 @@ import { todayInParis } from "@/lib/format";
 import { type Trx, type UserRef, withUser } from "@/server/db/context";
 import type { VisitInput, VisitSummary, VisitUpdate } from "@/server/domain";
 import type { VisitReason, VisitStatus, VisitType } from "@/server/domain/enums";
+import { templateForVisitType } from "@/server/domain/templates";
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from "@/server/errors";
+
+import { copyZoneStructure, insertTemplateZones } from "./zone-note-repository";
 
 export const VISIT_PAGE_SIZE = 20;
 
@@ -78,7 +81,10 @@ export interface VisitRepository {
   create(input: VisitInput): Promise<{ id: string }>;
   /** Optimistic update: `ConflictError` when `version` is stale. */
   update(id: string, version: number, patch: VisitUpdate): Promise<VisitVersion>;
-  /** Copies type, reason, subject, writer, participants; title suffixed « (suite) », today's date. */
+  /**
+   * Copies type, reason, subject, writer, participants and the zone structure (empty content);
+   * title suffixed « (suite) », today's date.
+   */
   duplicate(id: string): Promise<{ id: string }>;
   complete(id: string): Promise<void>;
   reopen(id: string): Promise<void>;
@@ -135,6 +141,8 @@ function toSummary(row: {
   done_reserves_count: number | null;
   photos_count: number | null;
   last_report_at: Date | null;
+  zones_count: number | null;
+  filled_zones_count: number | null;
 }): VisitSummary | null {
   if (
     !row.id ||
@@ -162,6 +170,8 @@ function toSummary(row: {
     doneReservesCount: row.done_reserves_count ?? 0,
     photosCount: row.photos_count ?? 0,
     lastReportAt: row.last_report_at ? row.last_report_at.toISOString() : null,
+    zonesCount: row.zones_count ?? 0,
+    filledZonesCount: row.filled_zones_count ?? 0,
   };
 }
 
@@ -181,6 +191,8 @@ const SUMMARY_COLUMNS = [
   "done_reserves_count",
   "photos_count",
   "last_report_at",
+  "zones_count",
+  "filled_zones_count",
 ] as const;
 
 function escapeLike(value: string): string {
@@ -337,6 +349,8 @@ export function createVisitRepository(user: UserRef): VisitRepository {
           })
           .returning("id")
           .executeTakeFirstOrThrow();
+        // Same transaction: a visit never exists without its zone template.
+        await insertTemplateZones(trx, row.id, templateForVisitType(input.type));
         return { id: row.id };
       });
     },
@@ -415,6 +429,8 @@ export function createVisitRepository(user: UserRef): VisitRepository {
             })
             .execute();
         }
+        // Same zones (keys, labels, order), empty content.
+        await copyZoneStructure(trx, id, created.id);
         return { id: created.id };
       });
     },

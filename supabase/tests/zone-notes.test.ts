@@ -50,7 +50,6 @@ describe("visit_zone_notes.version (migration 12)", () => {
     await inTransaction(client, async () => {
       await actAs(client, ACTORS.bruno);
       const before = await note(NOTE_ROOF_V1);
-      expect(before.version).toBe(1);
       const result = await attempt(
         client,
         "update public.visit_zone_notes set content = 'Nouveau contenu' where id = $1",
@@ -58,7 +57,8 @@ describe("visit_zone_notes.version (migration 12)", () => {
       );
       expect(succeeded(result)).toBe(true);
       const after = await note(NOTE_ROOF_V1);
-      expect(after.version).toBe(2);
+      // Relative: the integration suite may have written this seeded note before.
+      expect(after.version).toBe(before.version + 1);
       expect(after.updated_by).toBe(ACTORS.bruno.kind === "user" ? ACTORS.bruno.id : null);
       expect(after.updated_at.getTime()).toBeGreaterThanOrEqual(before.updated_at.getTime());
     });

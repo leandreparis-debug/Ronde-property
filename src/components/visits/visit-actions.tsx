@@ -127,8 +127,8 @@ export function VisitActions({ visit, canCreate, incomplete }: VisitActionsProps
             <DialogDescription>
               Une nouvelle visite en cours sera créée sur le même site, datée
               d&apos;aujourd&apos;hui, avec le type, le motif, l&apos;objet, le rédacteur et les
-              participants (tous présents). Les notes, photos, repères, réserves et rapports ne sont
-              pas repris.
+              participants (tous présents) et la liste des zones de notes, sans leur contenu. Les
+              photos, repères, réserves et rapports ne sont pas repris.
             </DialogDescription>
           </DialogHeader>
           <form action={duplicate} className="flex flex-col gap-3">

@@ -40,11 +40,12 @@ Ajouter un collègue RONDE comme participant **lui donne le droit de modifier la
 ## Duplication
 
 Repris : le site, le type, le motif, l'objet, le rédacteur, le titre suffixé « (suite) », les
-participants dans le même ordre, tous remis à « Présent ». La date est celle du jour (Europe/Paris)
-et `duplicated_from_id` pointe vers l'origine.
+participants dans le même ordre, tous remis à « Présent », et la **structure des zones de notes**
+(mêmes `zone_key`, mêmes libellés, même ordre) avec un contenu **vide**. La date est celle du
+jour (Europe/Paris) et `duplicated_from_id` pointe vers l'origine.
 
-Non repris : notes, photos, repères, réserves et rapports. La reprise des réserves ouvertes
-viendra en phase 2.
+Non repris : le contenu des notes, photos, repères, réserves et rapports. La reprise des
+réserves ouvertes viendra en phase 2.
 
 ## Concurrence optimiste
 
