@@ -1,8 +1,12 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect as baseExpect, type Page, test } from "@playwright/test";
 
 import { anonymousState, E2E_BASE_URL, loginAs, storageStatePath } from "./helpers/auth";
 
 test.describe.configure({ mode: "serial" });
+
+// Every step here waits for a server action (RPC, revalidation and a fresh render); the CI
+// runner shares one PostgreSQL service between four workers, so give them room.
+const expect = baseExpect.configure({ timeout: 15_000 });
 
 let visitUrl = "";
 let copyUrl = "";

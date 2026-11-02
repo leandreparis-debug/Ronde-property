@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 import { z } from "zod";
 
 import { VisitActions } from "@/components/visits/visit-actions";
@@ -43,18 +42,19 @@ export default async function VisitPage({ params }: { params: Params }) {
         actions={<VisitActions visit={visit} canCreate={canCreate} incomplete={points} />}
       />
       <VisitBanner visit={visit} user={user} />
-      <Suspense fallback={null}>
-        <VisitTabs
-          information={
-            <VisitInformationTab
-              key={`${visit.status}-${visit.permissions.canEdit}`}
-              visit={visit}
-              participants={participants}
-              writers={writers}
-            />
-          }
-        />
-      </Suspense>
+      {/* No Suspense boundary here: the page is dynamic, and a boundary this large would be
+          streamed as a late segment, which leaves a hidden server copy of the form behind
+          while the client renders its own. */}
+      <VisitTabs
+        information={
+          <VisitInformationTab
+            key={`${visit.status}-${visit.permissions.canEdit}`}
+            visit={visit}
+            participants={participants}
+            writers={writers}
+          />
+        }
+      />
     </>
   );
 }

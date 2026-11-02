@@ -256,3 +256,15 @@ modifier la visite tant qu'elle est en cours (règle RLS existante). Le dialogue
 
 **Motivation.** Les visites se font souvent à plusieurs RT ; le collègue présent doit pouvoir
 saisir sans que le créateur ait à déléguer explicitement.
+
+## 2026-11-02 — Pas de `Suspense` autour des onglets de la visite
+
+**Décision.** La page `/visites/[id]` rend ses onglets sans frontière `Suspense`. Les autres
+frontières (`FlashToast`, filtres des listes) restent, car leur contenu est petit.
+
+**Motivation.** React découpe en flux toute frontière `Suspense` dont le HTML dépasse environ
+12 Ko, même si rien ne suspend : le contenu arrive dans un segment caché révélé après coup.
+Sous charge (quatre travailleurs Playwright), la révélation et l'hydratation se croisaient et la
+page gardait une copie serveur cachée du formulaire à côté de la copie cliente (deux
+`#visit-title`). La page est dynamique (session relue à chaque requête), donc
+`useSearchParams` n'exige aucune frontière.
