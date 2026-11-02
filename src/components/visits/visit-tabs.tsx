@@ -10,8 +10,8 @@ import { VISIT_TABS } from "@/lib/constants";
 const TAB_VALUES = VISIT_TABS.map((tab) => tab.value);
 type TabValue = (typeof TAB_VALUES)[number];
 
-/** The six visit tabs, synchronised with `?onglet=`. Only « Informations » has content yet. */
-export function VisitTabs({ information }: { information: ReactNode }) {
+/** The six visit tabs, synchronised with `?onglet=`. « Informations » and « Notes » have content. */
+export function VisitTabs({ information, notes }: { information: ReactNode; notes: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -24,6 +24,7 @@ export function VisitTabs({ information }: { information: ReactNode }) {
     const params = new URLSearchParams(searchParams.toString());
     if (value === "information") params.delete("onglet");
     else params.set("onglet", value);
+    if (value !== "notes") params.delete("zone");
     const query = params.toString();
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
   }
@@ -41,6 +42,8 @@ export function VisitTabs({ information }: { information: ReactNode }) {
         <TabsContent key={tab.value} value={tab.value}>
           {tab.value === "information" ? (
             information
+          ) : tab.value === "notes" ? (
+            notes
           ) : (
             <EmptyState
               mood="asleep"

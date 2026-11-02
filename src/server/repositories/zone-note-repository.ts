@@ -5,6 +5,7 @@ import { randomBytes } from "node:crypto";
 import { sql } from "kysely";
 
 import { isZoneFilled } from "@/lib/notes/format";
+import { REMOVE_NOT_EMPTY_MESSAGE } from "@/lib/notes/messages";
 import { type Trx, type UserRef, withUser } from "@/server/db/context";
 import {
   customZoneKey,
@@ -101,7 +102,7 @@ export interface ZoneNoteRepository {
 const EMPTY_LABEL = "Le libellé de la zone est obligatoire.";
 const LONG_LABEL = `${ZONE_LABEL_MAX_LENGTH} caractères maximum.`;
 const DUPLICATE_LABEL = "Une zone porte déjà ce libellé.";
-export const REMOVE_NOT_EMPTY = "Videz la zone avant de la retirer.";
+export const REMOVE_NOT_EMPTY = REMOVE_NOT_EMPTY_MESSAGE;
 
 function cleanLabel(label: string): string {
   const trimmed = label.replace(/\s+/g, " ").trim();
