@@ -19,7 +19,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "verify": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test && pnpm build"
+    "verify": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test && pnpm build",
+    "db:reset": "node scripts/db/reset.mjs",
+    "db:types": "supabase gen types typescript --db-url \"${DATABASE_URL:-postgres://postgres:postgres@127.0.0.1:5432/ronde_test}\" --schema public > src/server/db/database.types.ts",
+    "test:db": "vitest run --config vitest.db.config.mts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "1.3.1",
