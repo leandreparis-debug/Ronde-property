@@ -1,0 +1,16 @@
+Code entrepôt;Nom;Adresse;Code postal;Ville;Surface (m²);Catégorie;Latitude;Longitude;Actif;Commentaire
+TEST-001;Entrepôt fictif Lyon Sud;1 rue Imaginaire;69800;Saint-Priest;43 000,00;Logistique sèche;45,70;4,95;oui;Surface mise à jour (fictif)
+TEST-002;Entrepôt fictif Lille Nord;2 avenue Inventée;59160;Lille;28 500,50;Logistique sèche;50,65;3,05;oui;
+TEST-003;Plateforme fictive Marseille;3 chemin Fictif;13015;Marseille;61000;Multi-température;43,35;5,37;oui;
+TEST-012;Entrepôt fictif Rouen;12 chemin Simulé;76000;Rouen;12000;Logistique sèche;49,44;1,10;oui;Site rouvert (fictif)
+TEST-013;Entrepôt fictif Nîmes;13 rue Inventée;30000;Nîmes;18 250,75;Frais;43,84;4,36;oui;
+TEST-014;Entrepôt fictif Bourg-en-Bresse;14 avenue Fictive;1000;Bourg-en-Bresse;9 800;Logistique sèche;;;oui;Code postal à 4 chiffres (Excel)
+TEST-015;Plateforme fictive Nancy;15 rue Simulée;54000;Nancy;12 500,50;Multi-température;48,69;6,18;oui;Nombre au format français
+TEST-016;Entrepôt fictif Brest;16 quai Imaginaire;29200;Brest;7 500;Surgelé;48,39;-4,49;oui;
+;Entrepôt sans code;17 rue Nulle;75000;Paris;5000;Logistique sèche;;;oui;Code vide : rejeté
+TEST-017;Entrepôt fictif Tours;17 rue Inventée;37000;Tours;11 000;Logistique sèche;47,39;0,69;oui;
+TEST-018;Entrepôt fictif Metz;18 rue Fictive;57000;Metz;8 000;Frais;49,12;6,18;oui;Doublon : rejeté
+test-018 ;Entrepôt fictif Metz bis;18 rue Fictive;57000;Metz;8 000;Frais;49,12;6,18;oui;Doublon (casse et espace) : rejeté
+TEST-019;Entrepôt fictif Caen;19 chemin Fictif;14000;Caen;-50;Logistique sèche;;;oui;Surface négative : rejetée
+TEST-020;Entrepôt fictif Pau;20 rue Simulée;64000;Pau;6 000;Logistique sèche;95,0;-0,37;oui;Latitude hors bornes : rejetée
+TEST-021;Entrepôt fictif Reims;21 avenue Imaginée;51100;Reims;15 000;Logistique sèche;49,26;4,03;non;Créé inactif
