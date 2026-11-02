@@ -22,7 +22,7 @@ async function expectNoHorizontalOverflow(page: Page) {
 }
 
 async function expectTouchTargets(page: Page) {
-  const targets = page.locator("a, button, [role='tab']");
+  const targets = page.locator("a, button, [role='tab'], [role='switch']");
   const count = await targets.count();
   expect(count).toBeGreaterThan(0);
   const tooSmall: string[] = [];
@@ -53,6 +53,9 @@ for (const viewport of VIEWPORTS) {
       "/changer-mot-de-passe",
       "/sites",
       "/sites/TEST-001",
+      "/?scope=all",
+      "/visites/nouvelle",
+      "/visites/20000000-0000-4000-8000-000000000001",
     ] as const) {
       test(`${path} has no horizontal overflow`, async ({ page }) => {
         await page.goto(path);
@@ -60,7 +63,15 @@ for (const viewport of VIEWPORTS) {
       });
     }
 
-    for (const path of ["/", "/design", "/compte", "/sites", "/sites/TEST-001"] as const) {
+    for (const path of [
+      "/",
+      "/design",
+      "/compte",
+      "/sites",
+      "/sites/TEST-001",
+      "/visites/nouvelle",
+      "/visites/20000000-0000-4000-8000-000000000001",
+    ] as const) {
       test(`${path} visible links and buttons are at least ${MIN_TARGET} px`, async ({ page }) => {
         await page.goto(path);
         await expectTouchTargets(page);

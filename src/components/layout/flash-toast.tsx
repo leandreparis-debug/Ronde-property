@@ -7,6 +7,12 @@ import { useToast } from "@/components/ui/toast";
 
 const FLASH_MESSAGES: Record<string, { title: string; description?: string }> = {
   password_changed: { title: "Mot de passe modifié" },
+  visit_created: { title: "Visite créée" },
+  visit_duplicated: {
+    title: "Visite dupliquée",
+    description: "Une nouvelle visite en cours a été créée.",
+  },
+  visit_deleted: { title: "Visite supprimée" },
 };
 
 /** Shows a one-time success toast carried by the `flash` query parameter, then cleans the URL. */

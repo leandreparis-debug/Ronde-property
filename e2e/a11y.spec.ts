@@ -27,6 +27,9 @@ test.describe("as rt", () => {
     "/sites",
     "/sites/TEST-001",
     "/sites?q=lyon",
+    "/?scope=all",
+    "/visites/nouvelle",
+    "/visites/20000000-0000-4000-8000-000000000001",
   ] as const) {
     test(`${path} has no serious or critical axe violation`, async ({ page }) => {
       await page.goto(path);
@@ -37,6 +40,16 @@ test.describe("as rt", () => {
   test("/design at tablet width has no serious or critical axe violation", async ({ page }) => {
     await page.setViewportSize({ width: 768, height: 1024 });
     await page.goto("/design");
+    await expectNoBlockingViolation(page);
+  });
+});
+
+test.describe("as direction", () => {
+  test.use({ storageState: storageStatePath("claire") });
+
+  test("the read-only visit page has no serious or critical axe violation", async ({ page }) => {
+    await page.goto("/visites/20000000-0000-4000-8000-000000000001");
+    await expect(page.getByTestId("visit-info-readonly")).toBeVisible();
     await expectNoBlockingViolation(page);
   });
 });

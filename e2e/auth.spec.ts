@@ -17,7 +17,7 @@ test.describe("sign-in", () => {
     await expect(page.getByRole("heading", { name: "Connexion" })).toBeVisible();
     await loginAs(page, "alice", SEED_PASSWORD, "/reserves");
     await expect(page).toHaveURL(/\/reserves$/);
-    await expect(page.getByRole("heading", { level: 1, name: "Mes réserves" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Réserves" })).toBeVisible();
   });
 
   for (const role of ["alice", "claire", "david"] as const) {

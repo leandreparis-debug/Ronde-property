@@ -10,7 +10,7 @@ Utilisateurs : **RT** (saisie sur tablette au doigt et sur PC), **Direction** (l
 **Admin** (gestion des comptes).
 
 Étapes : 1 fondations et design system (faite) · 2 modèle de données Supabase et RLS (faite) ·
-3 authentification, rôles, audit (faite) · 4 référentiel des sites (CSV VIGIE, faite) · 5 visites · 6 notes
+3 authentification, rôles, audit (faite) · 4 référentiel des sites (CSV VIGIE, faite) · 5 visites (faite) · 6 notes
 par zone · 7 photos · 8 plans AutoCAD et repères · 9 réserves · 10 rapport PDF · 11 recette et
 déploiement.
 
@@ -56,6 +56,7 @@ src/components/ui/         primitives façon shadcn, écrites à la main
 src/lib/                   cn, env (zod), format (dates fr-FR), constants
 src/server/                db/ (pool, Kysely, withUser/withSystem), auth/ (AuthService local et supabase, session), services/, actions/, sites/import/ (moteur d'import VIGIE), supabase/ (clients auth), domain/, repositories/ (interfaces, SiteRepository implémenté)
 src/components/sites/      SiteCard, SiteSearchForm, SitePicker (combobox réutilisable)
+src/components/visits/     liste, création, fiche (en-tête, actions, bandeau, onglets, informations, participants)
 docs/samples/              échantillons fictifs (export VIGIE)
 src/middleware.ts          protection des routes et rafraîchissement de session (aucune lecture en base)
 supabase/migrations/       migrations SQL horodatées (jamais modifiées après commit)
@@ -116,5 +117,8 @@ tests/                     tests Vitest (miroir de src/)
 24. **Aucun fichier de plus de 4 Mo ne transite par une action serveur ou une route** (limite
     Vercel de 4,5 Mo par requête) ; photos, plans et rapports PDF sont envoyés directement au
     stockage par URL signée (étape 7).
-25. `audit_log` et `reserve_events` sont en ajout seul : jamais de `update`, `delete` ni
+25. **Visites** : toute mise à jour envoie la `version` connue (concurrence optimiste) ; les
+    changements de statut et la suppression passent par les RPC ; le site est immuable ; la
+    règle type/motif est vérifiée côté serveur (`visitInputSchema`, `visitUpdateSchema`).
+26. `audit_log` et `reserve_events` sont en ajout seul : jamais de `update`, `delete` ni
     `truncate`, même en test (seule la réinitialisation complète de `ronde_test` les vide).

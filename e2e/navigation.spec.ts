@@ -1,18 +1,12 @@
 import { expect, test } from "@playwright/test";
 
-test.describe("Mes visites", () => {
-  test("shows the title, the disabled action and the empty state", async ({ page }) => {
+test.describe("Visites", () => {
+  test("shows the title, the creation action and the seeded visit", async ({ page }) => {
     await page.goto("/");
-    await expect(page).toHaveTitle(/Mes visites · RONDE/);
-    await expect(page.getByRole("heading", { level: 1, name: "Mes visites" })).toBeVisible();
-    const newVisit = page.getByRole("button", { name: "Nouvelle visite" });
-    await expect(newVisit).toBeDisabled();
-    await expect(newVisit).toHaveAccessibleDescription("Disponible à l'étape 5");
-    await expect(page.getByRole("heading", { name: "Aucune visite pour l'instant" })).toBeVisible();
-    await expect(
-      page.getByText("Vos visites apparaîtront ici, sur la tablette comme sur l'ordinateur."),
-    ).toBeVisible();
-    await expect(page.locator('svg[data-mood="asleep"]')).toBeVisible();
+    await expect(page).toHaveTitle(/Visites · RONDE/);
+    await expect(page.getByRole("heading", { level: 1, name: "Visites" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Nouvelle visite" })).toBeVisible();
+    await expect(page.locator("[data-testid^=visit-]").first()).toBeVisible();
   });
 
   test("sets the document language to French", async ({ page }) => {
@@ -30,14 +24,14 @@ test.describe("navigation with the side bar (1280 px)", () => {
     await expect(sideNav).toBeVisible();
     await expect(page.getByRole("navigation", { name: "Navigation principale" })).toBeHidden();
 
-    const visits = sideNav.getByRole("link", { name: "Mes visites" });
+    const visits = sideNav.getByRole("link", { name: "Visites", exact: true });
     await expect(visits).toHaveAttribute("aria-current", "page");
 
-    await sideNav.getByRole("link", { name: "Mes réserves" }).click();
+    await sideNav.getByRole("link", { name: "Réserves" }).click();
     await expect(page).toHaveURL(/\/reserves$/);
-    await expect(page.getByRole("heading", { level: 1, name: "Mes réserves" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Réserves" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Aucune réserve à suivre" })).toBeVisible();
-    await expect(sideNav.getByRole("link", { name: "Mes réserves" })).toHaveAttribute(
+    await expect(sideNav.getByRole("link", { name: "Réserves" })).toHaveAttribute(
       "aria-current",
       "page",
     );
@@ -59,10 +53,10 @@ test.describe("navigation with the bottom bar (768 px)", () => {
     expect(box!.height).toBeGreaterThanOrEqual(56);
     expect(box!.y + box!.height).toBeCloseTo(1024, 0);
 
-    await bottomNav.getByRole("link", { name: "Mes réserves" }).click();
+    await bottomNav.getByRole("link", { name: "Réserves" }).click();
     await expect(page).toHaveURL(/\/reserves$/);
-    await expect(page.getByRole("heading", { level: 1, name: "Mes réserves" })).toBeVisible();
-    await expect(bottomNav.getByRole("link", { name: "Mes réserves" })).toHaveAttribute(
+    await expect(page.getByRole("heading", { level: 1, name: "Réserves" })).toBeVisible();
+    await expect(bottomNav.getByRole("link", { name: "Réserves" })).toHaveAttribute(
       "aria-current",
       "page",
     );
@@ -77,7 +71,7 @@ test.describe("unknown route", () => {
     await expect(page.locator('svg[data-mood="worried"]')).toBeVisible();
     await page.getByRole("link", { name: "Mes visites" }).click();
     await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByRole("heading", { level: 1, name: "Mes visites" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Visites" })).toBeVisible();
   });
 });
 

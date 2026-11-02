@@ -9,8 +9,8 @@ export interface AppNavItem {
 }
 
 const BASE_ITEMS: AppNavItem[] = [
-  { href: "/", match: "/", label: "Mes visites", icon: "visits" },
-  { href: "/reserves", match: "/reserves", label: "Mes réserves", icon: "reserves" },
+  { href: "/", match: "/", label: "Visites", icon: "visits" },
+  { href: "/reserves", match: "/reserves", label: "Réserves", icon: "reserves" },
   { href: "/sites", match: "/sites", label: "Sites", icon: "sites" },
 ];
 

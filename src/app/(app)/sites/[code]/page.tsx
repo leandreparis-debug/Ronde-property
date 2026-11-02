@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatDate, formatDateTime, formatNumber, formatSurface } from "@/lib/format";
@@ -19,11 +21,12 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 
 /** Read-only site page with its visits. Unknown codes render the RONDE 404. */
 export default async function SitePage({ params }: { params: Params }) {
-  await requireUser();
+  const user = await requireUser();
   const { code } = await params;
   const data = await getSiteWithVisits(decodeURIComponent(code));
   if (!data) notFound();
   const { site, visits } = data;
+  const canCreate = (user.role === "rt" || user.role === "admin") && site.isActive;
 
   return (
     <>
@@ -36,6 +39,15 @@ export default async function SitePage({ params }: { params: Params }) {
           </span>
         }
         title={site.name}
+        actions={
+          canCreate ? (
+            <Button asChild size="lg">
+              <Link href={`/visites/nouvelle?site=${encodeURIComponent(site.warehouseCode)}`}>
+                Nouvelle visite sur ce site
+              </Link>
+            </Button>
+          ) : null
+        }
       />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[2fr_3fr]">
         <Card>
@@ -83,20 +95,25 @@ export default async function SitePage({ params }: { params: Params }) {
             ) : (
               <ul className="divide-y divide-rule" aria-label="Visites">
                 {visits.map((visit) => (
-                  <li key={visit.id} className="flex flex-col gap-1 py-3" data-testid="site-visit">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-ui text-ink-2">{formatDate(visit.visitDate)}</span>
-                      <Badge variant="brand">{VISIT_STATUS_LABELS[visit.status]}</Badge>
-                    </div>
-                    <p className="text-body font-semibold text-ink">{visit.title}</p>
-                    <p className="text-ui text-ink-2">
-                      {VISIT_REASON_LABELS[visit.reason]} · {visit.openReservesCount} réserve
-                      {visit.openReservesCount > 1 ? "s" : ""} ouverte
-                      {visit.openReservesCount > 1 ? "s" : ""}
-                      {visit.overdueReservesCount > 0
-                        ? ` dont ${visit.overdueReservesCount} en retard`
-                        : ""}
-                    </p>
+                  <li key={visit.id} data-testid="site-visit">
+                    <Link
+                      href={`/visites/${visit.id}`}
+                      className="flex min-h-touch-lg flex-col gap-1 rounded-md py-3 hover:bg-brand-tint"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-ui text-ink-2">{formatDate(visit.visitDate)}</span>
+                        <Badge variant="brand">{VISIT_STATUS_LABELS[visit.status]}</Badge>
+                      </div>
+                      <p className="text-body font-semibold text-ink">{visit.title}</p>
+                      <p className="text-ui text-ink-2">
+                        {VISIT_REASON_LABELS[visit.reason]} · {visit.openReservesCount} réserve
+                        {visit.openReservesCount > 1 ? "s" : ""} ouverte
+                        {visit.openReservesCount > 1 ? "s" : ""}
+                        {visit.overdueReservesCount > 0
+                          ? ` dont ${visit.overdueReservesCount} en retard`
+                          : ""}
+                      </p>
+                    </Link>
                   </li>
                 ))}
               </ul>

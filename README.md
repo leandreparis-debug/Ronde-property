@@ -72,6 +72,7 @@ tests/               tests Vitest
 - [Mise en place de Supabase](docs/supabase-setup.md) : créer le projet, appliquer les migrations, premier admin.
 - [Authentification et comptes](docs/auth.md) : fournisseurs `supabase` et `local`, `withUser`, cycle de vie d'un compte.
 - [Import des sites depuis VIGIE](docs/sites-import.md) : export attendu, simulation, options, garde-fou.
+- [Visites](docs/visits.md) : cycle de vie, droits, duplication, concurrence optimiste.
 - [Décisions d'architecture](docs/decisions.md).
 - [Couche serveur](src/server/README.md).
 - [Consignes de développement](CLAUDE.md).

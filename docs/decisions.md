@@ -222,3 +222,37 @@ et rapports PDF seront envoyés directement au stockage par URL signée (étape 
 
 **Motivation.** Vercel limite le corps des requêtes à 4,5 Mo ; passer par le serveur pour les
 fichiers lourds serait de toute façon un goulot.
+
+## 2026-11-02 — Enregistrement automatique avec `version`
+
+**Décision.** L'onglet Informations enregistre au `blur` et 800 ms après la dernière frappe,
+sans bouton global, en envoyant la version connue de la visite. Un conflit (`0` ligne
+modifiée) affiche le nom du dernier auteur et propose de recharger ; rien n'est écrasé. Les
+écritures de participants incrémentent la version de la visite parente par trigger
+(`touch_parent_visit`), afin que tout chemin d'écriture, interface ou synchronisation future,
+soit couvert.
+
+**Motivation.** Saisie au doigt sur site sans perte ; préparation de la synchronisation hors
+réseau (phase 2).
+
+## 2026-11-02 — Site non modifiable après création
+
+**Décision.** Le site d'une visite est immuable (trigger). L'interface l'affiche en lecture
+seule avec la mention correspondante.
+
+**Motivation.** Les réserves sont numérotées par site et rattachées au site de leur visite ;
+changer de site casserait cette cohérence.
+
+## 2026-11-02 — Duplication sans réserves
+
+**Décision.** « Dupliquer » reprend le site, le type, le motif, l'objet, le rédacteur et les
+participants (tous présents) ; ni notes, ni photos, ni repères, ni réserves, ni rapports. La
+reprise des réserves ouvertes à la visite suivante viendra en phase 2.
+
+## 2026-11-02 — Un participant lié obtient le droit de modification
+
+**Décision.** Ajouter un collègue RONDE comme participant (`profile_id`) lui donne le droit de
+modifier la visite tant qu'elle est en cours (règle RLS existante). Le dialogue l'indique.
+
+**Motivation.** Les visites se font souvent à plusieurs RT ; le collègue présent doit pouvoir
+saisir sans que le créateur ait à déléguer explicitement.

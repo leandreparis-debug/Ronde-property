@@ -121,11 +121,14 @@ test.describe("site page", () => {
     await expect(
       page.getByRole("heading", { level: 1, name: "Entrepôt fictif Lyon Sud" }),
     ).toBeVisible();
-    const visits = page.getByTestId("site-visit");
-    await expect(visits).toHaveCount(1);
-    await expect(visits.first()).toContainText("Visite périodique Lyon Sud");
-    await expect(visits.first()).toContainText("4 réserves ouvertes dont 1 en retard");
-    await expect(visits.first()).toContainText("En cours");
+    const seeded = page.getByTestId("site-visit").filter({ hasText: "Visite périodique Lyon Sud" });
+    await expect(seeded).toHaveCount(1);
+    await expect(seeded).toContainText("4 réserves ouvertes dont 1 en retard");
+    await expect(seeded).toContainText("En cours");
+    await expect(seeded.getByRole("link")).toHaveAttribute(
+      "href",
+      /\/visites\/20000000-0000-4000-8000-000000000001$/,
+    );
   });
 
   test("an unknown code renders the RONDE 404", async ({ page }) => {

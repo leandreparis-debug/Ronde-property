@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { requireUser } from "@/server/auth/session";
 
 export const metadata: Metadata = {
-  title: "Mes réserves",
+  title: "Réserves",
 };
 
 /**
@@ -15,7 +15,7 @@ export default async function ReservesPage() {
   await requireUser();
   return (
     <>
-      <PageHeader title="Mes réserves" />
+      <PageHeader title="Réserves" />
       <EmptyState
         mood="asleep"
         title="Aucune réserve à suivre"
