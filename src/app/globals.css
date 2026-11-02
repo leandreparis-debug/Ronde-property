@@ -129,3 +129,68 @@
 @utility safe-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
+
+/* Mascot blink: eyes squash vertically for a split second every ~6 s. */
+@keyframes galet-blink {
+  0%,
+  96%,
+  100% {
+    transform: scaleY(1);
+  }
+  98% {
+    transform: scaleY(0.08);
+  }
+}
+
+.galet-blink {
+  transform-origin: 68px 54px;
+  animation: galet-blink 6s ease-in-out infinite;
+}
+
+/* Trail: the stroke draws itself once, then the waypoints appear. */
+@keyframes trail-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes trail-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.trail-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: trail-draw 1.6s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+.trail-waypoint {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: trail-pop 0.35s ease-out 1.4s forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .galet-blink,
+  .trail-draw,
+  .trail-waypoint {
+    animation: none;
+  }
+  .trail-draw {
+    stroke-dashoffset: 0;
+  }
+  .trail-waypoint {
+    opacity: 1;
+  }
+}
