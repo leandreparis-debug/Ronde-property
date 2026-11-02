@@ -1,21 +1,26 @@
-import type { ReactNode } from "react";
+import { type ReactNode, Suspense } from "react";
 
 import { ToastProvider } from "@/components/ui/toast";
+import type { CurrentUser } from "@/server/auth/types";
 
 import { BottomNav } from "./bottom-nav";
+import { FlashToast } from "./flash-toast";
 import { SideNav } from "./side-nav";
 import { TopBar } from "./top-bar";
 
 /**
- * Application frame. Side navigation from 1024 px, top bar and bottom navigation below.
- * Content is limited to 1200 px with 16 px side margins (24 px from 768 px).
+ * Application frame for a signed-in user. Side navigation from 1024 px, top bar and bottom
+ * navigation below. Content is limited to 1200 px with 16 px side margins (24 px from 768 px).
  */
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({ user, children }: { user: CurrentUser; children: ReactNode }) {
   return (
     <ToastProvider>
+      <Suspense fallback={null}>
+        <FlashToast />
+      </Suspense>
       <div className="min-h-dvh bg-craie text-ink">
-        <SideNav />
-        <TopBar />
+        <SideNav user={user} />
+        <TopBar user={user} />
         <div className="lg:pl-sidenav">
           <main
             id="main"
@@ -24,7 +29,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             {children}
           </main>
         </div>
-        <BottomNav />
+        <BottomNav user={user} />
       </div>
     </ToastProvider>
   );

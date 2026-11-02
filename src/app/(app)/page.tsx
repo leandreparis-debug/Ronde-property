@@ -4,6 +4,7 @@ import { Trail } from "@/components/brand/Trail";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { requireUser } from "@/server/auth/session";
 
 export const metadata: Metadata = {
   title: "Mes visites",
@@ -12,7 +13,8 @@ export const metadata: Metadata = {
 /**
  * « Mes visites »: list of the RT's visits. Empty until step 5.
  */
-export default function VisitsPage() {
+export default async function VisitsPage() {
+  await requireUser();
   return (
     <>
       <PageHeader

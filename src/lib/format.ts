@@ -65,3 +65,16 @@ export function formatDateTime(input: DateInput, style: DateStyle = "short"): st
   }).format(date);
   return `${day} ${time}`;
 }
+
+/**
+ * Initials of a full name, two letters maximum (« Alice Fictive » → « AF »).
+ */
+export function initials(fullName: string): string {
+  const parts = fullName
+    .trim()
+    .split(/[\s-]+/)
+    .filter(Boolean);
+  const first = parts[0]?.[0] ?? "";
+  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? "") : (parts[0]?.[1] ?? "");
+  return `${first}${last}`.toUpperCase() || "?";
+}

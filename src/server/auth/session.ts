@@ -8,11 +8,11 @@ import { withSystem } from "@/server/db/context";
 import type { UserRole } from "@/server/domain/enums";
 import { ForbiddenError, UnauthenticatedError } from "@/server/errors";
 
+import { PATHNAME_HEADER } from "./constants";
 import { getAuthService } from "./provider";
 import type { CurrentUser } from "./types";
 
-/** Header set by the middleware with the current pathname (used for `next`). */
-export const PATHNAME_HEADER = "x-ronde-pathname";
+export { PATHNAME_HEADER } from "./constants";
 
 /** Paths that stay reachable while a password change is pending. */
 const PASSWORD_CHANGE_ALLOWED = new Set(["/changer-mot-de-passe", "/deconnexion"]);

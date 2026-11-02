@@ -8,23 +8,25 @@ import { cn } from "@/lib/cn";
 
 export interface NavLinkProps {
   href: string;
+  /** Path prefix that marks the link current (defaults to `href`). */
+  match?: string;
   className?: string;
   activeClassName?: string;
   children: ReactNode;
 }
 
-/** Whether `pathname` is `href` or one of its sub-routes. */
-export function isActivePath(pathname: string, href: string): boolean {
-  if (href === "/") return pathname === "/";
-  return pathname === href || pathname.startsWith(`${href}/`);
+/** Whether `pathname` is `prefix` or one of its sub-routes. */
+export function isActivePath(pathname: string, prefix: string): boolean {
+  if (prefix === "/") return pathname === "/";
+  return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
 
 /**
  * Navigation link that marks itself as the current page (`aria-current="page"`).
  */
-export function NavLink({ href, className, activeClassName, children }: NavLinkProps) {
+export function NavLink({ href, match, className, activeClassName, children }: NavLinkProps) {
   const pathname = usePathname();
-  const active = isActivePath(pathname, href);
+  const active = isActivePath(pathname, match ?? href);
 
   return (
     <Link
