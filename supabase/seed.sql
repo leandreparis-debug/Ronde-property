@@ -9,13 +9,15 @@ begin;
 -- ---------------------------------------------------------------------------
 -- Utilisateurs (auth.users + profiles). Emails en @example.test, UUID fixes.
 -- ---------------------------------------------------------------------------
-insert into auth.users (id, email) values
-  ('00000000-0000-4000-8000-000000000001', 'rt.alice@example.test'),
-  ('00000000-0000-4000-8000-000000000002', 'rt.bruno@example.test'),
-  ('00000000-0000-4000-8000-000000000003', 'direction.claire@example.test'),
-  ('00000000-0000-4000-8000-000000000004', 'admin.david@example.test'),
-  ('00000000-0000-4000-8000-000000000005', 'rt.inactif@example.test'),
-  ('00000000-0000-4000-8000-000000000006', 'rt.emma@example.test')
+-- Mot de passe LOCAL commun à tous les comptes fictifs : Ronde-test-2026
+-- (hash bcrypt, fournisseur d'authentification `local` uniquement, jamais sur Supabase).
+insert into auth.users (id, email, encrypted_password, email_confirmed_at) values
+  ('00000000-0000-4000-8000-000000000001', 'rt.alice@example.test', '$2b$10$nS1FlMzYImEBuh7tbBJzOODPJQTeJppJEno0ktoTI/snCYmeDukNC', now()),
+  ('00000000-0000-4000-8000-000000000002', 'rt.bruno@example.test', '$2b$10$nS1FlMzYImEBuh7tbBJzOODPJQTeJppJEno0ktoTI/snCYmeDukNC', now()),
+  ('00000000-0000-4000-8000-000000000003', 'direction.claire@example.test', '$2b$10$nS1FlMzYImEBuh7tbBJzOODPJQTeJppJEno0ktoTI/snCYmeDukNC', now()),
+  ('00000000-0000-4000-8000-000000000004', 'admin.david@example.test', '$2b$10$nS1FlMzYImEBuh7tbBJzOODPJQTeJppJEno0ktoTI/snCYmeDukNC', now()),
+  ('00000000-0000-4000-8000-000000000005', 'rt.inactif@example.test', '$2b$10$nS1FlMzYImEBuh7tbBJzOODPJQTeJppJEno0ktoTI/snCYmeDukNC', now()),
+  ('00000000-0000-4000-8000-000000000006', 'rt.emma@example.test', '$2b$10$nS1FlMzYImEBuh7tbBJzOODPJQTeJppJEno0ktoTI/snCYmeDukNC', now())
 on conflict (id) do nothing;
 
 insert into public.profiles (id, email, full_name, role, is_active, must_change_password) values

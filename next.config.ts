@@ -17,6 +17,10 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  experimental: {
+    // `forbidden()` renders src/app/forbidden.tsx with a 403 status (requireRole).
+    authInterrupts: true,
+  },
   async headers() {
     return [
       {
