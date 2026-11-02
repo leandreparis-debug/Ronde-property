@@ -45,14 +45,22 @@ for (const viewport of VIEWPORTS) {
   test.describe(`${viewport.name} (${viewport.width} × ${viewport.height}) as rt`, () => {
     test.use({ viewport: { width: viewport.width, height: viewport.height } });
 
-    for (const path of ["/", "/reserves", "/design", "/compte", "/changer-mot-de-passe"] as const) {
+    for (const path of [
+      "/",
+      "/reserves",
+      "/design",
+      "/compte",
+      "/changer-mot-de-passe",
+      "/sites",
+      "/sites/TEST-001",
+    ] as const) {
       test(`${path} has no horizontal overflow`, async ({ page }) => {
         await page.goto(path);
         await expectNoHorizontalOverflow(page);
       });
     }
 
-    for (const path of ["/", "/design", "/compte"] as const) {
+    for (const path of ["/", "/design", "/compte", "/sites", "/sites/TEST-001"] as const) {
       test(`${path} visible links and buttons are at least ${MIN_TARGET} px`, async ({ page }) => {
         await page.goto(path);
         await expectTouchTargets(page);
@@ -68,7 +76,12 @@ for (const viewport of VIEWPORTS.filter((v) => v.width === 768 || v.width === 12
       storageState: storageStatePath("david"),
     });
 
-    for (const path of ["/admin/comptes", "/admin/journal"] as const) {
+    for (const path of [
+      "/admin/comptes",
+      "/admin/journal",
+      "/admin/sites/import",
+      "/admin/sites/imports",
+    ] as const) {
       test(`${path} has no horizontal overflow and ${MIN_TARGET} px targets`, async ({ page }) => {
         await page.goto(path);
         await expectNoHorizontalOverflow(page);

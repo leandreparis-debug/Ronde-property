@@ -1,3 +1,5 @@
+import path from "node:path";
+
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page, test } from "@playwright/test";
 
@@ -16,7 +18,16 @@ async function expectNoBlockingViolation(page: Page) {
 }
 
 test.describe("as rt", () => {
-  for (const path of ["/", "/reserves", "/design", "/compte", "/changer-mot-de-passe"] as const) {
+  for (const path of [
+    "/",
+    "/reserves",
+    "/design",
+    "/compte",
+    "/changer-mot-de-passe",
+    "/sites",
+    "/sites/TEST-001",
+    "/sites?q=lyon",
+  ] as const) {
     test(`${path} has no serious or critical axe violation`, async ({ page }) => {
       await page.goto(path);
       await expectNoBlockingViolation(page);
@@ -42,12 +53,26 @@ test.describe("as visitor", () => {
 test.describe("as admin", () => {
   test.use({ storageState: storageStatePath("david") });
 
-  for (const path of ["/admin/comptes", "/admin/journal"] as const) {
+  for (const path of ["/admin/comptes", "/admin/journal", "/admin/sites/imports"] as const) {
     test(`${path} has no serious or critical axe violation`, async ({ page }) => {
       await page.goto(path);
       await expectNoBlockingViolation(page);
     });
   }
+
+  test("the import page with a simulation report has no serious or critical axe violation", async ({
+    page,
+  }) => {
+    await page.goto("/admin/sites/import");
+    await expectNoBlockingViolation(page);
+    await page.setInputFiles(
+      "#import-file",
+      path.join(__dirname, "..", "docs", "samples", "sites-vigie-exemple.csv"),
+    );
+    await page.getByRole("button", { name: "Simuler l'import" }).click();
+    await expect(page.getByTestId("import-report")).toBeVisible();
+    await expectNoBlockingViolation(page);
+  });
 
   test("the account creation dialog has no serious or critical axe violation", async ({ page }) => {
     await page.goto("/admin/comptes");

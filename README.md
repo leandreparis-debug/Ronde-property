@@ -71,6 +71,7 @@ tests/               tests Vitest
 - [Modèle de données](docs/data-model.md) : schéma, matrice RLS, buckets.
 - [Mise en place de Supabase](docs/supabase-setup.md) : créer le projet, appliquer les migrations, premier admin.
 - [Authentification et comptes](docs/auth.md) : fournisseurs `supabase` et `local`, `withUser`, cycle de vie d'un compte.
+- [Import des sites depuis VIGIE](docs/sites-import.md) : export attendu, simulation, options, garde-fou.
 - [Décisions d'architecture](docs/decisions.md).
 - [Couche serveur](src/server/README.md).
 - [Consignes de développement](CLAUDE.md).
@@ -90,6 +91,17 @@ pnpm test:db
 ```
 
 `seed.sql` et `bootstrap.sql` ne doivent jamais être exécutés sur un vrai projet Supabase.
+
+## Pages
+
+| Page                                          | Qui    | Rôle                                                                                              |
+| --------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------- |
+| `/` et `/reserves`                            | tous   | Mes visites, Mes réserves (états vides jusqu'aux étapes 5 et 9)                                   |
+| `/sites` et `/sites/[code]`                   | tous   | recherche du référentiel VIGIE (sans accents ni casse) et fiche en lecture seule avec les visites |
+| `/compte`                                     | tous   | nom, mot de passe, déconnexion                                                                    |
+| `/admin/comptes`, `/admin/journal`            | admin  | comptes, journal d'audit                                                                          |
+| `/admin/sites/import`, `/admin/sites/imports` | admin  | import CSV VIGIE (simulation puis application), historique                                        |
+| `/design`                                     | public | design system (données fictives)                                                                  |
 
 ## Connexion en local
 

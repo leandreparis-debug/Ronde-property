@@ -225,6 +225,25 @@ Buckets **privés** créés par migration ; aucun accès public, URL signées à
 Le premier segment du chemin est l'identifiant de la visite ou du site
 (`private.storage_root_id`).
 
+## Recherche des sites (migration 10)
+
+L'extension `unaccent` (schéma `extensions`) et la fonction `immutable`
+`private.search_text(text)` (minuscules, sans accents) normalisent le texte de recherche.
+`private.site_search_text(name, warehouse_code, city)` concatène nom, code et ville ; un index
+trigram GIN porte sur cette expression. La recherche combine `ILIKE` (jokers échappés) et la
+similarité trigram, classe le code exact en premier, puis les correspondances `ILIKE`, puis la
+similarité, et exclut les sites inactifs par défaut.
+
+`site_import_runs` reçoit `file_sha256` (empreinte du fichier, jamais conservé) et `options`.
+
+## Comptes jamais supprimés (migration 9)
+
+`audit_log.actor_id`, `reserve_events.actor_id`, `reports.generated_by` et
+`site_import_runs.performed_by` référencent `profiles` avec `on delete restrict`, et le trigger
+`profiles_never_deleted` refuse toute suppression de profil (y compris en cascade depuis
+`auth.users`) avec le message « RONDE: un compte ne se supprime pas, il se désactive (historique
+attribué) ».
+
 ## Accès depuis l'application
 
 Depuis l'étape 3, l'application n'utilise plus l'API REST de Supabase pour les données : elle

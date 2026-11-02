@@ -180,3 +180,36 @@ supprime pas, il se désactive (historique attribué) », y compris en cascade d
 
 **Motivation.** L'historique reste attribué à son auteur. Pour le RGPD, une anonymisation (nom et
 email remplacés, compte désactivé) viendra à l'étape 11.
+
+## 2026-11-02 — Import des sites : simulation puis application
+
+**Décision.** L'import du CSV VIGIE se fait en deux temps : une **simulation** qui calcule le
+plan (créations, mises à jour avec diff, inchangés, réactivations, désactivations, rejets) sans
+rien écrire, puis une **application** en une seule transaction, qui recalcule le plan sur
+l'état courant et refuse si l'empreinte du fichier ou les compteurs diffèrent de la simulation.
+
+**Motivation.** L'admin voit exactement ce qui va changer avant d'agir ; un import concurrent
+ou un fichier modifié ne peut pas produire un résultat différent de celui validé.
+
+## 2026-11-02 — Désactivation seulement en référentiel complet, garde-fou des 20 %
+
+**Décision.** Un site actif absent du fichier n'est désactivé que si l'admin coche « Ce fichier
+contient tout le référentiel ». Si cette désactivation toucherait plus de 20 % des sites actifs,
+l'application exige une confirmation explicite. Aucun site n'est jamais supprimé.
+
+**Motivation.** Un export partiel ou tronqué est l'erreur la plus probable ; elle ne doit pas
+vider le référentiel.
+
+## 2026-11-02 — Une cellule vide n'efface rien par défaut
+
+**Décision.** Une valeur vide dans le fichier conserve la valeur enregistrée, sauf si l'option
+« Une cellule vide efface la valeur existante » est cochée. Le rapport indique le nombre de
+valeurs conservées.
+
+## 2026-11-02 — Le fichier importé n'est pas conservé
+
+**Décision.** Seuls le nom du fichier, son empreinte SHA-256, les options et le rapport
+(compteurs, rejets) sont stockés dans `site_import_runs`. Le contenu n'est jamais stocké.
+
+**Motivation.** Pas de donnée inutile en base ; l'empreinte suffit à relier une application à
+sa simulation et à retrouver le fichier d'origine chez l'admin.

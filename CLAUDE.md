@@ -10,7 +10,7 @@ Utilisateurs : **RT** (saisie sur tablette au doigt et sur PC), **Direction** (l
 **Admin** (gestion des comptes).
 
 Étapes : 1 fondations et design system (faite) · 2 modèle de données Supabase et RLS (faite) ·
-3 authentification, rôles, audit (faite) · 4 référentiel des sites (CSV VIGIE) · 5 visites · 6 notes
+3 authentification, rôles, audit (faite) · 4 référentiel des sites (CSV VIGIE, faite) · 5 visites · 6 notes
 par zone · 7 photos · 8 plans AutoCAD et repères · 9 réserves · 10 rapport PDF · 11 recette et
 déploiement.
 
@@ -54,7 +54,9 @@ src/components/brand/      Galet, Logo, Trail
 src/components/layout/     AppShell, SideNav, BottomNav, TopBar, PageHeader, NavLink
 src/components/ui/         primitives façon shadcn, écrites à la main
 src/lib/                   cn, env (zod), format (dates fr-FR), constants
-src/server/                db/ (pool, Kysely, withUser/withSystem), auth/ (AuthService local et supabase, session), services/, actions/, supabase/ (clients auth), domain/, repositories/ (interfaces)
+src/server/                db/ (pool, Kysely, withUser/withSystem), auth/ (AuthService local et supabase, session), services/, actions/, sites/import/ (moteur d'import VIGIE), supabase/ (clients auth), domain/, repositories/ (interfaces, SiteRepository implémenté)
+src/components/sites/      SiteCard, SiteSearchForm, SitePicker (combobox réutilisable)
+docs/samples/              échantillons fictifs (export VIGIE)
 src/middleware.ts          protection des routes et rafraîchissement de session (aucune lecture en base)
 supabase/migrations/       migrations SQL horodatées (jamais modifiées après commit)
 supabase/seed.sql          données fictives pour la base locale / de test uniquement
@@ -108,5 +110,8 @@ tests/                     tests Vitest (miroir de src/)
 21. `AUTH_PROVIDER=local` est réservé aux tests et au développement (localhost, jamais Vercel).
 22. **Un compte ne se supprime jamais** : il se désactive (trigger `profiles_never_deleted`,
     clés `restrict`). Anonymisation RGPD prévue à l'étape 11.
-23. `audit_log` et `reserve_events` sont en ajout seul : jamais de `update`, `delete` ni
+23. **Sites** : jamais modifiés à la main ni supprimés ; le référentiel ne change que par import
+    CSV (simulation puis application, `withSystem('site_import…')`). Les alias de colonnes sont
+    dans `src/server/sites/import/format.ts`.
+24. `audit_log` et `reserve_events` sont en ajout seul : jamais de `update`, `delete` ni
     `truncate`, même en test (seule la réinitialisation complète de `ronde_test` les vide).
