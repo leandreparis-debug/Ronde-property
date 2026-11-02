@@ -100,7 +100,7 @@ const CASES: TableCase[] = [
   {
     table: "profiles",
     read: {
-      sql: "select id, full_name, role, is_active from public.profiles",
+      sql: "select id, full_name, role, is_active from public.profiles where id::text like '00000000-0000-4000-8000-%'",
       expect: activeUsersRead(6),
     },
     insert: {

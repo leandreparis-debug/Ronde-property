@@ -66,6 +66,8 @@ if (!supabaseConfigured) {
 }
 
 afterAll(async () => {
+  // Accounts created here stay in the database: profiles with audit entries cannot be deleted
+  // (audit_log is append-only). Other suites count seed rows by id, so this is harmless.
   await closePool();
 });
 

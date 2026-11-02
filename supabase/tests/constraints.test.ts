@@ -196,7 +196,9 @@ describe("profiles", () => {
         "update public.profiles set role = 'direction', is_active = false where id = $1",
         [USERS.emma],
       );
-      const actions = await auditActions(client, USERS.emma);
+      const actions = (await auditActions(client, USERS.emma)).filter((action) =>
+        action.startsWith("profile."),
+      );
       expect(actions).toEqual(["profile.role_changed", "profile.deactivated"]);
       await actAs(client, ACTORS.emma);
       const result = await attempt(client, "select id from public.visits");
@@ -213,7 +215,7 @@ describe("profiles", () => {
       );
       const summary = await attempt(
         client,
-        "select id, full_name, role, is_active from public.profiles",
+        "select id, full_name, role, is_active from public.profiles where id::text like '00000000-0000-4000-8000-%'",
       );
       expect(summary.ok && summary.rowCount).toBe(6);
     });
