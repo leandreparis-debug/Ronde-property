@@ -225,6 +225,14 @@ Buckets **privés** créés par migration ; aucun accès public, URL signées à
 Le premier segment du chemin est l'identifiant de la visite ou du site
 (`private.storage_root_id`).
 
+## Accès depuis l'application
+
+Depuis l'étape 3, l'application n'utilise plus l'API REST de Supabase pour les données : elle
+ouvre une connexion Postgres directe (`pg` + Kysely) et exécute chaque opération dans une
+transaction qui fixe `set local role authenticated` et `request.jwt.claims` à partir de
+l'utilisateur vérifié (`withUser`). La RLS ci-dessus s'applique donc telle quelle. Les
+opérations d'administration explicites passent par `withSystem(reason)`. Voir `docs/auth.md`.
+
 ## Base de test
 
 Les tests (`pnpm test:db`, 472 cas) tournent sur PostgreSQL 16 avec

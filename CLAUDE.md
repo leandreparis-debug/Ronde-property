@@ -10,7 +10,7 @@ Utilisateurs : **RT** (saisie sur tablette au doigt et sur PC), **Direction** (l
 **Admin** (gestion des comptes).
 
 Étapes : 1 fondations et design system (faite) · 2 modèle de données Supabase et RLS (faite) ·
-3 authentification, rôles, audit · 4 référentiel des sites (CSV VIGIE) · 5 visites · 6 notes
+3 authentification, rôles, audit (faite) · 4 référentiel des sites (CSV VIGIE) · 5 visites · 6 notes
 par zone · 7 photos · 8 plans AutoCAD et repères · 9 réserves · 10 rapport PDF · 11 recette et
 déploiement.
 
@@ -54,7 +54,8 @@ src/components/brand/      Galet, Logo, Trail
 src/components/layout/     AppShell, SideNav, BottomNav, TopBar, PageHeader, NavLink
 src/components/ui/         primitives façon shadcn, écrites à la main
 src/lib/                   cn, env (zod), format (dates fr-FR), constants
-src/server/                db/ (types générés), supabase/ (clients), domain/ (zod, libellés, trame), repositories/ (interfaces)
+src/server/                db/ (pool, Kysely, withUser/withSystem), auth/ (AuthService local et supabase, session), services/, actions/, supabase/ (clients auth), domain/, repositories/ (interfaces)
+src/middleware.ts          protection des routes et rafraîchissement de session (aucune lecture en base)
 supabase/migrations/       migrations SQL horodatées (jamais modifiées après commit)
 supabase/seed.sql          données fictives pour la base locale / de test uniquement
 supabase/tests/            bootstrap.sql (émulation Supabase pour ronde_test) et tests de la base
@@ -96,5 +97,14 @@ tests/                     tests Vitest (miroir de src/)
     `pnpm db:types`.
 16. **Jamais de `select *`** : les requêtes listent leurs colonnes (privilèges de colonnes sur
     `profiles`).
-17. `audit_log` et `reserve_events` sont en ajout seul : jamais de `update`, `delete` ni
+17. **Toute page et toute action serveur appellent `requireUser()` ou `requireRole()`**
+    (`requireRoleForAction` dans une action). Le middleware ne suffit jamais seul.
+18. **Données uniquement via `withUser`** (RLS) ou `withSystem(reason)` justifié et réservé aux
+    services serveur. Requêtes Kysely paramétrées, jamais de SQL concaténé.
+19. **Jamais `getSession()` pour décider d'un droit** : identité vérifiée (`getUser()` ou
+    signature) puis profil relu en base à chaque requête.
+20. **Jamais de mot de passe ni d'email en clair dans les logs** ni dans `audit_log` (hash).
+    Le mot de passe provisoire est affiché une seule fois et jamais stocké en clair.
+21. `AUTH_PROVIDER=local` est réservé aux tests et au développement (localhost, jamais Vercel).
+22. `audit_log` et `reserve_events` sont en ajout seul : jamais de `update`, `delete` ni
     `truncate`, même en test (seule la réinitialisation complète de `ronde_test` les vide).

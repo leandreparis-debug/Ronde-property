@@ -43,6 +43,7 @@ est sur <http://localhost:3000/design>.
 | `pnpm db:reset`     | réinitialise la base de test locale `ronde_test`        |
 | `pnpm test:db`      | tests de la base (RLS, triggers, stockage)              |
 | `pnpm db:types`     | régénère les types TypeScript du schéma                 |
+| `pnpm db:codegen`   | régénère les types Kysely du schéma                     |
 
 La CI GitHub Actions (`.github/workflows/ci.yml`) exécute trois jobs à chaque push et pull
 request : `pnpm verify`, `pnpm test:e2e` sur Chromium, et `pnpm db:reset && pnpm test:db` sur
@@ -68,7 +69,8 @@ tests/               tests Vitest
 
 - [Design system](docs/design-system.md) : tokens, typographie, mascotte, composants.
 - [Modèle de données](docs/data-model.md) : schéma, matrice RLS, buckets.
-- [Mise en place de Supabase](docs/supabase-setup.md) : créer le projet, appliquer les migrations.
+- [Mise en place de Supabase](docs/supabase-setup.md) : créer le projet, appliquer les migrations, premier admin.
+- [Authentification et comptes](docs/auth.md) : fournisseurs `supabase` et `local`, `withUser`, cycle de vie d'un compte.
 - [Décisions d'architecture](docs/decisions.md).
 - [Couche serveur](src/server/README.md).
 - [Consignes de développement](CLAUDE.md).
@@ -88,6 +90,13 @@ pnpm test:db
 ```
 
 `seed.sql` et `bootstrap.sql` ne doivent jamais être exécutés sur un vrai projet Supabase.
+
+## Connexion en local
+
+Avec `AUTH_PROVIDER=local` dans `.env.local` (voir `.env.example`), les comptes fictifs de la
+seed se connectent avec le mot de passe `Ronde-test-2026` : `rt.alice@example.test` (RT),
+`direction.claire@example.test` (direction), `admin.david@example.test` (admin). Détails dans
+`docs/auth.md`.
 
 ## Variables d'environnement
 

@@ -116,6 +116,60 @@ avec un message explicite.
 Project → **Settings** → **Environment Variables** : ajoutez les trois variables Supabase
 pour Production et Preview. Redéployez après modification.
 
+## 4 bis. Authentification (étape 3)
+
+Dashboard → **Authentication** :
+
+- **Providers → Email** : laissez « Enable Email provider » activé, **désactivez « Confirm
+  email »** (les comptes sont créés par l'admin avec `email_confirm: true`, aucune confirmation
+  n'est envoyée).
+- **Sign In / Providers → Allow new users to sign up** : **désactivé** (pas d'inscription libre).
+- **URL Configuration → Site URL** : l'URL de production (`https://ronde.exemple.fr`) ; ajoutez
+  les URL de preview Vercel dans « Redirect URLs » si besoin.
+
+### Premier compte admin
+
+Tant qu'aucun admin n'existe, l'écran `/admin/comptes` est inaccessible. Créez le premier
+compte depuis le dashboard :
+
+1. **Authentication → Users → Add user → Create new user** : email de l'admin, un mot de passe
+   provisoire fort, cochez **Auto Confirm User**.
+2. Copiez l'**UUID** de l'utilisateur créé.
+3. **SQL Editor**, en remplaçant l'UUID et l'email :
+
+   ```sql
+   insert into public.profiles (id, email, full_name, role, is_active, must_change_password)
+   values ('<uuid>', 'prenom.nom@exemple.fr', 'Prénom Nom', 'admin', true, true);
+   ```
+
+4. Connectez-vous sur `/connexion` : l'application impose le changement du mot de passe, puis
+   `/admin/comptes` permet de créer les autres comptes.
+
+### `DATABASE_URL` du pooler (mode transaction)
+
+Dashboard → **Connect** (en haut) → **Transaction pooler** (port **6543**) :
+
+```
+postgres://postgres.<ref>:<mot-de-passe-base>@aws-0-<region>.pooler.supabase.com:6543/postgres
+```
+
+Encodez le mot de passe s'il contient des caractères spéciaux (`@` → `%40`). Le mode
+transaction convient à Vercel (serverless) ; `DATABASE_POOL_MAX` reste petit (5 par défaut).
+
+### Variables à créer dans Vercel
+
+| Variable                        | Valeur                    | Exposée au navigateur ? |
+| ------------------------------- | ------------------------- | ----------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | URL du projet             | oui                     |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | clé anon / publishable    | oui                     |
+| `SUPABASE_SERVICE_ROLE_KEY`     | clé service_role / secret | **non**                 |
+| `DATABASE_URL`                  | pooler transaction (6543) | **non**                 |
+| `DATABASE_POOL_MAX`             | `5` (optionnel)           | non                     |
+| `AUTH_PROVIDER`                 | `supabase` (ou absente)   | non                     |
+
+Ne définissez **jamais** `ALLOW_LOCAL_AUTH` ni `LOCAL_AUTH_SECRET` sur Vercel : le fournisseur
+`local` y est refusé au démarrage.
+
 ## 5. Base de test locale (facultatif sur Windows)
 
 Les tests de base (`pnpm test:db`) tournent sur un PostgreSQL local, sans Docker :
