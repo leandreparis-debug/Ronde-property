@@ -76,6 +76,14 @@
   --spacing-bottomnav: 56px;
 }
 
+/* Font stacks reference the variables set by next/font on <html>; `inline` keeps them resolvable. */
+@theme inline {
+  --font-sans:
+    var(--font-instrument-sans), ui-sans-serif, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-display: var(--font-bricolage-grotesque), var(--font-sans);
+  --font-hand: var(--font-caveat), "Segoe Print", "Bradley Hand", cursive;
+}
+
 @layer base {
   html {
     color-scheme: light;
