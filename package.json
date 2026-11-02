@@ -22,7 +22,8 @@
     "verify": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test && pnpm build",
     "db:reset": "node scripts/db/reset.mjs",
     "db:types": "node scripts/db/gen-types.mjs",
-    "test:db": "vitest run --config vitest.db.config.mts"
+    "test:db": "vitest run --config vitest.db.config.mts",
+    "db:codegen": "node scripts/db/codegen.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "1.3.1",

@@ -38,6 +38,7 @@ const eslintConfig = [
       "test-results/**",
       "next-env.d.ts",
       "src/server/db/database.types.ts",
+      "src/server/db/schema.types.ts",
     ],
   },
 ];

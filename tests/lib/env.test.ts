@@ -49,3 +49,55 @@ describe("parseEnv", () => {
     expect(() => parseEnv({ NODE_ENV: "staging" })).toThrow(/NODE_ENV/);
   });
 });
+
+describe("parseEnv cross validation of the auth provider", () => {
+  const localOk = {
+    AUTH_PROVIDER: "local",
+    ALLOW_LOCAL_AUTH: "true",
+    LOCAL_AUTH_SECRET: "x".repeat(32),
+    DATABASE_URL: "postgres://postgres:postgres@127.0.0.1:5432/ronde_test",
+  };
+
+  it("defaults to supabase and tolerates missing database settings", () => {
+    const env = parseEnv({});
+    expect(env.AUTH_PROVIDER).toBe("supabase");
+    expect(env.DATABASE_URL).toBeUndefined();
+    expect(env.DATABASE_POOL_MAX).toBe(5);
+    expect(env.ALLOW_LOCAL_AUTH).toBe(false);
+  });
+
+  it("accepts a complete local configuration", () => {
+    const env = parseEnv(localOk);
+    expect(env.AUTH_PROVIDER).toBe("local");
+    expect(env.ALLOW_LOCAL_AUTH).toBe(true);
+  });
+
+  it("refuses local without ALLOW_LOCAL_AUTH=true", () => {
+    expect(() => parseEnv({ ...localOk, ALLOW_LOCAL_AUTH: "false" })).toThrow(/ALLOW_LOCAL_AUTH/);
+    expect(() => parseEnv({ ...localOk, ALLOW_LOCAL_AUTH: undefined })).toThrow(/ALLOW_LOCAL_AUTH/);
+  });
+
+  it("refuses local without a long enough secret", () => {
+    expect(() => parseEnv({ ...localOk, LOCAL_AUTH_SECRET: "court" })).toThrow(/LOCAL_AUTH_SECRET/);
+    expect(() => parseEnv({ ...localOk, LOCAL_AUTH_SECRET: undefined })).toThrow(
+      /LOCAL_AUTH_SECRET/,
+    );
+  });
+
+  it("refuses local on Vercel", () => {
+    expect(() => parseEnv({ ...localOk, VERCEL: "1" })).toThrow(/interdit sur Vercel/);
+  });
+
+  it("refuses local with a remote or missing database", () => {
+    expect(() =>
+      parseEnv({ ...localOk, DATABASE_URL: "postgres://u:p@db.example.supabase.co:6543/postgres" }),
+    ).toThrow(/localhost/);
+    expect(() => parseEnv({ ...localOk, DATABASE_URL: undefined })).toThrow(/DATABASE_URL/);
+  });
+
+  it("validates DATABASE_URL and DATABASE_POOL_MAX formats", () => {
+    expect(() => parseEnv({ DATABASE_URL: "mysql://x" })).toThrow(/DATABASE_URL/);
+    expect(() => parseEnv({ DATABASE_POOL_MAX: "0" })).toThrow(/DATABASE_POOL_MAX/);
+    expect(parseEnv({ DATABASE_POOL_MAX: "12" }).DATABASE_POOL_MAX).toBe(12);
+  });
+});
