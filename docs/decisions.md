@@ -146,3 +146,19 @@ marqueur transactionnel (`ronde.rpc`) contrôlé par trigger et écrivent dans `
 profils (choix d'un responsable ou d'un participant) ; `email` et `must_change_password` sont
 lus côté serveur avec le client `service_role`. Un `select *` sur `profiles` échoue donc pour
 un utilisateur : les repositories sélectionnent les colonnes explicitement.
+
+## 2026-11-02 — Accès aux données par Postgres direct (pg + Kysely) avec contexte RLS par transaction
+
+**Décision.** Toutes les lectures et écritures de données passent par une connexion Postgres
+directe (`pg` + Kysely), jamais par l'API REST de Supabase. Chaque opération s'exécute dans une
+transaction courte qui fixe `set local role authenticated` et `request.jwt.claims` à partir de
+l'utilisateur **vérifié côté serveur** (`withUser`) ; les opérations d'administration explicites
+passent par `withSystem(reason)`. Supabase Auth reste derrière `AuthService` ; une
+implémentation `local` (comptes dans `auth.users` de la base locale, cookie JWT signé) est
+réservée aux tests et au développement et refusée sur Vercel ou sur une base distante.
+
+**Motivation.** Dans Claude Code comme en CI, il n'y a ni Docker, ni GoTrue, ni PostgREST :
+seulement PostgreSQL. L'application devient testable de bout en bout en local, et la V2 sur le
+serveur interne (PostgreSQL) ne change que l'implémentation d'`AuthService` et de
+`StorageService`. La RLS reste la barrière de sécurité : le rôle et `is_active` sont relus dans
+`profiles` à chaque requête, jamais pris dans un cookie ou un JWT.

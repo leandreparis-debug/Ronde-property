@@ -94,5 +94,7 @@ tests/                     tests Vitest (miroir de src/)
 15. Les règles d'accès vivent dans la base (RLS, triggers, RPC) ; l'application ne les duplique
     que pour l'ergonomie. Après toute migration : `pnpm db:reset && pnpm test:db`, puis
     `pnpm db:types`.
-16. `audit_log` et `reserve_events` sont en ajout seul : jamais de `update`, `delete` ni
+16. **Jamais de `select *`** : les requêtes listent leurs colonnes (privilèges de colonnes sur
+    `profiles`).
+17. `audit_log` et `reserve_events` sont en ajout seul : jamais de `update`, `delete` ni
     `truncate`, même en test (seule la réinitialisation complète de `ronde_test` les vide).
