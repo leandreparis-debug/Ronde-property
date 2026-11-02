@@ -32,6 +32,25 @@ jobs:
     name: End-to-end (Chromium)
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/ronde_test
+      AUTH_PROVIDER: local
+      ALLOW_LOCAL_AUTH: "true"
+      LOCAL_AUTH_SECRET: ci-local-secret-ronde-0123456789abcdef
     steps:
       - uses: actions/checkout@v5
 
@@ -45,6 +64,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm exec playwright install --with-deps chromium
+
+      - run: pnpm db:reset
 
       - run: pnpm test:e2e
         env:
