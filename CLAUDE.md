@@ -113,5 +113,8 @@ tests/                     tests Vitest (miroir de src/)
 23. **Sites** : jamais modifiés à la main ni supprimés ; le référentiel ne change que par import
     CSV (simulation puis application, `withSystem('site_import…')`). Les alias de colonnes sont
     dans `src/server/sites/import/format.ts`.
-24. `audit_log` et `reserve_events` sont en ajout seul : jamais de `update`, `delete` ni
+24. **Aucun fichier de plus de 4 Mo ne transite par une action serveur ou une route** (limite
+    Vercel de 4,5 Mo par requête) ; photos, plans et rapports PDF sont envoyés directement au
+    stockage par URL signée (étape 7).
+25. `audit_log` et `reserve_events` sont en ajout seul : jamais de `update`, `delete` ni
     `truncate`, même en test (seule la réinitialisation complète de `ronde_test` les vide).

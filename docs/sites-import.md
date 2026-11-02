@@ -26,7 +26,7 @@ Les colonnes inconnues sont ignorées et listées dans le rapport. Les alias son
 `src/server/sites/import/format.ts` (constante `FIELD_ALIASES`) : envoyez les vrais intitulés
 de VIGIE pour les ajuster.
 
-Formats acceptés : `.csv` ou `.txt`, 5 Mo et 5 000 lignes maximum ; séparateur `;` ou `,`
+Formats acceptés : `.csv` ou `.txt`, 4 Mo et 5 000 lignes maximum (limite de 4,5 Mo par requête sur Vercel) ; séparateur `;` ou `,`
 (détecté) ; encodage UTF-8 (avec ou sans BOM) ou Windows-1252 (Excel), détecté et indiqué dans
 le rapport ; nombres `12 500,50` ou `12500.50`. Les codes sont mis en majuscules ; un code
 postal à 4 chiffres (zéro perdu par Excel) est corrigé (`1000` → `01000`).

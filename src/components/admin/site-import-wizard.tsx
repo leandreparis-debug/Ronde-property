@@ -131,7 +131,7 @@ export function SiteImportWizard() {
               {file ? file.name : "Déposez l'export VIGIE ici ou choisissez un fichier"}
             </span>
             <span className="text-ink-2">
-              CSV ou TXT, séparateur ; ou , · 5 Mo et 5 000 lignes maximum
+              CSV ou TXT, séparateur ; ou , · 4 Mo et 5 000 lignes maximum
             </span>
             <input
               ref={inputRef}

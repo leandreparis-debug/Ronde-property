@@ -59,7 +59,7 @@ describe("parseSitesCsv", () => {
 
   it("rejects a wrong extension, an oversized file and too many lines", () => {
     expect(() => parseSitesCsv(utf8("Code;Nom\nA;B\n"), "sites.xlsx")).toThrow(/\.csv ou \.txt/);
-    expect(() => parseSitesCsv(new Uint8Array(5 * 1024 * 1024 + 1), "big.csv")).toThrow(/5 Mo/);
+    expect(() => parseSitesCsv(new Uint8Array(4 * 1024 * 1024 + 1), "big.csv")).toThrow(/4 Mo/);
     const many = `Code;Nom\n${Array.from({ length: 5001 }, (_, i) => `C${i};N${i}`).join("\n")}\n`;
     expect(() => parseSitesCsv(utf8(many), "many.csv")).toThrow(/5000 lignes/);
   });

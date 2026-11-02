@@ -7,7 +7,8 @@ import { ValidationError } from "@/server/errors";
 import { mapHeaders, normalizeRow, type RawRow } from "./format";
 import type { DetectedEncoding, ParseResult, RowError, SiteField } from "./types";
 
-export const MAX_FILE_BYTES = 5 * 1024 * 1024;
+// Vercel caps request bodies at 4.5 MB: nothing larger than 4 MB goes through a server action.
+export const MAX_FILE_BYTES = 4 * 1024 * 1024;
 export const MAX_DATA_LINES = 5000;
 const ACCEPTED_EXTENSIONS = [".csv", ".txt"];
 
@@ -44,7 +45,7 @@ export function assertAcceptableFile(fileName: string, size: number): void {
     throw new ValidationError("Seuls les fichiers .csv ou .txt sont acceptés.");
   }
   if (size === 0) throw new ValidationError("Le fichier est vide.");
-  if (size > MAX_FILE_BYTES) throw new ValidationError("Le fichier dépasse 5 Mo.");
+  if (size > MAX_FILE_BYTES) throw new ValidationError("Le fichier dépasse 4 Mo.");
 }
 
 /**

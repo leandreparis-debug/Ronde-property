@@ -213,3 +213,12 @@ valeurs conservées.
 
 **Motivation.** Pas de donnée inutile en base ; l'empreinte suffit à relier une application à
 sa simulation et à retrouver le fichier d'origine chez l'admin.
+
+## 2026-11-02 — Limite de 4 Mo par requête serveur
+
+**Décision.** Aucun fichier de plus de 4 Mo ne transite par une action serveur ou une route
+(`experimental.serverActions.bodySizeLimit = 4mb`, CSV d'import limité à 4 Mo). Photos, plans
+et rapports PDF seront envoyés directement au stockage par URL signée (étape 7).
+
+**Motivation.** Vercel limite le corps des requêtes à 4,5 Mo ; passer par le serveur pour les
+fichiers lourds serait de toute façon un goulot.
