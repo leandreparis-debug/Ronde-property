@@ -145,11 +145,11 @@ export function ParticipantsPanel({
           Aucun participant
         </p>
       ) : (
-        <ol className="flex flex-col gap-2" aria-label="Participants">
+        <ol className="@container flex flex-col gap-2" aria-label="Participants">
           {participants.map((participant, index) => (
             <li
               key={participant.id}
-              className="flex flex-col gap-3 rounded-md border border-rule bg-paper p-3 sm:flex-row sm:items-center"
+              className="flex flex-col gap-3 rounded-md border border-rule bg-paper p-3 @lg:flex-row @lg:items-center"
               data-testid="participant"
             >
               <div className="flex min-w-0 flex-1 flex-col">
