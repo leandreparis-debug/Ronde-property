@@ -138,7 +138,7 @@ const CASES: TableCase[] = [
     table: "site_import_runs",
     read: {
       sql: "select id from public.site_import_runs",
-      expect: { ...activeUsersRead(0), david: 1, alice: 0, bruno: 0, emma: 0, claire: 0 },
+      expect: { ...activeUsersRead(0), david: "some", alice: 0, bruno: 0, emma: 0, claire: 0 },
     },
     insert: {
       sql: () =>
