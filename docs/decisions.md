@@ -77,3 +77,11 @@ point de la pastille (`--color-status-open-dot`), sur le modèle de `#E8A400` po
 
 **Conséquences.** Les autres tokens sont inchangés. Toute future couleur de texte doit être
 vérifiée à 4,5:1 sur ses fonds possibles avant d'entrer dans `@theme`.
+
+## 2026-11-02 — Polices : `next/font/google` en V1, `next/font/local` à l'étape 11
+
+**Décision.** En V1, les trois polices sont chargées avec `next/font/google` : elles sont
+téléchargées une fois au `build` sur Vercel, puis servies par l'application sans aucun appel
+à un CDN à l'exécution. Le passage à `next/font/local`, avec les fichiers de polices embarqués
+dans le dépôt, est prévu à l'étape 11 pour la V2 sur réseau fermé, dont la machine de build
+n'aura pas d'accès sortant.
