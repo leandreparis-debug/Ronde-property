@@ -1,8 +1,13 @@
-import { ClipboardList, ListChecks, ShieldCheck } from "lucide-react";
+import { Building2, ClipboardList, ListChecks, ShieldCheck } from "lucide-react";
 
 import type { AppNavItem } from "./nav-items";
 
-const ICONS = { visits: ClipboardList, reserves: ListChecks, admin: ShieldCheck } as const;
+const ICONS = {
+  visits: ClipboardList,
+  reserves: ListChecks,
+  sites: Building2,
+  admin: ShieldCheck,
+} as const;
 
 /** Icon of a navigation entry, hidden from assistive technologies (the label carries the meaning). */
 export function NavIcon({ icon, className }: { icon: AppNavItem["icon"]; className?: string }) {

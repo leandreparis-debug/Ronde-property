@@ -20,6 +20,8 @@ const nextConfig: NextConfig = {
   experimental: {
     // `forbidden()` renders src/app/forbidden.tsx with a 403 status (requireRole).
     authInterrupts: true,
+    // CSV uploads of the site import (5 MB max, checked again server-side).
+    serverActions: { bodySizeLimit: "6mb" },
   },
   async headers() {
     return [

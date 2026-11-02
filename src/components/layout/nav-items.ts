@@ -5,12 +5,13 @@ export interface AppNavItem {
   href: string;
   match: string;
   label: string;
-  icon: "visits" | "reserves" | "admin";
+  icon: "visits" | "reserves" | "sites" | "admin";
 }
 
 const BASE_ITEMS: AppNavItem[] = [
   { href: "/", match: "/", label: "Mes visites", icon: "visits" },
   { href: "/reserves", match: "/reserves", label: "Mes réserves", icon: "reserves" },
+  { href: "/sites", match: "/sites", label: "Sites", icon: "sites" },
 ];
 
 const ADMIN_ITEM: AppNavItem = {

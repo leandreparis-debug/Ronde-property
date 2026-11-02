@@ -78,3 +78,15 @@ export function initials(fullName: string): string {
   const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? "") : (parts[0]?.[1] ?? "");
   return `${first}${last}`.toUpperCase() || "?";
 }
+
+/** Integer-rounded number in fr-FR (« 12 500 »), or « — » when null. */
+export function formatNumber(value: number | null | undefined, maximumFractionDigits = 0): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return EMPTY_VALUE;
+  return new Intl.NumberFormat(LOCALE, { maximumFractionDigits }).format(value);
+}
+
+/** Surface in square metres (« 12 500 m² »), or « — ». */
+export function formatSurface(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return EMPTY_VALUE;
+  return `${formatNumber(value, 0)} m²`;
+}

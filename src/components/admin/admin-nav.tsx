@@ -2,6 +2,8 @@ import { NavLink } from "@/components/layout/nav-link";
 
 const LINKS = [
   { href: "/admin/comptes", label: "Comptes" },
+  { href: "/admin/sites/import", label: "Import des sites" },
+  { href: "/admin/sites/imports", label: "Historique des imports" },
   { href: "/admin/journal", label: "Journal d'audit" },
 ];
 
