@@ -1,0 +1,25 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# next.js
+.next/
+out/
+next-env.d.ts
+
+# tests
+coverage/
+playwright-report/
+test-results/
+blob-report/
+
+# environment (never commit secrets)
+.env
+.env.local
+.env.*.local
+
+# misc
+*.log
+.DS_Store
+*.tsbuildinfo
+.vercel
