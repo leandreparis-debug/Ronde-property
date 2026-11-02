@@ -1,1 +1,123 @@
 @import "tailwindcss";
+
+/*
+ * RONDE design tokens.
+ * Every token declared in @theme becomes a Tailwind utility (bg-brand, text-ink-2, rounded-lg…).
+ * Rule: components never use raw colour values, only these tokens.
+ * Rule: status colours are reserved for statuses, and a status always carries a text label.
+ */
+@theme {
+  /* Remove Tailwind's default palette so that only RONDE tokens are available. */
+  --color-*: initial;
+
+  /* Brand */
+  --color-brand: #2f6bff; /* mascot, primary action, active tab */
+  --color-brand-deep: #1b45c9; /* text on brand-soft, hover / pressed */
+  --color-brand-soft: #e7eeff; /* brand pills and light brand backgrounds */
+  --color-brand-tint: #f4f7ff; /* large brand surfaces (banners, floor plan) */
+  --color-on-brand: #ffffff; /* text on brand */
+
+  /* Neutrals */
+  --color-ink: #121317; /* primary text ("basalte") */
+  --color-ink-2: #5c606b; /* secondary text */
+  --color-paper: #ffffff; /* cards, panels */
+  --color-craie: #f6f6f4; /* application background */
+  --color-galet: #e9e9e6; /* neutral pills, counters */
+  --color-rule: #e4e4e0; /* borders, separators */
+
+  /* Statuses — reserved for reserve statuses, never for decoration */
+  --color-status-open: #d63a22; /* open reserve, overdue */
+  --color-status-open-bg: #fde4de;
+  --color-status-progress: #8f6200; /* reserve in progress (text) */
+  --color-status-progress-bg: #fff0c7;
+  --color-status-progress-dot: #e8a400; /* reserve in progress (dot) */
+  --color-status-done: #23704a; /* resolved reserve */
+  --color-status-done-bg: #dcf0e3;
+
+  /* Radii */
+  --radius-*: initial;
+  --radius-sm: 12px;
+  --radius-md: 14px; /* buttons, fields */
+  --radius-lg: 20px; /* panels */
+  --radius-xl: 24px; /* section cards */
+  --radius-pill: 999px;
+
+  /* Shadows — a single one, for floating elements only (dialogs, toasts) */
+  --shadow-*: initial;
+  --shadow-raised: 0 18px 40px rgb(0 0 0 / 0.12);
+
+  /* Typographic scale */
+  --text-*: initial;
+  --text-label: 0.75rem; /* 12px — uppercase labels */
+  --text-label--line-height: 1rem;
+  --text-label--letter-spacing: 0.08em;
+  --text-label--font-weight: 600;
+  --text-ui: 0.875rem; /* 14px — interface */
+  --text-ui--line-height: 1.25rem;
+  --text-body: 1rem; /* 16px — note text */
+  --text-body--line-height: 1.5rem;
+  --text-title-sm: 1.25rem; /* 20px — section titles */
+  --text-title-sm--line-height: 1.625rem;
+  --text-title-sm--letter-spacing: -0.04em;
+  --text-title: 1.75rem; /* 28px — page titles */
+  --text-title--line-height: 2.125rem;
+  --text-title--letter-spacing: -0.04em;
+  --text-display: 2.5rem; /* 40px — large headings */
+  --text-display--line-height: 2.875rem;
+  --text-display--letter-spacing: -0.04em;
+
+  /* Touch targets */
+  --spacing-touch: 44px; /* minimum tap area */
+  --spacing-touch-lg: 48px; /* primary actions */
+
+  /* Layout */
+  --container-content: 1200px;
+  --spacing-sidenav: 240px;
+  --spacing-bottomnav: 56px;
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    @apply bg-craie text-ui text-ink antialiased;
+    font-family: var(--font-sans);
+  }
+
+  /* Keyboard focus is always visible; the ring uses the brand token. */
+  :focus-visible {
+    outline: 3px solid var(--color-brand);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  ::selection {
+    background-color: var(--color-brand-soft);
+    color: var(--color-brand-deep);
+  }
+}
+
+@utility font-display {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+@utility font-hand {
+  font-family: var(--font-hand);
+  font-weight: 700;
+}
+
+@utility label-caps {
+  font-size: var(--text-label);
+  line-height: var(--text-label--line-height);
+  letter-spacing: var(--text-label--letter-spacing);
+  font-weight: var(--text-label--font-weight);
+  text-transform: uppercase;
+}
+
+@utility safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
