@@ -16,3 +16,10 @@ describe("cn", () => {
     expect(cn("bg-brand", "bg-paper")).toBe("bg-paper");
   });
 });
+
+describe("cn with RONDE tokens", () => {
+  it("keeps a text colour next to a text size of the type scale", () => {
+    expect(cn("text-on-brand", "text-body")).toBe("text-on-brand text-body");
+    expect(cn("text-ui", "text-body")).toBe("text-body");
+  });
+});

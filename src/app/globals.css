@@ -11,7 +11,8 @@
   --color-*: initial;
 
   /* Brand */
-  --color-brand: #2f6bff; /* mascot, primary action, active tab */
+  /* #2F6AFF rather than #2F6BFF: white text then reaches 4.5:1 (4.49:1 otherwise). */
+  --color-brand: #2f6aff; /* mascot, primary action, active tab */
   --color-brand-deep: #1b45c9; /* text on brand-soft, hover / pressed */
   --color-brand-soft: #e7eeff; /* brand pills and light brand backgrounds */
   --color-brand-tint: #f4f7ff; /* large brand surfaces (banners, floor plan) */
@@ -26,8 +27,10 @@
   --color-rule: #e4e4e0; /* borders, separators */
 
   /* Statuses — reserved for reserve statuses, never for decoration */
-  --color-status-open: #d63a22; /* open reserve, overdue */
+  /* Text #C0341F rather than #D63A22: 4.6:1 on its background (3.9:1 otherwise). The dot keeps #D63A22. */
+  --color-status-open: #c0341f; /* open reserve, overdue (text) */
   --color-status-open-bg: #fde4de;
+  --color-status-open-dot: #d63a22; /* open reserve, overdue (dot) */
   --color-status-progress: #8f6200; /* reserve in progress (text) */
   --color-status-progress-bg: #fff0c7;
   --color-status-progress-dot: #e8a400; /* reserve in progress (dot) */

@@ -8,13 +8,21 @@ export interface PageHeaderProps {
   title: string;
   /** Actions shown on the right, wrapping under the title below 640 px. */
   actions?: ReactNode;
+  /** Heading element. `h1` for a page, lower when the header is embedded in a section. */
+  titleAs?: "h1" | "h2" | "h3";
   className?: string;
 }
 
 /**
  * Title block at the top of a page.
  */
-export function PageHeader({ eyebrow, title, actions, className }: PageHeaderProps) {
+export function PageHeader({
+  eyebrow,
+  title,
+  actions,
+  titleAs: Heading = "h1",
+  className,
+}: PageHeaderProps) {
   return (
     <div
       className={cn(
@@ -24,7 +32,7 @@ export function PageHeader({ eyebrow, title, actions, className }: PageHeaderPro
     >
       <div className="flex min-w-0 flex-col gap-1">
         {eyebrow ? <p className="label-caps text-ink-2">{eyebrow}</p> : null}
-        <h1 className="font-display text-title text-ink">{title}</h1>
+        <Heading className="font-display text-title text-ink">{title}</Heading>
       </div>
       {actions ? <div className="flex flex-wrap items-center gap-3">{actions}</div> : null}
     </div>

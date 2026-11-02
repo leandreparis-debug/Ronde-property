@@ -64,3 +64,16 @@ seulement), en local comme dans la CI.
 
 **Motivation.** Tester exactement ce qui sera déployé (en-têtes de sécurité, polices
 auto-hébergées, CSS compilé) et éviter les faux positifs du mode développement.
+
+## 2026-11-02 — Ajustement minimal de deux couleurs pour le contraste WCAG AA
+
+**Contexte.** La charte fixe `brand` à `#2F6BFF` et `status-open` à `#D63A22`. Mesurés par axe,
+le blanc sur `#2F6BFF` donne 4,49:1 et `#D63A22` sur `#FDE4DE` donne 3,86:1, sous le seuil AA
+de 4,5:1 pour le texte de 14 px. Les tests exigent zéro violation `serious`.
+
+**Décision.** `brand` devient `#2F6AFF` (4,54:1, écart d'une unité de vert, invisible) et le
+texte `status-open` devient `#C0341F` (4,6:1). Le rouge `#D63A22` d'origine est conservé pour le
+point de la pastille (`--color-status-open-dot`), sur le modèle de `#E8A400` pour « En cours ».
+
+**Conséquences.** Les autres tokens sont inchangés. Toute future couleur de texte doit être
+vérifiée à 4,5:1 sur ses fonds possibles avant d'entrer dans `@theme`.

@@ -15,7 +15,7 @@ export interface ColorToken {
 export const BRAND_TOKENS: ColorToken[] = [
   {
     name: "brand",
-    value: "#2F6BFF",
+    value: "#2F6AFF",
     usage: "Mascotte, action principale, onglet actif",
     swatch: "bg-brand",
   },
@@ -52,7 +52,7 @@ export const NEUTRAL_TOKENS: ColorToken[] = [
 export const STATUS_TOKENS: ColorToken[] = [
   {
     name: "status-open / status-open-bg",
-    value: "#D63A22 / #FDE4DE",
+    value: "#C0341F / #FDE4DE (point #D63A22)",
     usage: "Réserve ouverte, retard",
     swatch: "bg-status-open-bg",
     onSwatch: "text-status-open",

@@ -10,7 +10,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 export default function NotFound() {
   return (
     <div className="flex min-h-dvh flex-col items-center bg-craie px-4 py-8 text-ink">
-      <Link href="/" className="rounded-md p-2" aria-label="Retour à l'accueil RONDE">
+      <Link href="/" className="inline-flex h-11 items-center rounded-md px-2">
         <Logo size="md" />
       </Link>
       <main className="flex flex-1 items-center">

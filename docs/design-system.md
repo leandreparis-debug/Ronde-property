@@ -15,23 +15,30 @@ Thème clair uniquement en V1.
 
 ## Tokens de couleur (`src/app/globals.css`, bloc `@theme`)
 
-| Token                                                    | Valeur                | Usage                                     |
-| -------------------------------------------------------- | --------------------- | ----------------------------------------- |
-| `--color-brand`                                          | `#2F6BFF`             | mascotte, action principale, onglet actif |
-| `--color-brand-deep`                                     | `#1B45C9`             | texte sur `brand-soft`, survol / appui    |
-| `--color-brand-soft`                                     | `#E7EEFF`             | pastilles et fonds légers de marque       |
-| `--color-brand-tint`                                     | `#F4F7FF`             | grands fonds de marque (bandeaux, plan)   |
-| `--color-on-brand`                                       | `#FFFFFF`             | texte sur `brand`                         |
-| `--color-ink`                                            | `#121317`             | texte principal (« basalte »)             |
-| `--color-ink-2`                                          | `#5C606B`             | texte secondaire                          |
-| `--color-paper`                                          | `#FFFFFF`             | cartes, panneaux                          |
-| `--color-craie`                                          | `#F6F6F4`             | fond de l'application                     |
-| `--color-galet`                                          | `#E9E9E6`             | pastilles neutres, compteurs              |
-| `--color-rule`                                           | `#E4E4E0`             | bordures, séparateurs                     |
-| `--color-status-open` / `--color-status-open-bg`         | `#D63A22` / `#FDE4DE` | réserve **ouverte**, retard               |
-| `--color-status-progress` / `--color-status-progress-bg` | `#8F6200` / `#FFF0C7` | réserve **en cours**                      |
-| `--color-status-progress-dot`                            | `#E8A400`             | point de la pastille « En cours »         |
-| `--color-status-done` / `--color-status-done-bg`         | `#23704A` / `#DCF0E3` | réserve **levée**                         |
+| Token                                                    | Valeur                | Usage                                                           |
+| -------------------------------------------------------- | --------------------- | --------------------------------------------------------------- |
+| `--color-brand`                                          | `#2F6AFF`             | mascotte, action principale, onglet actif (voir note contraste) |
+| `--color-brand-deep`                                     | `#1B45C9`             | texte sur `brand-soft`, survol / appui                          |
+| `--color-brand-soft`                                     | `#E7EEFF`             | pastilles et fonds légers de marque                             |
+| `--color-brand-tint`                                     | `#F4F7FF`             | grands fonds de marque (bandeaux, plan)                         |
+| `--color-on-brand`                                       | `#FFFFFF`             | texte sur `brand`                                               |
+| `--color-ink`                                            | `#121317`             | texte principal (« basalte »)                                   |
+| `--color-ink-2`                                          | `#5C606B`             | texte secondaire                                                |
+| `--color-paper`                                          | `#FFFFFF`             | cartes, panneaux                                                |
+| `--color-craie`                                          | `#F6F6F4`             | fond de l'application                                           |
+| `--color-galet`                                          | `#E9E9E6`             | pastilles neutres, compteurs                                    |
+| `--color-rule`                                           | `#E4E4E0`             | bordures, séparateurs                                           |
+| `--color-status-open` / `--color-status-open-bg`         | `#C0341F` / `#FDE4DE` | réserve **ouverte**, retard (texte)                             |
+| `--color-status-open-dot`                                | `#D63A22`             | point de la pastille « Ouverte » / « En retard »                |
+| `--color-status-progress` / `--color-status-progress-bg` | `#8F6200` / `#FFF0C7` | réserve **en cours**                                            |
+| `--color-status-progress-dot`                            | `#E8A400`             | point de la pastille « En cours »                               |
+| `--color-status-done` / `--color-status-done-bg`         | `#23704A` / `#DCF0E3` | réserve **levée**                                               |
+
+**Note contraste (WCAG AA, 4,5:1 pour le texte de 14 px).** Deux valeurs de la charte ont été
+ajustées au minimum : `brand` passe de `#2F6BFF` à `#2F6AFF` (blanc sur bleu : 4,49:1 → 4,54:1,
+différence invisible) et le texte `status-open` passe de `#D63A22` à `#C0341F` (3,86:1 → 4,6:1
+sur son fond, 5,2:1 sur `craie`). Le rouge d'origine `#D63A22` reste utilisé pour le point de la
+pastille, comme `#E8A400` pour « En cours ».
 
 ## Rayons et ombre
 

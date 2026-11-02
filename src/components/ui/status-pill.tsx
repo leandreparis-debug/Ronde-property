@@ -15,7 +15,7 @@ export const RESERVE_STATUS_LABELS: Record<ReserveStatus, string> = {
 export const OVERDUE_LABEL = "En retard";
 
 const STYLES: Record<ReserveStatus, { pill: string; dot: string }> = {
-  open: { pill: "bg-status-open-bg text-status-open", dot: "bg-status-open" },
+  open: { pill: "bg-status-open-bg text-status-open", dot: "bg-status-open-dot" },
   in_progress: {
     pill: "bg-status-progress-bg text-status-progress",
     dot: "bg-status-progress-dot",

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { type ReactNode, useId } from "react";
 
 import { Galet, type GaletMood } from "@/components/brand/Galet";
 import { cn } from "@/lib/cn";
@@ -29,18 +29,19 @@ export function EmptyState({
   illustration,
   className,
 }: EmptyStateProps) {
+  const titleId = useId();
   return (
     <section
       className={cn(
         "flex flex-col items-center justify-center gap-4 px-4 py-12 text-center",
         className,
       )}
-      aria-labelledby="empty-state-title"
+      aria-labelledby={titleId}
     >
       {illustration ? <div className="mb-2">{illustration}</div> : null}
       <Galet mood={mood} size={88} blink={mood === "neutral" || mood === "attentive"} />
       <div className="flex max-w-md flex-col gap-1.5">
-        <h2 id="empty-state-title" className="font-display text-title-sm text-ink">
+        <h2 id={titleId} className="font-display text-title-sm text-ink">
           {title}
         </h2>
         {description ? <p className="text-body text-ink-2">{description}</p> : null}

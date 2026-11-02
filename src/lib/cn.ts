@@ -1,5 +1,17 @@
 import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { extendTailwindMerge } from "tailwind-merge";
+
+/**
+ * tailwind-merge must know the RONDE type scale, otherwise `text-body` would be read
+ * as a colour and would discard a `text-on-brand` placed before it.
+ */
+const twMerge = extendTailwindMerge({
+  extend: {
+    classGroups: {
+      "font-size": [{ text: ["label", "ui", "body", "title-sm", "title", "display"] }],
+    },
+  },
+});
 
 /**
  * Joins class names conditionally and resolves Tailwind conflicts

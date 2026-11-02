@@ -106,11 +106,7 @@ export default function DesignPage() {
     <div className="min-h-dvh bg-craie text-ink">
       <header className="border-b border-rule bg-paper">
         <div className="mx-auto flex h-16 w-full max-w-content items-center justify-between gap-4 px-4 md:px-6">
-          <Link
-            href="/"
-            className="inline-flex h-11 items-center rounded-md"
-            aria-label="Retour à Mes visites"
-          >
+          <Link href="/" className="inline-flex h-11 items-center rounded-md">
             <Logo size="sm" />
           </Link>
           <Badge variant="brand">Données fictives</Badge>
@@ -473,6 +469,7 @@ export default function DesignPage() {
             <div className="bg-brand-tint px-5 pt-5 pb-0 sm:px-6">
               <PageHeader
                 className="py-0 pb-5"
+                titleAs="h2"
                 eyebrow={`${FAKE_VISIT.siteCode} · ${FAKE_VISIT.siteName}`}
                 title={FAKE_VISIT.motive}
                 actions={
