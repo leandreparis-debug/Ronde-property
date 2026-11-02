@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Caveat, Instrument_Sans } from "next/font/google";
 import type { ReactNode } from "react";
 
+import { env } from "@/lib/env";
+
 import "./globals.css";
 
 /**
@@ -34,10 +36,10 @@ const handFont = Caveat({
 
 export const metadata: Metadata = {
   title: {
-    default: "RONDE",
-    template: "%s · RONDE",
+    default: env.NEXT_PUBLIC_APP_NAME,
+    template: `%s · ${env.NEXT_PUBLIC_APP_NAME}`,
   },
-  applicationName: "RONDE",
+  applicationName: env.NEXT_PUBLIC_APP_NAME,
   description: "Visites de site des Responsables Techniques de Carrefour Property.",
 };
 
