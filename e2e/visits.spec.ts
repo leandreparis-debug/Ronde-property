@@ -219,10 +219,11 @@ test.describe("version conflict", () => {
 test.describe("list filters", () => {
   test("are reflected in the URL and combine", async ({ page }) => {
     await page.goto("/?scope=all");
-    await page.getByLabel("Rechercher").fill("e2e après sinistre");
-    await expect(page).toHaveURL(/q=e2e\+apr%C3%A8s\+sinistre|q=e2e%20apr/);
+    // The conflict test above renamed the visit to « Titre de la première page ».
+    await page.getByLabel("Rechercher").fill("premiere page");
+    await expect(page).toHaveURL(/q=premiere\+page|q=premiere%20page/);
     await expect(
-      page.getByRole("heading", { level: 3 }).or(page.locator("[data-testid^=visit-]")).first(),
+      page.locator("[data-testid^=visit-]").filter({ hasText: "Titre de la première page" }),
     ).toBeVisible();
     await page.getByLabel("Statut").selectOption("completed");
     await expect(page).toHaveURL(/status=completed/);
@@ -242,13 +243,13 @@ test.describe("list filters", () => {
     await expect(
       page
         .locator("[data-testid^=visit-]")
-        .filter({ hasText: "Visite e2e après sinistre" })
+        .filter({ hasText: "Titre de la première page" })
         .first(),
     ).toBeVisible();
     await page.goto("/sites/TEST-001");
     await page
       .getByTestId("site-visit")
-      .filter({ hasText: "Visite e2e après sinistre" })
+      .filter({ hasText: "Titre de la première page" })
       .first()
       .getByRole("link")
       .click();
