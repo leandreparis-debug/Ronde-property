@@ -20,6 +20,7 @@ import { formatDate, formatDateTime } from "@/lib/format";
 
 import { DialogDemo } from "./_components/dialog-demo";
 import { DesignSection, Specimen } from "./_components/section";
+import { SitePickerDemo } from "./_components/site-picker-demo";
 import { VisitTabsDemo } from "./_components/tabs-demo";
 import { TextareaDemo } from "./_components/textarea-demo";
 import { ToastDemo } from "./_components/toast-demo";
@@ -49,6 +50,7 @@ const SECTIONS = [
   { id: "surfaces", label: "Surfaces et pastilles" },
   { id: "tabs", label: "Onglets" },
   { id: "overlays", label: "Dialogue et toasts" },
+  { id: "site-picker", label: "SitePicker" },
   { id: "states", label: "États" },
   { id: "visit", label: "Exemple de visite" },
 ] as const;
@@ -419,6 +421,14 @@ export default function DesignPage() {
           <Specimen label="Toasts">
             <ToastDemo />
           </Specimen>
+        </DesignSection>
+
+        <DesignSection
+          id="site-picker"
+          title="SitePicker"
+          description="Combobox accessible (ARIA combobox / listbox) branchée ici sur des sites fictifs statiques ; recherche serveur dans l'application."
+        >
+          <SitePickerDemo />
         </DesignSection>
 
         <DesignSection id="states" title="États vides et chargements">
