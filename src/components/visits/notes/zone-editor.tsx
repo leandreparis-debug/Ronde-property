@@ -115,7 +115,7 @@ export function ZoneEditor({
               aria-pressed={mode === "edit"}
               onClick={() => onModeChange("edit")}
               className={cn(
-                "rounded inline-flex h-10 items-center gap-1.5 px-3 text-ui font-semibold",
+                "rounded inline-flex h-11 items-center gap-1.5 px-3 text-ui font-semibold",
                 mode === "edit" ? "bg-brand-soft text-brand-deep" : "text-ink-2 hover:text-ink",
               )}
             >
@@ -127,7 +127,7 @@ export function ZoneEditor({
               aria-pressed={mode === "preview"}
               onClick={() => onModeChange("preview")}
               className={cn(
-                "rounded inline-flex h-10 items-center gap-1.5 px-3 text-ui font-semibold",
+                "rounded inline-flex h-11 items-center gap-1.5 px-3 text-ui font-semibold",
                 mode === "preview" ? "bg-brand-soft text-brand-deep" : "text-ink-2 hover:text-ink",
               )}
             >
@@ -174,7 +174,7 @@ export function ZoneEditor({
         >
           <span>{statusLabel(status)}</span>
           {status.kind === "error" ? (
-            <Button type="button" variant="ghost" onClick={onRetry} className="h-9 px-2">
+            <Button type="button" variant="ghost" onClick={onRetry} className="px-2">
               <RotateCcw className="size-4" aria-hidden="true" />
               Réessayer
             </Button>

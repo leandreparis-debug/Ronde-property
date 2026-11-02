@@ -11,7 +11,7 @@ Utilisateurs : **RT** (saisie sur tablette au doigt et sur PC), **Direction** (l
 
 Étapes : 1 fondations et design system (faite) · 2 modèle de données Supabase et RLS (faite) ·
 3 authentification, rôles, audit (faite) · 4 référentiel des sites (CSV VIGIE, faite) · 5 visites (faite) · 6 notes
-par zone · 7 photos · 8 plans AutoCAD et repères · 9 réserves · 10 rapport PDF · 11 recette et
+par zone (faite) · 7 photos · 8 plans AutoCAD et repères · 9 réserves · 10 rapport PDF · 11 recette et
 déploiement.
 
 ## Stack et versions (exactes, pas de `^`)
@@ -56,7 +56,8 @@ src/components/ui/         primitives façon shadcn, écrites à la main
 src/lib/                   cn, env (zod), format (dates fr-FR), constants
 src/server/                db/ (pool, Kysely, withUser/withSystem), auth/ (AuthService local et supabase, session), services/, actions/, sites/import/ (moteur d'import VIGIE), supabase/ (clients auth), domain/, repositories/ (interfaces, SiteRepository implémenté)
 src/components/sites/      SiteCard, SiteSearchForm, SitePicker (combobox réutilisable)
-src/components/visits/     liste, création, fiche (en-tête, actions, bandeau, onglets, informations, participants)
+src/components/visits/     liste, création, fiche (en-tête, actions, bandeau, onglets, informations, participants), notes/ (onglet Notes)
+src/lib/notes/             mise en forme des notes (puces), moteur d'enregistrement automatique
 docs/samples/              échantillons fictifs (export VIGIE)
 src/middleware.ts          protection des routes et rafraîchissement de session (aucune lecture en base)
 supabase/migrations/       migrations SQL horodatées (jamais modifiées après commit)
@@ -122,3 +123,7 @@ tests/                     tests Vitest (miroir de src/)
     règle type/motif est vérifiée côté serveur (`visitInputSchema`, `visitUpdateSchema`).
 26. `audit_log` et `reserve_events` sont en ajout seul : jamais de `update`, `delete` ni
     `truncate`, même en test (seule la réinitialisation complète de `ronde_test` les vide).
+27. **Notes** : le contenu d'une zone envoie la `version` de la note, la structure des zones
+    (ajout, retrait, libellé, ordre) envoie la `version` de la visite ; les clés de zone sont
+    stables (les libellés se renomment) ; une zone ne se retire que vide ; le texte est du texte
+    brut mis en forme par `parseNoteContent` (jamais de HTML).

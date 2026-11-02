@@ -37,6 +37,20 @@ test.describe("as rt", () => {
     });
   }
 
+  test("the Notes tab (editor, preview, zone management) has no serious or critical axe violation", async ({
+    page,
+  }) => {
+    await page.goto("/visites/20000000-0000-4000-8000-000000000001?onglet=notes&zone=docks");
+    await expect(page.getByTestId("zone-editor")).toBeVisible();
+    await expectNoBlockingViolation(page);
+    await page.getByRole("button", { name: "Aperçu du rapport" }).click();
+    await expect(page.getByTestId("zone-preview")).toBeVisible();
+    await expectNoBlockingViolation(page);
+    await page.getByRole("button", { name: "Gérer les zones" }).click();
+    await expect(page.getByTestId("manage-zones")).toBeVisible();
+    await expectNoBlockingViolation(page);
+  });
+
   test("/design at tablet width has no serious or critical axe violation", async ({ page }) => {
     await page.setViewportSize({ width: 768, height: 1024 });
     await page.goto("/design");
@@ -50,6 +64,12 @@ test.describe("as direction", () => {
   test("the read-only visit page has no serious or critical axe violation", async ({ page }) => {
     await page.goto("/visites/20000000-0000-4000-8000-000000000001");
     await expect(page.getByTestId("visit-info-readonly")).toBeVisible();
+    await expectNoBlockingViolation(page);
+  });
+
+  test("the read-only Notes tab has no serious or critical axe violation", async ({ page }) => {
+    await page.goto("/visites/20000000-0000-4000-8000-000000000001?onglet=notes&zone=docks");
+    await expect(page.getByTestId("zone-readonly")).toBeVisible();
     await expectNoBlockingViolation(page);
   });
 });

@@ -82,13 +82,20 @@ export function NotesTab({
 
   const notesRef = useRef(notes);
   notesRef.current = notes;
+  // Note versions, updated synchronously: a save can follow another one before React
+  // re-renders, and it must carry the version just returned by the server.
+  const versionsRef = useRef<Record<string, number>>(
+    Object.fromEntries(initialNotes.map((n) => [n.id, n.version])),
+  );
   const saverRef = useRef<NoteSaver | null>(null);
 
   if (!saverRef.current) {
     saverRef.current = createNoteSaver({
       save: (noteId, version, content) => saveZoneNoteAction({ noteId, version, content }),
-      getVersion: (noteId) => notesRef.current.find((n) => n.id === noteId)?.version ?? 1,
+      getVersion: (noteId) =>
+        versionsRef.current[noteId] ?? notesRef.current.find((n) => n.id === noteId)?.version ?? 1,
       onSaved: (noteId, version, savedAt, content) => {
+        versionsRef.current[noteId] = version;
         setNotes((list) =>
           list.map((n) =>
             n.id === noteId
@@ -160,7 +167,10 @@ export function NotesTab({
       setVisitVersion(result.version);
       setNotes(result.notes);
       for (const note of result.notes) {
-        if (!notesRef.current.some((n) => n.id === note.id)) saver.track(note.id, note.content);
+        if (!notesRef.current.some((n) => n.id === note.id)) {
+          versionsRef.current[note.id] = note.version;
+          saver.track(note.id, note.content);
+        }
       }
       return null;
     }
@@ -185,10 +195,10 @@ export function NotesTab({
   function keepMine() {
     if (!conflict) return;
     const { noteId, theirs } = conflict;
+    versionsRef.current[noteId] = theirs.version;
     setNotes((list) => list.map((n) => (n.id === noteId ? { ...n, version: theirs.version } : n)));
     setConflict(null);
-    // The saver reads the version from the notes on its next run.
-    requestAnimationFrame(() => saver.retry(noteId));
+    saver.retry(noteId);
   }
 
   async function takeTheirs() {
@@ -208,6 +218,7 @@ export function NotesTab({
           : n,
       ),
     );
+    versionsRef.current[noteId] = theirs.version;
     setDrafts((map) => ({ ...map, [noteId]: theirs.content }));
     saver.track(noteId, theirs.content);
     setStatuses((map) => ({ ...map, [noteId]: IDLE }));

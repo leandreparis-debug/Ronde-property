@@ -9,7 +9,8 @@ import { VisitStatusBadge } from "./visit-status-badge";
 
 /** « 6/9 zones renseignées », computed from the loaded notes, never stored. */
 export function zonesLabel(filled: number, total: number): string {
-  return `${filled}/${total} zone${total > 1 ? "s" : ""} renseignée${filled > 1 ? "s" : ""}`;
+  const plural = total > 1 ? "s" : "";
+  return `${filled}/${total} zone${plural} renseignée${plural}`;
 }
 
 /** Title block of a visit: site link, title, reason / status / date badges, writer, zones. */

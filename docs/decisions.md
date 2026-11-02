@@ -268,3 +268,44 @@ Sous charge (quatre travailleurs Playwright), la révélation et l'hydratation s
 page gardait une copie serveur cachée du formulaire à côté de la copie cliente (deux
 `#visit-title`). La page est dynamique (session relue à chaque requête), donc
 `useSearchParams` n'exige aucune frontière.
+
+## 2026-11-02 — Version par note pour le contenu, par visite pour la structure
+
+**Décision.** `visit_zone_notes.version` est incrémentée par trigger quand le **contenu** d'une
+note change (et seulement lui) ; `updated_by` et `updated_at` suivent le contenu. L'ajout, le
+retrait, le renommage et le réordonnancement des zones incrémentent `visits.version` (trigger
+d'instruction, une fois par instruction), et pas le contenu.
+
+**Motivation.** Deux RT doivent pouvoir écrire dans deux zones différentes de la même visite
+sans conflit, et la saisie d'un texte ne doit pas invalider le formulaire d'informations ouvert
+sur un autre poste. La structure, elle, est partagée par tous les écrans : elle suit la version
+de la visite comme les participants.
+
+## 2026-11-02 — Trame « réunion » provisoire
+
+**Décision.** Une visite de type `meeting` reçoit une trame provisoire de trois zones (`agenda`,
+`discussion`, `decisions`), marquée `// provisoire : trames par motif en phase 2` dans
+`templates.ts`.
+
+**Motivation.** Le cahier des charges demande une trame par motif en phase 2 ; en attendant,
+une réunion sans aucune zone serait inutilisable dans l'onglet Notes.
+
+## 2026-11-02 — Pas de stockage local avant la phase 2
+
+**Décision.** L'enregistrement automatique garde le texte dans l'éditeur et réessaie (1 s,
+2 s, 5 s, 10 s, puis toutes les 30 s), avertit avant de quitter la page tant qu'un
+enregistrement est en attente, mais n'écrit rien dans le stockage du navigateur.
+
+**Motivation.** Le vrai hors-ligne (stockage local, synchronisation, réconciliation) est un
+chantier à part entière prévu en phase 2 ; un stockage local partiel créerait des états
+incohérents difficiles à expliquer.
+
+## 2026-11-02 — Retrait d'une zone seulement si elle est vide
+
+**Décision.** « Retirer » est refusé tant que la zone a du contenu (« Videz la zone avant de
+la retirer ») ; le bouton est désactivé avec l'explication. Les étapes 7 et 9 ajouteront la
+vérification « aucune photo ni réserve liée » au même endroit (point d'extension commenté dans
+`ZoneNoteRepository.remove`).
+
+**Motivation.** Une zone retirée l'est définitivement (pas de corbeille) ; vider d'abord est un
+geste explicite qui évite de perdre des observations par erreur.

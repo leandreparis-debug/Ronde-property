@@ -73,6 +73,7 @@ tests/               tests Vitest
 - [Authentification et comptes](docs/auth.md) : fournisseurs `supabase` et `local`, `withUser`, cycle de vie d'un compte.
 - [Import des sites depuis VIGIE](docs/sites-import.md) : export attendu, simulation, options, garde-fou.
 - [Visites](docs/visits.md) : cycle de vie, droits, duplication, concurrence optimiste.
+- [Notes par zone](docs/notes.md) : trames, puces, enregistrement automatique, conflits par zone.
 - [Décisions d'architecture](docs/decisions.md).
 - [Couche serveur](src/server/README.md).
 - [Consignes de développement](CLAUDE.md).
