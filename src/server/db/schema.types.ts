@@ -242,8 +242,16 @@ export interface SiteImportRuns {
    */
   errors: Generated<Json>;
   file_name: string;
+  /**
+   * Empreinte SHA-256 du fichier importé ; le fichier lui-même n'est pas conservé.
+   */
+  file_sha256: string | null;
   id: Generated<string>;
   mode: ImportMode;
+  /**
+   * Options de l'import : fullReferential, emptyClearsValue, encodage et séparateur détectés.
+   */
+  options: Generated<Json>;
   performed_by: string | null;
   rows_created: Generated<number>;
   rows_deactivated: Generated<number>;

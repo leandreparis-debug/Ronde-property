@@ -534,8 +534,10 @@ export type Database = {
           created_at: string;
           errors: NonNullable<Json>;
           file_name: string;
+          file_sha256: string | null;
           id: string;
           mode: Database["public"]["Enums"]["import_mode"];
+          options: NonNullable<Json>;
           performed_by: string | null;
           rows_created: number;
           rows_deactivated: number;
@@ -548,8 +550,10 @@ export type Database = {
           created_at?: string;
           errors?: NonNullable<Json>;
           file_name: string;
+          file_sha256?: string | null;
           id?: string;
           mode: Database["public"]["Enums"]["import_mode"];
+          options?: NonNullable<Json>;
           performed_by?: string | null;
           rows_created?: number;
           rows_deactivated?: number;
@@ -561,8 +565,10 @@ export type Database = {
           created_at?: string;
           errors?: NonNullable<Json>;
           file_name?: string;
+          file_sha256?: string | null;
           id?: string;
           mode?: Database["public"]["Enums"]["import_mode"];
+          options?: NonNullable<Json>;
           performed_by?: string | null;
           rows_created?: number;
           rows_deactivated?: number;
