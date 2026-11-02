@@ -9,7 +9,7 @@ Elle remplace l'outil interne « CR Visites » (aucun code repris).
 Utilisateurs : **RT** (saisie sur tablette au doigt et sur PC), **Direction** (lecture seule),
 **Admin** (gestion des comptes).
 
-Étapes : 1 fondations et design system (faite) · 2 modèle de données Supabase et RLS ·
+Étapes : 1 fondations et design system (faite) · 2 modèle de données Supabase et RLS (faite) ·
 3 authentification, rôles, audit · 4 référentiel des sites (CSV VIGIE) · 5 visites · 6 notes
 par zone · 7 photos · 8 plans AutoCAD et repères · 9 réserves · 10 rapport PDF · 11 recette et
 déploiement.
@@ -54,7 +54,11 @@ src/components/brand/      Galet, Logo, Trail
 src/components/layout/     AppShell, SideNav, BottomNav, TopBar, PageHeader, NavLink
 src/components/ui/         primitives façon shadcn, écrites à la main
 src/lib/                   cn, env (zod), format (dates fr-FR), constants
-src/server/                couche repositories / services (vide à l'étape 1, voir son README)
+src/server/                db/ (types générés), supabase/ (clients), domain/ (zod, libellés, trame), repositories/ (interfaces)
+supabase/migrations/       migrations SQL horodatées (jamais modifiées après commit)
+supabase/seed.sql          données fictives pour la base locale / de test uniquement
+supabase/tests/            bootstrap.sql (émulation Supabase pour ronde_test) et tests de la base
+scripts/db/                reset.mjs, gen-types.mjs
 tests/                     tests Vitest (miroir de src/)
 ```
 
@@ -74,9 +78,21 @@ tests/                     tests Vitest (miroir de src/)
    réserves), et jamais de secret (`.env.local` est ignoré, `.env.example` documente).
 7. **Commit et push après chaque point de spécification**, en Conventional Commits
    (`feat:`, `fix:`, `chore:`, `test:`, `docs:`, `ci:`), petits et cohérents.
-8. **Ne jamais modifier une migration existante** (à partir de l'étape 2) : en ajouter une.
+8. **Ne jamais modifier une migration existante** : toute correction est une nouvelle migration
+   horodatée dans `supabase/migrations/` (voir la migration 8, corrective, comme exemple).
 9. **`pnpm verify` et `pnpm test:e2e` doivent passer** avant de terminer une étape, en local et
    dans la CI.
 10. Confirmations par `Dialog`, jamais `window.confirm`. Thème clair uniquement en V1.
 11. JSDoc sur chaque composant et fonction exportés.
 12. Polices auto-hébergées par `next/font` : aucun CDN de polices à l'exécution.
+13. **Base de données** : ne jamais réinitialiser autre chose que `ronde_test` sur localhost ;
+    `seed.sql` et `supabase/tests/bootstrap.sql` ne s'exécutent jamais sur un vrai projet
+    Supabase ; aucune clé ni URL réelle dans le dépôt.
+14. **Interdiction d'importer `@supabase/*` hors de `src/server/`** (règle ESLint
+    `no-restricted-imports`). Les écrans passent par les repositories, `StorageService` et
+    `AuthService`.
+15. Les règles d'accès vivent dans la base (RLS, triggers, RPC) ; l'application ne les duplique
+    que pour l'ergonomie. Après toute migration : `pnpm db:reset && pnpm test:db`, puis
+    `pnpm db:types`.
+16. `audit_log` et `reserve_events` sont en ajout seul : jamais de `update`, `delete` ni
+    `truncate`, même en test (seule la réinitialisation complète de `ronde_test` les vide).

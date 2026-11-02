@@ -85,3 +85,64 @@ téléchargées une fois au `build` sur Vercel, puis servies par l'application s
 à un CDN à l'exécution. Le passage à `next/font/local`, avec les fichiers de polices embarqués
 dans le dépôt, est prévu à l'étape 11 pour la V2 sur réseau fermé, dont la machine de build
 n'aura pas d'accès sortant.
+
+## 2026-11-02 — Base de test : PostgreSQL nu + bootstrap, plutôt que Supabase CLI
+
+**Décision.** Les tests de la base tournent sur un PostgreSQL 16 local (et un service
+PostgreSQL en CI) avec `supabase/tests/bootstrap.sql`, qui émule les rôles `anon`,
+`authenticated`, `service_role`, le schéma `auth` (`auth.users`, `auth.uid()`, `auth.jwt()`) et
+le schéma `storage` (`buckets`, `objects`, `foldername()`).
+
+**Motivation.** Docker n'est pas disponible dans l'environnement de développement ni sur le
+PC de Léandre ; les migrations restent 100 % compatibles avec la plateforme (elles ne
+dépendent d'aucun objet du bootstrap qui n'existe pas sur Supabase). Le bootstrap n'est jamais
+appliqué à un vrai projet.
+
+## 2026-11-02 — Plans rattachés au site
+
+**Décision.** `site_plans` référence le site, pas la visite : un plan AutoCAD est réutilisé de
+visite en visite et servira à la comparaison avant / après (phase 3). Les repères
+(`plan_markers`) restent rattachés à la visite.
+
+## 2026-11-02 — Numérotation des réserves par site
+
+**Décision.** Le numéro d'une réserve (« R-07 ») est séquentiel **par site**, attribué par
+trigger sous verrou consultatif (`pg_advisory_xact_lock`) pour exclure les doublons en cas de
+création concurrente. Il est immuable et unique par `(site_id, number)`.
+
+**Motivation.** Les RT et les prestataires parlent d'une réserve par son numéro sur le site ;
+une numérotation par visite créerait des collisions d'une visite à l'autre.
+
+## 2026-11-02 — Suppression logique des visites et des réserves
+
+**Décision.** Aucune suppression physique par les utilisateurs : `deleted_at` / `deleted_by`,
+positionnés par les RPC `soft_delete_visit` et `soft_delete_reserve`, tracés dans `audit_log`.
+Les lignes supprimées restent visibles par l'admin.
+
+## 2026-11-02 — `visits.version` pour la phase 2
+
+**Décision.** `version` est incrémentée à chaque mise à jour par trigger. Elle ne sert à rien
+en V1 ; elle permettra la détection de conflits de synchronisation hors réseau (phase 2) sans
+changement de schéma.
+
+## 2026-11-02 — La direction peut insérer un rapport
+
+**Décision.** La direction, en lecture seule partout ailleurs, peut insérer une ligne
+`reports` (et l'objet PDF correspondant) sur toute visite lisible : elle génère et télécharge
+des rapports sans modifier la visite. Les rapports ne sont jamais modifiés ni supprimés.
+
+## 2026-11-02 — Cycle de vie par RPC et colonnes protégées
+
+**Décision.** `status`, `completed_*` et `deleted_*` des visites, et `deleted_*` des réserves,
+ne sont modifiables que par les RPC `security definer`, qui vérifient les droits, posent un
+marqueur transactionnel (`ronde.rpc`) contrôlé par trigger et écrivent dans `audit_log`.
+
+**Motivation.** Une seule implémentation des règles, dans la base, testée rôle par rôle ; les
+écrans n'ont qu'à appeler la RPC.
+
+## 2026-11-02 — Profils : lecture limitée par privilèges de colonnes
+
+**Décision.** Les utilisateurs lisent `id`, `full_name`, `role` et `is_active` de tous les
+profils (choix d'un responsable ou d'un participant) ; `email` et `must_change_password` sont
+lus côté serveur avec le client `service_role`. Un `select *` sur `profiles` échoue donc pour
+un utilisateur : les repositories sélectionnent les colonnes explicitement.
