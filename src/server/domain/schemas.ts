@@ -10,7 +10,9 @@ import {
   VISIT_STATUSES,
   VISIT_TYPES,
 } from "./enums";
+import type { VisitReason, VisitType } from "./enums";
 import { ZONE_KEY_PATTERN } from "./templates";
+import { isReasonAllowed } from "./visits";
 
 /*
  * Domain schemas. They mirror the database constraints (lengths, patterns, ranges) so that
@@ -74,8 +76,21 @@ export const siteSchema = z.object({
 });
 export type Site = z.infer<typeof siteSchema>;
 
-/** Input to create a visit. The site must exist and be active (checked by the database). */
-export const visitInputSchema = z.object({
+/** Type / reason rule: a meeting has the « meeting » reason, a technical visit any other. */
+function refineTypeReason(value: { type: VisitType; reason: VisitReason }, ctx: z.RefinementCtx) {
+  if (!isReasonAllowed(value.type, value.reason)) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["reason"],
+      message:
+        value.type === "meeting"
+          ? "Une réunion a pour motif « Réunion »."
+          : "Ce motif est réservé aux réunions.",
+    });
+  }
+}
+
+const visitFields = {
   siteId: uuid,
   type: visitTypeSchema.default("technical"),
   reason: visitReasonSchema.default("periodic"),
@@ -83,11 +98,27 @@ export const visitInputSchema = z.object({
   visitDate: isoDate,
   subject: z.string().trim().max(2000, "2 000 caractères maximum.").nullable().default(null),
   writerId: uuid.nullable().default(null),
-});
+};
+
+/** Input to create a visit. The site must exist and be active (checked by the database). */
+export const visitInputSchema = z.object(visitFields).superRefine(refineTypeReason);
 export type VisitInput = z.infer<typeof visitInputSchema>;
 
+/** Editable fields of an existing visit (the site is immutable). Always sent together. */
+export const visitUpdateSchema = z
+  .object({
+    type: visitFields.type,
+    reason: visitFields.reason,
+    title: visitFields.title,
+    visitDate: visitFields.visitDate,
+    subject: visitFields.subject,
+    writerId: visitFields.writerId,
+  })
+  .superRefine(refineTypeReason);
+export type VisitUpdate = z.infer<typeof visitUpdateSchema>;
+
 /** Visit as read from the database. */
-export const visitSchema = visitInputSchema.extend({
+export const visitSchema = z.object(visitFields).extend({
   id: uuid,
   status: visitStatusSchema,
   completedAt: isoDateTime.nullable(),

@@ -348,6 +348,10 @@ export interface Visits {
   type: Generated<VisitType>;
   updated_at: Generated<Timestamp>;
   /**
+   * auth.uid() de la dernière modification (null pour le système) ; affiché dans le message de conflit de version.
+   */
+  updated_by: string | null;
+  /**
    * Incrémenté à chaque mise à jour par trigger ; servira à détecter les conflits hors réseau (phase 2).
    */
   version: Generated<number>;

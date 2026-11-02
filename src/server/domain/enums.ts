@@ -56,7 +56,7 @@ export const VISIT_TYPE_LABELS: Record<VisitType, string> = {
 
 export const VISIT_REASON_LABELS: Record<VisitReason, string> = {
   periodic: "Visite périodique",
-  lease_negotiation: "Négociation de bail",
+  lease_negotiation: "Avant négociation de bail",
   post_claim: "Après sinistre",
   tenant_entry: "Entrée de locataire",
   tenant_exit: "Sortie de locataire",

@@ -14,15 +14,27 @@ export type DateInput = Date | string | number | null | undefined;
  * - `medium`: 15 déc. 2026
  * - `long`: 15 décembre 2026
  * - `full`: mardi 15 décembre 2026
+ * - `weekday`: mar. 15 déc. 2026
  */
-export type DateStyle = "short" | "medium" | "long" | "full";
+export type DateStyle = "short" | "medium" | "long" | "full" | "weekday";
 
 const DATE_FORMATS: Record<DateStyle, Intl.DateTimeFormatOptions> = {
   short: { day: "2-digit", month: "2-digit", year: "numeric" },
   medium: { day: "numeric", month: "short", year: "numeric" },
   long: { day: "numeric", month: "long", year: "numeric" },
   full: { weekday: "long", day: "numeric", month: "long", year: "numeric" },
+  weekday: { weekday: "short", day: "numeric", month: "short", year: "numeric" },
 };
+
+/** Civil date (YYYY-MM-DD) in Europe/Paris at the given instant (default: now). */
+export function todayInParis(now: Date = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+}
 
 /** Converts any supported input to a valid Date, or `null`. Never throws. */
 export function toValidDate(input: DateInput): Date | null {

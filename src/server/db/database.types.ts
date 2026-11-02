@@ -834,6 +834,7 @@ export type Database = {
           title: string;
           type: Database["public"]["Enums"]["visit_type"];
           updated_at: string;
+          updated_by: string | null;
           version: number;
           visit_date: string;
           writer_id: string | null;
@@ -855,6 +856,7 @@ export type Database = {
           title: string;
           type?: Database["public"]["Enums"]["visit_type"];
           updated_at?: string;
+          updated_by?: string | null;
           version?: number;
           visit_date: string;
           writer_id?: string | null;
@@ -875,6 +877,7 @@ export type Database = {
           title?: string;
           type?: Database["public"]["Enums"]["visit_type"];
           updated_at?: string;
+          updated_by?: string | null;
           version?: number;
           visit_date?: string;
           writer_id?: string | null;
@@ -920,6 +923,13 @@ export type Database = {
             columns: ["site_id"];
             isOneToOne: false;
             referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "visits_updated_by_fkey";
+            columns: ["updated_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
           {
@@ -1135,6 +1145,7 @@ export type Database = {
           title: string;
           type: Database["public"]["Enums"]["visit_type"];
           updated_at: string;
+          updated_by: string | null;
           version: number;
           visit_date: string;
           writer_id: string | null;
@@ -1164,6 +1175,7 @@ export type Database = {
           title: string;
           type: Database["public"]["Enums"]["visit_type"];
           updated_at: string;
+          updated_by: string | null;
           version: number;
           visit_date: string;
           writer_id: string | null;
@@ -1226,6 +1238,7 @@ export type Database = {
           title: string;
           type: Database["public"]["Enums"]["visit_type"];
           updated_at: string;
+          updated_by: string | null;
           version: number;
           visit_date: string;
           writer_id: string | null;
