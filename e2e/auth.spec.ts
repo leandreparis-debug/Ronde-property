@@ -120,6 +120,6 @@ test.describe("rt", () => {
     await page.goto("/compte");
     await page.getByLabel("Nom affiché").fill("Alice Fictive");
     await page.getByRole("button", { name: "Enregistrer le nom" }).click();
-    await expect(page.getByText("Nom enregistré")).toBeVisible();
+    await expect(page.getByText("Nom enregistré", { exact: true })).toBeVisible();
   });
 });
