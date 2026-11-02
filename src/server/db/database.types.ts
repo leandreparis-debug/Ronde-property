@@ -309,6 +309,7 @@ export type Database = {
           from_status: Database["public"]["Enums"]["reserve_status"] | null;
           id: string;
           reserve_id: string;
+          seq: number;
           to_status: Database["public"]["Enums"]["reserve_status"] | null;
         };
         ComputedFields: never;
@@ -320,6 +321,7 @@ export type Database = {
           from_status?: Database["public"]["Enums"]["reserve_status"] | null;
           id?: string;
           reserve_id: string;
+          seq?: never;
           to_status?: Database["public"]["Enums"]["reserve_status"] | null;
         };
         Update: {
@@ -330,6 +332,7 @@ export type Database = {
           from_status?: Database["public"]["Enums"]["reserve_status"] | null;
           id?: string;
           reserve_id?: string;
+          seq?: never;
           to_status?: Database["public"]["Enums"]["reserve_status"] | null;
         };
         Relationships: [
@@ -1162,6 +1165,39 @@ export type Database = {
         SetofOptions: {
           from: "*";
           to: "visits";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      soft_delete_reserve: {
+        Args: { reserve_id: string };
+        Returns: {
+          action: string;
+          closed_at: string | null;
+          closed_by: string | null;
+          created_at: string;
+          created_by: string | null;
+          deleted_at: string | null;
+          deleted_by: string | null;
+          description: string | null;
+          due_date: string | null;
+          id: string;
+          number: number;
+          priority: Database["public"]["Enums"]["reserve_priority"];
+          responsible_company: string | null;
+          responsible_email: string | null;
+          responsible_kind: Database["public"]["Enums"]["responsible_kind"];
+          responsible_name: string | null;
+          responsible_profile_id: string | null;
+          site_id: string;
+          status: Database["public"]["Enums"]["reserve_status"];
+          updated_at: string;
+          visit_id: string;
+          zone_key: string | null;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "reserves";
           isOneToOne: true;
           isSetofReturn: false;
         };
