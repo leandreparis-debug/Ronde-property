@@ -128,6 +128,50 @@ insert into public.visits (id, site_id, type, reason, title, visit_date, status,
    '00000000-0000-4000-8000-000000000001', now() - interval '2 days', '00000000-0000-4000-8000-000000000001')
 on conflict (id) do nothing;
 
+-- ---------------------------------------------------------------------------
+-- Métadonnées de fichiers (lignes de tables uniquement : AUCUN objet n'est créé dans Storage,
+-- les chemins ci-dessous ne correspondent à aucun fichier). Nécessaires aux tests de lecture.
+-- ---------------------------------------------------------------------------
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
+
+insert into public.photos (id, visit_id, storage_path, original_filename, mime_type, width, height, size_bytes, caption, zone_key, sort_order, is_cover, created_by) values
+  ('60000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001',
+   '20000000-0000-4000-8000-000000000001/60000000-0000-4000-8000-000000000001.jpg', 'quai-14.jpg',
+   'image/jpeg', 1600, 1200, 350000, 'Quai 14, butoir arraché (photo fictive)', 'docks', 0, true,
+   '00000000-0000-4000-8000-000000000001')
+on conflict (id) do nothing;
+
+insert into public.site_plans (id, site_id, name, storage_path, mime_type, page_count, uploaded_by) values
+  ('70000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000001',
+   'Plan de masse (fictif)', '10000000-0000-4000-8000-000000000001/70000000-0000-4000-8000-000000000001.pdf',
+   'application/pdf', 2, '00000000-0000-4000-8000-000000000001')
+on conflict (id) do nothing;
+
+insert into public.plan_markers (id, visit_id, plan_id, page, x, y, number, label, photo_id, created_by) values
+  ('80000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001',
+   '70000000-0000-4000-8000-000000000001', 1, 0.42000, 0.61000, 1, 'Quai 14',
+   '60000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000001')
+on conflict (id) do nothing;
+
+insert into public.reserve_photos (reserve_id, photo_id, kind) values
+  ('50000000-0000-4000-8000-000000000001', '60000000-0000-4000-8000-000000000001', 'defect')
+on conflict do nothing;
+
+-- Rapport généré sur la visite terminée V2 (fichier inexistant).
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-000000000002","role":"authenticated"}', true);
+insert into public.reports (id, visit_id, storage_path, size_bytes, options, generated_by, generated_at) values
+  ('90000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000002',
+   '20000000-0000-4000-8000-000000000002/90000000-0000-4000-8000-000000000001.pdf', 240000,
+   '{"sections":["information","notes","reserves","photos"],"coverPhotoId":null,"photosPerPage":2,"quality":"standard"}',
+   '00000000-0000-4000-8000-000000000002', now() - interval '17 days')
+on conflict (id) do nothing;
+
+-- Import VIGIE simulé par l'admin.
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-000000000004","role":"authenticated"}', true);
+insert into public.site_import_runs (id, file_name, mode, rows_total, rows_created, rows_updated, rows_deactivated, rows_rejected, errors, performed_by) values
+  ('a0000000-0000-4000-8000-000000000001', 'vigie-export-fictif.csv', 'simulate', 12, 0, 12, 0, 0, '[]', '00000000-0000-4000-8000-000000000004')
+on conflict (id) do nothing;
+
 select set_config('request.jwt.claims', '', true);
 
 commit;
