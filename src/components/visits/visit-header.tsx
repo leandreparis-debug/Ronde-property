@@ -7,8 +7,21 @@ import type { VisitDetail } from "@/server/repositories/visit-repository";
 
 import { VisitStatusBadge } from "./visit-status-badge";
 
-/** Title block of a visit: site link, title, reason / status / date badges, writer. */
-export function VisitHeader({ visit, actions }: { visit: VisitDetail; actions?: React.ReactNode }) {
+/** « 6/9 zones renseignées », computed from the loaded notes, never stored. */
+export function zonesLabel(filled: number, total: number): string {
+  return `${filled}/${total} zone${total > 1 ? "s" : ""} renseignée${filled > 1 ? "s" : ""}`;
+}
+
+/** Title block of a visit: site link, title, reason / status / date badges, writer, zones. */
+export function VisitHeader({
+  visit,
+  zones,
+  actions,
+}: {
+  visit: VisitDetail;
+  zones?: { filled: number; total: number };
+  actions?: React.ReactNode;
+}) {
   return (
     <div className="flex flex-col gap-4 py-6 md:py-8">
       <nav aria-label="Fil d'Ariane" className="text-ui text-ink-2">
@@ -36,7 +49,12 @@ export function VisitHeader({ visit, actions }: { visit: VisitDetail; actions?: 
             <VisitStatusBadge status={visit.status} />
             <Badge>{formatDate(visit.visitDate, "weekday")}</Badge>
           </div>
-          <p className="text-ui text-ink-2">Rédigée par {visit.writerName ?? "—"}</p>
+          <p className="text-ui text-ink-2">
+            Rédigée par {visit.writerName ?? "—"}
+            {zones && zones.total > 0 ? (
+              <span data-testid="zones-counter"> · {zonesLabel(zones.filled, zones.total)}</span>
+            ) : null}
+          </p>
         </div>
         {actions ? <div className="shrink-0">{actions}</div> : null}
       </div>

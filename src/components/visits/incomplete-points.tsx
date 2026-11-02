@@ -17,7 +17,10 @@ export function IncompletePoints({ points }: { points: IncompletePoint[] }) {
       <ul className="mt-2 flex flex-col gap-1">
         {points.map((point) => (
           <li key={point.key}>
-            <a href={`#${point.anchor}`} className="inline-flex min-h-11 items-center underline">
+            <a
+              href={point.href ?? `#${point.anchor}`}
+              className="inline-flex min-h-11 items-center underline"
+            >
               {point.label}
             </a>
           </li>

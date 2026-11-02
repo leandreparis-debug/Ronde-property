@@ -103,6 +103,15 @@ describe("incompletePoints", () => {
       incompletePoints({ writerId: "x", subject: null, participantsCount: 1 })[0]?.anchor,
     ).toBe("visit-subject");
   });
+
+  it("adds « Aucune observation saisie » when every zone is empty, linking to the notes tab", () => {
+    const base = { writerId: "x", subject: "Objet", participantsCount: 1 };
+    expect(incompletePoints({ ...base, filledZonesCount: 0 })).toEqual([
+      { key: "notes", label: "Aucune observation saisie", anchor: "notes", href: "?onglet=notes" },
+    ]);
+    expect(incompletePoints({ ...base, filledZonesCount: 3 })).toEqual([]);
+    expect(incompletePoints(base)).toEqual([]);
+  });
 });
 
 describe("todayInParis", () => {

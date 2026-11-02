@@ -45,10 +45,12 @@ export function visitDateWarning(visitDate: string, today: string): string | nul
 }
 
 export interface IncompletePoint {
-  key: "writer" | "participants" | "subject";
+  key: "writer" | "participants" | "subject" | "notes";
   label: string;
   /** Id of the field to focus. */
   anchor: string;
+  /** Link used instead of the anchor when the point lives in another tab. */
+  href?: string;
 }
 
 /** Points to complete before the report, listed without blocking anything. */
@@ -56,6 +58,8 @@ export function incompletePoints(input: {
   writerId: string | null;
   subject: string | null;
   participantsCount: number;
+  /** Zones with a non-blank note; omit when the notes are not loaded. */
+  filledZonesCount?: number;
 }): IncompletePoint[] {
   const points: IncompletePoint[] = [];
   if (!input.writerId)
@@ -64,5 +68,12 @@ export function incompletePoints(input: {
     points.push({ key: "participants", label: "Aucun participant", anchor: "participants" });
   if (!input.subject || input.subject.trim() === "")
     points.push({ key: "subject", label: "Objet vide", anchor: "visit-subject" });
+  if (input.filledZonesCount === 0)
+    points.push({
+      key: "notes",
+      label: "Aucune observation saisie",
+      anchor: "notes",
+      href: "?onglet=notes",
+    });
   return points;
 }

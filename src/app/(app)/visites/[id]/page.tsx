@@ -9,6 +9,7 @@ import { NotesTab } from "@/components/visits/notes/notes-tab";
 import { VisitInformationTab } from "@/components/visits/visit-information-tab";
 import { VisitTabs } from "@/components/visits/visit-tabs";
 import { requireUser } from "@/server/auth/session";
+import { isZoneFilled } from "@/lib/notes/format";
 import { incompletePoints } from "@/server/domain/visits";
 import { toZoneNoteView } from "@/server/domain/zone-notes";
 import { getVisit, listAssignable, listParticipants } from "@/server/services/visits";
@@ -36,16 +37,19 @@ export default async function VisitPage({ params }: { params: Params }) {
     listZoneNotes(id),
   ]);
   const canCreate = user.role === "rt" || user.role === "admin";
+  const filledZonesCount = notes.filter((note) => isZoneFilled(note.content)).length;
   const points = incompletePoints({
     writerId: visit.writerId,
     subject: visit.subject,
     participantsCount: participants.length,
+    filledZonesCount,
   });
 
   return (
     <>
       <VisitHeader
         visit={visit}
+        zones={{ filled: filledZonesCount, total: notes.length }}
         actions={<VisitActions visit={visit} canCreate={canCreate} incomplete={points} />}
       />
       <VisitBanner visit={visit} user={user} />
@@ -70,6 +74,7 @@ export default async function VisitPage({ params }: { params: Params }) {
             visit={visit}
             participants={participants}
             writers={writers}
+            filledZonesCount={filledZonesCount}
           />
         }
       />

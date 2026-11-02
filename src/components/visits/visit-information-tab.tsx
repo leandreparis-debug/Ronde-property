@@ -15,15 +15,23 @@ export interface VisitInformationTabProps {
   visit: VisitDetail;
   participants: Participant[];
   writers: AssignableProfile[];
+  /** Zones with a non-blank note (« Aucune observation saisie » when zero). */
+  filledZonesCount: number;
 }
 
 /** « Informations » tab: visit block, site (read-only), participants and incomplete points. */
-export function VisitInformationTab({ visit, participants, writers }: VisitInformationTabProps) {
+export function VisitInformationTab({
+  visit,
+  participants,
+  writers,
+  filledZonesCount,
+}: VisitInformationTabProps) {
   const canEdit = visit.permissions.canEdit;
   const points = incompletePoints({
     writerId: visit.writerId,
     subject: visit.subject,
     participantsCount: participants.length,
+    filledZonesCount,
   });
 
   return (

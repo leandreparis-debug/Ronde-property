@@ -1,4 +1,4 @@
-import { Camera, ChevronRight, FileText, MapPin } from "lucide-react";
+import { Camera, ChevronRight, FileText, MapPin, NotebookPen } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,7 @@ import { formatDate } from "@/lib/format";
 import type { VisitSummary } from "@/server/domain";
 import { VISIT_REASON_LABELS } from "@/server/domain/labels";
 
+import { zonesLabel } from "./visit-header";
 import { VisitStatusBadge } from "./visit-status-badge";
 
 /** Clickable visit card: date, title, site, reason, status and counters. */
@@ -46,6 +47,12 @@ export function VisitCard({ visit }: { visit: VisitSummary }) {
               <Camera className="size-4" aria-hidden="true" />
               {visit.photosCount} photo{visit.photosCount > 1 ? "s" : ""}
             </span>
+            {visit.zonesCount > 0 ? (
+              <span className="inline-flex items-center gap-1" data-testid="zones-counter">
+                <NotebookPen className="size-4" aria-hidden="true" />
+                {zonesLabel(visit.filledZonesCount, visit.zonesCount)}
+              </span>
+            ) : null}
             {visit.lastReportAt ? (
               <span className="inline-flex items-center gap-1">
                 <FileText className="size-4" aria-hidden="true" />

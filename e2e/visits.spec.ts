@@ -87,7 +87,10 @@ test.describe("Alice on a tablet", () => {
     await page.reload();
     await expect(page.locator("#visit-subject")).toHaveValue("Objet saisi sur tablette.");
     await expect(page.getByTestId("participant")).toHaveCount(2);
-    await expect(page.getByTestId("incomplete-points")).toHaveCount(0);
+    // Only the notes point remains: every zone of the fresh template is empty.
+    await expect(page.getByTestId("incomplete-points")).toContainText("Aucune observation saisie");
+    await expect(page.getByTestId("incomplete-points")).not.toContainText("Aucun participant");
+    await expect(page.getByTestId("zones-counter")).toContainText("0/9 zones renseignées");
 
     await page.getByTestId("participant").nth(1).getByRole("switch").click();
     await expect(page.getByTestId("participant").nth(1).getByRole("switch")).toHaveText(/Absent/);
