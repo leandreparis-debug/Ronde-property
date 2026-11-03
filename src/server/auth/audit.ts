@@ -5,13 +5,15 @@ import { sql } from "kysely";
 import type { Trx } from "@/server/db/context";
 import { withSystem } from "@/server/db/context";
 
-/** Application-level audit actions written by the auth and account services. */
+/** Application-level audit actions written by the auth, account and photo services. */
 export type AuthAuditAction =
   | "auth.signed_in"
   | "auth.sign_in_failed"
   | "auth.signed_out"
   | "account.created"
-  | "account.password_reset";
+  | "account.password_reset"
+  | "photo.uploaded"
+  | "photo.deleted";
 
 /**
  * Writes an audit entry through `private.audit` (the only allowed writer of audit_log).

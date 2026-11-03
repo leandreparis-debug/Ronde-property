@@ -17,6 +17,8 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "reserve.created": "Réserve créée",
   "reserve.status_changed": "Statut de réserve modifié",
   "reserve.deleted": "Réserve supprimée",
+  "photo.uploaded": "Photo ajoutée",
+  "photo.deleted": "Photo supprimée",
   "report.generated": "Rapport généré",
   "site_plan.imported": "Plan importé",
   "site_plan.archived": "Plan archivé",

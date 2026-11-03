@@ -5,7 +5,7 @@ import { randomBytes } from "node:crypto";
 import { sql } from "kysely";
 
 import { isZoneFilled } from "@/lib/notes/format";
-import { REMOVE_NOT_EMPTY_MESSAGE } from "@/lib/notes/messages";
+import { REMOVE_NOT_EMPTY_MESSAGE, removeHasPhotosMessage } from "@/lib/notes/messages";
 import { type Trx, type UserRef, withUser } from "@/server/db/context";
 import {
   customZoneKey,
@@ -17,6 +17,7 @@ import {
   type ZoneTemplateKey,
 } from "@/server/domain/templates";
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from "@/server/errors";
+import { countPhotosOfZone } from "@/server/photos/repository";
 
 import { assertVisitVersion, type VisitVersion } from "./visit-repository";
 
@@ -250,14 +251,17 @@ export async function copyZoneStructure(trx: Trx, fromId: string, toId: string):
 
 /** Kysely implementation of `ZoneNoteRepository`. */
 export function createZoneNoteRepository(user: UserRef): ZoneNoteRepository {
-  async function visitOf(trx: Trx, noteId: string): Promise<{ visitId: string; content: string }> {
+  async function visitOf(
+    trx: Trx,
+    noteId: string,
+  ): Promise<{ visitId: string; content: string; zoneKey: string }> {
     const row = await trx
       .selectFrom("visit_zone_notes")
-      .select(["visit_id", "content"])
+      .select(["visit_id", "content", "zone_key"])
       .where("id", "=", noteId)
       .executeTakeFirst();
     if (!row) throw new NotFoundError("Zone introuvable.");
-    return { visitId: row.visit_id, content: row.content };
+    return { visitId: row.visit_id, content: row.content, zoneKey: row.zone_key };
   }
 
   return {
@@ -388,11 +392,12 @@ export function createZoneNoteRepository(user: UserRef): ZoneNoteRepository {
 
     remove(noteId, visitVersion) {
       return withUser(user, async (trx) => {
-        const { visitId, content } = await visitOf(trx, noteId);
+        const { visitId, content, zoneKey } = await visitOf(trx, noteId);
         await assertVisitVersion(trx, visitId, visitVersion);
         if (isZoneFilled(content)) throw new ValidationError(REMOVE_NOT_EMPTY);
-        // Extension point (steps 7 and 9): refuse while a photo or a reserve is linked to this
-        // zone_key, with the same kind of message.
+        const photos = await countPhotosOfZone(trx, visitId, zoneKey);
+        if (photos > 0) throw new ValidationError(removeHasPhotosMessage(photos));
+        // Extension point (step 9): refuse while a reserve is linked to this zone_key too.
         const result = await trx
           .deleteFrom("visit_zone_notes")
           .where("id", "=", noteId)

@@ -1,5 +1,4 @@
 export * from "./participant-repository";
-export * from "./photo-repository";
 export * from "./plan-repository";
 export * from "./profile-repository";
 export * from "./report-repository";
