@@ -18,6 +18,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "fixtures:images": "node scripts/fixtures/generate-images.mjs",
     "test:e2e": "playwright test",
     "verify": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test && pnpm build",
     "db:reset": "node scripts/db/reset.mjs",

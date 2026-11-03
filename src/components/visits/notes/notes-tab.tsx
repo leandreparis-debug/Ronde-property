@@ -28,12 +28,14 @@ import {
 import type { VisitType } from "@/server/domain/enums";
 import { templateForVisitType } from "@/server/domain/templates";
 import type { ZoneNoteView } from "@/server/domain/zone-notes";
+import type { PhotoView } from "@/server/photos/types";
 
 import { ManageZonesDialog } from "./manage-zones-dialog";
 import { NoteConflictDialog } from "./note-conflict-dialog";
 import { NoteContent } from "./note-content";
 import { type EditorMode, ZoneEditor } from "./zone-editor";
 import { ZoneNav } from "./zone-nav";
+import { ZonePhotos } from "./zone-photos";
 
 export interface NotesTabProps {
   visitId: string;
@@ -42,6 +44,8 @@ export interface NotesTabProps {
   initialNotes: ZoneNoteView[];
   canEdit: boolean;
   userId: string;
+  /** Ready photos of the visit, for the per-zone counter and strip. */
+  photos: PhotoView[];
 }
 
 const IDLE: NoteSaveStatus = { kind: "idle" };
@@ -60,6 +64,7 @@ export function NotesTab({
   initialNotes,
   canEdit,
   userId,
+  photos,
 }: NotesTabProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -250,6 +255,7 @@ export function NotesTab({
     zoneLabel: note.zoneLabel,
     filled: isZoneFilled(valueOf(note)),
     status: statuses[note.id],
+    photos: photos.filter((photo) => photo.zoneKey === note.zoneKey).length,
   }));
 
   if (notes.length === 0) {
@@ -323,40 +329,47 @@ export function NotesTab({
         <ZoneNav items={navItems} selectedId={selected?.id ?? null} onSelect={selectZone} />
 
         {selected ? (
-          canEdit ? (
-            <ZoneEditor
-              key={selected.id}
-              note={selected}
-              value={valueOf(selected)}
-              status={statuses[selected.id] ?? IDLE}
-              mode={mode}
-              userId={userId}
-              onModeChange={setMode}
-              onChange={(value) => change(selected.id, value)}
-              onBlur={() => saver.flush(selected.id)}
-              onRetry={() => saver.retry(selected.id)}
-              onPrevious={
-                selectedIndex > 0 ? () => selectZone(notes[selectedIndex - 1]!.id) : undefined
-              }
-              onNext={
-                selectedIndex < notes.length - 1
-                  ? () => selectZone(notes[selectedIndex + 1]!.id)
-                  : undefined
-              }
+          <div className="flex min-w-0 flex-1 flex-col gap-4">
+            {canEdit ? (
+              <ZoneEditor
+                key={selected.id}
+                note={selected}
+                value={valueOf(selected)}
+                status={statuses[selected.id] ?? IDLE}
+                mode={mode}
+                userId={userId}
+                onModeChange={setMode}
+                onChange={(value) => change(selected.id, value)}
+                onBlur={() => saver.flush(selected.id)}
+                onRetry={() => saver.retry(selected.id)}
+                onPrevious={
+                  selectedIndex > 0 ? () => selectZone(notes[selectedIndex - 1]!.id) : undefined
+                }
+                onNext={
+                  selectedIndex < notes.length - 1
+                    ? () => selectZone(notes[selectedIndex + 1]!.id)
+                    : undefined
+                }
+              />
+            ) : (
+              <ReadonlyZone
+                note={selected}
+                onPrevious={
+                  selectedIndex > 0 ? () => selectZone(notes[selectedIndex - 1]!.id) : undefined
+                }
+                onNext={
+                  selectedIndex < notes.length - 1
+                    ? () => selectZone(notes[selectedIndex + 1]!.id)
+                    : undefined
+                }
+              />
+            )}
+            <ZonePhotos
+              zoneKey={selected.zoneKey}
+              photos={photos.filter((photo) => photo.zoneKey === selected.zoneKey)}
+              canEdit={canEdit}
             />
-          ) : (
-            <ReadonlyZone
-              note={selected}
-              onPrevious={
-                selectedIndex > 0 ? () => selectZone(notes[selectedIndex - 1]!.id) : undefined
-              }
-              onNext={
-                selectedIndex < notes.length - 1
-                  ? () => selectZone(notes[selectedIndex + 1]!.id)
-                  : undefined
-              }
-            />
-          )
+          </div>
         ) : null}
       </div>
 

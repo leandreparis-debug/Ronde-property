@@ -17,6 +17,8 @@ export interface VisitInformationTabProps {
   writers: AssignableProfile[];
   /** Zones with a non-blank note (« Aucune observation saisie » when zero). */
   filledZonesCount: number;
+  /** Ready photos without a caption (« N photos sans légende »). */
+  uncaptionedPhotosCount: number;
 }
 
 /** « Informations » tab: visit block, site (read-only), participants and incomplete points. */
@@ -25,6 +27,7 @@ export function VisitInformationTab({
   participants,
   writers,
   filledZonesCount,
+  uncaptionedPhotosCount,
 }: VisitInformationTabProps) {
   const canEdit = visit.permissions.canEdit;
   const points = incompletePoints({
@@ -32,6 +35,7 @@ export function VisitInformationTab({
     subject: visit.subject,
     participantsCount: participants.length,
     filledZonesCount,
+    uncaptionedPhotosCount,
   });
 
   return (

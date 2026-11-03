@@ -6,12 +6,16 @@ import { VisitActions } from "@/components/visits/visit-actions";
 import { VisitBanner } from "@/components/visits/visit-banner";
 import { VisitHeader } from "@/components/visits/visit-header";
 import { NotesTab } from "@/components/visits/notes/notes-tab";
+import { PhotosTab } from "@/components/visits/photos/photos-tab";
+import { UploadQueuePill } from "@/components/visits/photos/upload-queue-pill";
+import { UploadQueueProvider } from "@/components/visits/photos/upload-queue-provider";
 import { VisitInformationTab } from "@/components/visits/visit-information-tab";
 import { VisitTabs } from "@/components/visits/visit-tabs";
 import { requireUser } from "@/server/auth/session";
 import { isZoneFilled } from "@/lib/notes/format";
 import { incompletePoints } from "@/server/domain/visits";
 import { toZoneNoteView } from "@/server/domain/zone-notes";
+import { listPhotos } from "@/server/services/photos";
 import { getVisit, listAssignable, listParticipants } from "@/server/services/visits";
 import { listZoneNotes } from "@/server/services/zone-notes";
 
@@ -31,25 +35,31 @@ export default async function VisitPage({ params }: { params: Params }) {
   if (!z.uuid().safeParse(id).success) notFound();
   const visit = await getVisit(id);
   if (!visit) notFound();
-  const [participants, writers, notes] = await Promise.all([
+  const [participants, writers, notes, photos] = await Promise.all([
     listParticipants(id),
     listAssignable(),
     listZoneNotes(id),
+    listPhotos(id),
   ]);
   const canCreate = user.role === "rt" || user.role === "admin";
   const filledZonesCount = notes.filter((note) => isZoneFilled(note.content)).length;
+  const uncaptionedPhotosCount = photos.filter((photo) => !photo.caption).length;
   const points = incompletePoints({
     writerId: visit.writerId,
     subject: visit.subject,
     participantsCount: participants.length,
     filledZonesCount,
+    uncaptionedPhotosCount,
   });
+  const zones = notes.map((note) => ({ key: note.zoneKey, label: note.zoneLabel }));
 
   return (
-    <>
+    <UploadQueueProvider visitId={visit.id}>
       <VisitHeader
         visit={visit}
         zones={{ filled: filledZonesCount, total: notes.length }}
+        photosCount={photos.length}
+        status={<UploadQueuePill />}
         actions={<VisitActions visit={visit} canCreate={canCreate} incomplete={points} />}
       />
       <VisitBanner visit={visit} user={user} />
@@ -66,6 +76,16 @@ export default async function VisitPage({ params }: { params: Params }) {
             initialNotes={notes.map(toZoneNoteView)}
             canEdit={visit.permissions.canEdit}
             userId={user.id}
+            photos={photos}
+          />
+        }
+        photos={
+          <PhotosTab
+            key={`${visit.status}-${visit.permissions.canEdit}`}
+            visitId={visit.id}
+            initialPhotos={photos}
+            zones={zones}
+            canEdit={visit.permissions.canEdit}
           />
         }
         information={
@@ -75,9 +95,10 @@ export default async function VisitPage({ params }: { params: Params }) {
             participants={participants}
             writers={writers}
             filledZonesCount={filledZonesCount}
+            uncaptionedPhotosCount={uncaptionedPhotosCount}
           />
         }
       />
-    </>
+    </UploadQueueProvider>
   );
 }

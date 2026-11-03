@@ -1,5 +1,7 @@
 "use client";
 
+import { Images } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/cn";
 import type { NoteSaveStatus } from "@/lib/notes/saver";
@@ -10,6 +12,8 @@ export interface ZoneNavItem {
   zoneLabel: string;
   filled: boolean;
   status?: NoteSaveStatus;
+  /** Ready photos linked to the zone. */
+  photos?: number;
 }
 
 /** Short state shown next to a zone while a save is running or failing. */
@@ -59,6 +63,13 @@ export function ZoneNav({
                   <span className="min-w-0 truncate">{item.zoneLabel}</span>
                   <span className="flex shrink-0 items-center gap-1.5">
                     {state ? <span className="text-label text-ink-2">{state}</span> : null}
+                    {item.photos ? (
+                      <span className="inline-flex items-center gap-0.5 text-label text-ink-2">
+                        <Images className="size-3.5" aria-hidden="true" />
+                        {item.photos}
+                        <span className="sr-only"> photo{item.photos > 1 ? "s" : ""}</span>
+                      </span>
+                    ) : null}
                     <Badge variant={item.filled ? "brand" : "neutral"}>
                       {item.filled ? "Renseignée" : "Vide"}
                     </Badge>

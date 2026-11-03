@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/format";
+import { photosCountLabel } from "@/server/domain/photos";
 import { VISIT_REASON_LABELS } from "@/server/domain/labels";
 import type { VisitDetail } from "@/server/repositories/visit-repository";
 
@@ -17,10 +18,16 @@ export function zonesLabel(filled: number, total: number): string {
 export function VisitHeader({
   visit,
   zones,
+  photosCount,
+  status,
   actions,
 }: {
   visit: VisitDetail;
   zones?: { filled: number; total: number };
+  /** Ready photos of the visit. */
+  photosCount?: number;
+  /** Live indicators (upload pill) shown next to the badges. */
+  status?: React.ReactNode;
   actions?: React.ReactNode;
 }) {
   return (
@@ -49,11 +56,15 @@ export function VisitHeader({
             <Badge>{VISIT_REASON_LABELS[visit.reason]}</Badge>
             <VisitStatusBadge status={visit.status} />
             <Badge>{formatDate(visit.visitDate, "weekday")}</Badge>
+            {status}
           </div>
           <p className="text-ui text-ink-2">
             Rédigée par {visit.writerName ?? "—"}
             {zones && zones.total > 0 ? (
               <span data-testid="zones-counter"> · {zonesLabel(zones.filled, zones.total)}</span>
+            ) : null}
+            {photosCount !== undefined ? (
+              <span data-testid="photos-counter"> · {photosCountLabel(photosCount)}</span>
             ) : null}
           </p>
         </div>

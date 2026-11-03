@@ -1,5 +1,6 @@
 import type { VisitReason, VisitType } from "./enums";
 import { VISIT_REASON_LABELS } from "./enums";
+import { uncaptionedLabel } from "./photos";
 
 /** Reasons allowed for each visit type: a meeting has the « meeting » reason only. */
 export const REASONS_FOR_TYPE: Record<VisitType, readonly VisitReason[]> = {
@@ -45,7 +46,7 @@ export function visitDateWarning(visitDate: string, today: string): string | nul
 }
 
 export interface IncompletePoint {
-  key: "writer" | "participants" | "subject" | "notes";
+  key: "writer" | "participants" | "subject" | "notes" | "photos";
   label: string;
   /** Id of the field to focus. */
   anchor: string;
@@ -60,6 +61,8 @@ export function incompletePoints(input: {
   participantsCount: number;
   /** Zones with a non-blank note; omit when the notes are not loaded. */
   filledZonesCount?: number;
+  /** Ready photos without a caption; omit when the photos are not loaded. */
+  uncaptionedPhotosCount?: number;
 }): IncompletePoint[] {
   const points: IncompletePoint[] = [];
   if (!input.writerId)
@@ -74,6 +77,13 @@ export function incompletePoints(input: {
       label: "Aucune observation saisie",
       anchor: "notes",
       href: "?onglet=notes",
+    });
+  if (input.uncaptionedPhotosCount)
+    points.push({
+      key: "photos",
+      label: uncaptionedLabel(input.uncaptionedPhotosCount),
+      anchor: "photos",
+      href: "?onglet=photos&legende=sans",
     });
   return points;
 }

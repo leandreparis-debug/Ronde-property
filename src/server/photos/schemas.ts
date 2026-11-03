@@ -10,11 +10,7 @@ import { ZONE_KEY_PATTERN } from "@/server/domain/templates";
 /** Maximum number of photos prepared in one call. */
 export const MAX_PREPARE_BATCH = 50;
 
-const zoneKey = z
-  .string()
-  .regex(ZONE_KEY_PATTERN, "Clé de zone invalide.")
-  .nullable()
-  .default(null);
+const zoneKey = z.string().regex(ZONE_KEY_PATTERN, "Clé de zone invalide.").nullable();
 
 export const preparePhotoItemSchema = z.object({
   originalFilename: z.string().max(255).nullable().default(null),
@@ -34,7 +30,7 @@ export const preparePhotoItemSchema = z.object({
     .datetime({ offset: true, message: "Date de prise de vue invalide." })
     .nullable()
     .default(null),
-  zoneKey,
+  zoneKey: zoneKey.default(null),
 });
 
 export const preparePhotoUploadSchema = z.object({
@@ -53,6 +49,7 @@ export const photoPatchSchema = z.object({
     .nullable()
     .optional(),
   category: z.enum(PHOTO_CATEGORIES, { message: "Catégorie inconnue." }).optional(),
+  // No default here: an absent key must leave the zone untouched (patch semantics).
   zoneKey: zoneKey.optional(),
 });
 

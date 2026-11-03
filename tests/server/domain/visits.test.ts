@@ -100,6 +100,29 @@ describe("incompletePoints", () => {
     ).toEqual(["writer", "participants", "subject"]);
     expect(incompletePoints({ writerId: "x", subject: "Objet", participantsCount: 2 })).toEqual([]);
     expect(
+      incompletePoints({
+        writerId: "x",
+        subject: "Objet",
+        participantsCount: 2,
+        filledZonesCount: 3,
+        uncaptionedPhotosCount: 0,
+      }),
+    ).toEqual([]);
+    const photos = incompletePoints({
+      writerId: "x",
+      subject: "Objet",
+      participantsCount: 2,
+      uncaptionedPhotosCount: 3,
+    });
+    expect(photos).toEqual([
+      {
+        key: "photos",
+        label: "3 photos sans légende",
+        anchor: "photos",
+        href: "?onglet=photos&legende=sans",
+      },
+    ]);
+    expect(
       incompletePoints({ writerId: "x", subject: null, participantsCount: 1 })[0]?.anchor,
     ).toBe("visit-subject");
   });

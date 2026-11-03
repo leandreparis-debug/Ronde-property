@@ -17,6 +17,9 @@ blob-report/
 # local storage provider (STORAGE_PROVIDER=local)
 .storage/
 
+# synthetic test images (scripts/fixtures/generate-images.mjs)
+e2e/fixtures/images/
+
 # environment (never commit secrets)
 .env
 .env.local
