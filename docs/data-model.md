@@ -258,6 +258,12 @@ Les participants gardent leur trigger par ligne de l'étape 5 (`touch_parent_vis
 notes, le trigger est par instruction parce que l'insertion d'une trame (neuf zones) ou un
 réordonnancement se font en une instruction et ne doivent compter qu'une fois.
 
+## Rôle de connexion et journal d'audit (migration 13)
+
+`private.audit` est exécutable par `service_role` : `withSystem` (session, comptes, import)
+s'exécute sous ce rôle et écrit le journal d'audit. `anon` et `authenticated` restent exclus ;
+les triggers et RPC `security definer` n'en ont pas besoin.
+
 ## Accès depuis l'application
 
 Depuis l'étape 3, l'application n'utilise plus l'API REST de Supabase pour les données : elle

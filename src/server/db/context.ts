@@ -52,7 +52,10 @@ export async function withUser<T>(user: UserRef, fn: (trx: Trx) => Promise<T>): 
 }
 
 /**
- * Runs `fn` in a transaction with the connection owner's rights (bypasses RLS).
+ * Runs `fn` in a transaction **as `service_role`** (`set local role service_role`), which
+ * bypasses RLS exactly like the Supabase service key. The connection owner only needs to be a
+ * member of `service_role` (and of `authenticated` for `withUser`): on Supabase the
+ * application connects with a dedicated login role, never with `postgres`.
  * Reserved to explicit server services: session lookup, account administration, VIGIE
  * import. Each call names its reason, which is logged. Never call it from a page or a
  * component.
@@ -67,7 +70,10 @@ export async function withSystem<T>(reason: string, fn: (trx: Trx) => Promise<T>
   try {
     return await getDb()
       .transaction()
-      .execute((trx) => fn(trx));
+      .execute(async (trx) => {
+        await sql`set local role service_role`.execute(trx);
+        return fn(trx);
+      });
   } catch (error) {
     wrapError(error);
   }

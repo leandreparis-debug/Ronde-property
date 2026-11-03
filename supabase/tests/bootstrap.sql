@@ -85,6 +85,9 @@ as $$
 $$;
 
 grant execute on function auth.jwt(), auth.uid(), auth.role() to anon, authenticated, service_role;
+-- Fournisseur d'authentification `local` (tests et développement seulement) : il gère
+-- auth.users lui-même, depuis withSystem, qui s'exécute en service_role.
+grant select, insert, update on auth.users to service_role;
 
 -- ---------------------------------------------------------------------------
 -- storage

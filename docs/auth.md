@@ -26,9 +26,12 @@ dans une transaction courte :
 - **`withUser(user, fn)`** : `set local role authenticated` + `request.jwt.claims = {"sub": id}`.
   La RLS de l'étape 2 s'applique exactement comme à travers l'API Supabase. `user` est
   l'utilisateur vérifié par `getCurrentUser` / `requireUser`.
-- **`withSystem(reason, fn)`** : droits du propriétaire de la connexion (hors RLS). Réservé aux
-  services serveur explicites (session, comptes, import VIGIE) ; chaque appel nomme sa raison,
-  journalisée. Interdit dans les pages et les composants (`server-only`).
+- **`withSystem(reason, fn)`** : `set local role service_role` (hors RLS, comme la clé service
+  de Supabase). Réservé aux services serveur explicites (session, comptes, import VIGIE) ;
+  chaque appel nomme sa raison, journalisée. Interdit dans les pages et les composants
+  (`server-only`). La connexion elle-même n'est jamais `postgres` en production : un rôle de
+  connexion dédié, membre de `authenticated` et de `service_role`, suffit (voir
+  `docs/supabase-setup.md`).
 
 Les erreurs Postgres deviennent des erreurs métier : `42501` → `ForbiddenError`, `23505` →
 `ConflictError`, `23514` / `22P02` / `23502` / `23503` → `ValidationError`, ligne absente →

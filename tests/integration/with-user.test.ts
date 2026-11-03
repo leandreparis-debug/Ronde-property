@@ -128,7 +128,7 @@ describe("isolation between transactions", () => {
       `.execute(trx);
       return rows[0];
     });
-    expect(after?.role).toBe("postgres");
+    expect(after?.role).toBe("service_role");
     expect(after?.claims ?? "").toBe("");
 
     // Two users back to back: the second never inherits the first's identity.

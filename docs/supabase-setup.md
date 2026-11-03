@@ -52,7 +52,13 @@ La CLI ne nécessite **pas** Docker pour `link` et `db push`.
    (`https://supabase.com/dashboard/project/<ref>`). `db push` demande le mot de passe de la
    base et applique uniquement les migrations non encore appliquées, dans l'ordre.
 
-3. Pour vérifier : `supabase migration list` doit montrer les huit migrations en « Remote ».
+3. Pour vérifier : `supabase migration list` doit montrer toutes les migrations en « Remote ».
+
+### Méthode C : connecteur Supabase (MCP) depuis Claude Code
+
+Chaque fichier peut être appliqué dans l'ordre avec l'outil `apply_migration` du connecteur,
+qui l'enregistre dans `supabase_migrations.schema_migrations` sous son nom. C'est ainsi que le
+projet `ronde` a été initialisé le 3 novembre 2026 (treize migrations).
 
 ### Méthode B : éditeur SQL du dashboard
 
@@ -130,7 +136,9 @@ Dashboard → **Authentication** :
 ### Premier compte admin
 
 Tant qu'aucun admin n'existe, l'écran `/admin/comptes` est inaccessible. Créez le premier
-compte depuis le dashboard :
+compte depuis le dashboard (ou, à défaut, par une insertion SQL dans `auth.users`,
+`auth.identities` et `profiles` avec `extensions.crypt(mot_de_passe, extensions.gen_salt('bf'))`
+et `email_confirmed_at = now()`, puis `must_change_password = true`) :
 
 1. **Authentication → Users → Add user → Create new user** : email de l'admin, un mot de passe
    provisoire fort, cochez **Auto Confirm User**.
@@ -145,16 +153,29 @@ compte depuis le dashboard :
 4. Connectez-vous sur `/connexion` : l'application impose le changement du mot de passe, puis
    `/admin/comptes` permet de créer les autres comptes.
 
-### `DATABASE_URL` du pooler (mode transaction)
+### Rôle de connexion dédié et `DATABASE_URL` du pooler (mode transaction)
 
-Dashboard → **Connect** (en haut) → **Transaction pooler** (port **6543**) :
+L'application ne se connecte **pas** avec `postgres`. Créez un rôle de connexion dédié, membre
+de `authenticated` (pour `withUser`) et de `service_role` (pour `withSystem`, qui fait
+`set local role service_role`) :
+
+```sql
+create role ronde_app with login password '<mot-de-passe-fort>' noinherit;
+grant authenticated to ronde_app;
+grant service_role to ronde_app;
+```
+
+Puis, dashboard → **Connect** (en haut) → **Transaction pooler** (port **6543**), en
+remplaçant l'utilisateur par le rôle dédié :
 
 ```
-postgres://postgres.<ref>:<mot-de-passe-base>@aws-0-<region>.pooler.supabase.com:6543/postgres
+postgres://ronde_app.<ref>:<mot-de-passe>@aws-0-<region>.pooler.supabase.com:6543/postgres
 ```
 
 Encodez le mot de passe s'il contient des caractères spéciaux (`@` → `%40`). Le mode
 transaction convient à Vercel (serverless) ; `DATABASE_POOL_MAX` reste petit (5 par défaut).
+La migration 13 accorde `private.audit` à `service_role`, nécessaire au journal d'audit écrit
+depuis `withSystem`.
 
 ### Variables à créer dans Vercel
 

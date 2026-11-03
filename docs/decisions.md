@@ -309,3 +309,16 @@ vérification « aucune photo ni réserve liée » au même endroit (point d'ext
 
 **Motivation.** Une zone retirée l'est définitivement (pas de corbeille) ; vider d'abord est un
 geste explicite qui évite de perdre des observations par erreur.
+
+## 2026-11-03 — `withSystem` en `service_role`, rôle de connexion dédié
+
+**Décision.** `withSystem` exécute sa transaction après `set local role service_role`, au lieu
+de s'appuyer sur les droits du propriétaire de la connexion. En production, l'application se
+connecte avec un rôle dédié (`ronde_app`, `noinherit`, membre de `authenticated` et de
+`service_role`) à travers le pooler en mode transaction, jamais avec `postgres`. La migration
+13 accorde `private.audit` à `service_role`.
+
+**Motivation.** Le mot de passe de `postgres` n'est pas modifiable par le connecteur Supabase
+et ne doit pas circuler ; un rôle dédié limite les droits de l'application à ceux de la
+plateforme (`service_role` contourne la RLS, rien de plus) et rend le comportement identique
+entre la base de test locale et Supabase.
