@@ -136,10 +136,11 @@ on conflict (id) do nothing;
 -- ---------------------------------------------------------------------------
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
 
-insert into public.photos (id, visit_id, storage_path, original_filename, mime_type, width, height, size_bytes, caption, zone_key, sort_order, is_cover, created_by) values
+insert into public.photos (id, visit_id, storage_path, thumb_path, original_filename, mime_type, width, height, size_bytes, caption, zone_key, sort_order, is_cover, upload_status, created_by) values
   ('60000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001',
-   '20000000-0000-4000-8000-000000000001/60000000-0000-4000-8000-000000000001.jpg', 'quai-14.jpg',
-   'image/jpeg', 1600, 1200, 350000, 'Quai 14, butoir arraché (photo fictive)', 'docks', 0, true,
+   '20000000-0000-4000-8000-000000000001/60000000-0000-4000-8000-000000000001.jpg',
+   '20000000-0000-4000-8000-000000000001/60000000-0000-4000-8000-000000000001_thumb.jpg', 'quai-14.jpg',
+   'image/jpeg', 1600, 1200, 350000, 'Quai 14, butoir arraché (photo fictive)', 'docks', 0, true, 'ready',
    '00000000-0000-4000-8000-000000000001')
 on conflict (id) do nothing;
 

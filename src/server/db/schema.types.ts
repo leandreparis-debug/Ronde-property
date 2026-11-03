@@ -89,7 +89,15 @@ export interface Photos {
    */
   storage_path: string;
   taken_at: Timestamp | null;
+  /**
+   * Chemin de la miniature JPEG 400 px dans le bucket visit-photos : {visit_id}/{photo_id}_thumb.jpg.
+   */
+  thumb_path: string | null;
   updated_at: Generated<Timestamp>;
+  /**
+   * pending : ligne créée avant l'envoi (URL signée délivrée) ; ready : objets vérifiés. Seules les ready sont listées.
+   */
+  upload_status: Generated<string>;
   visit_id: string;
   width: number | null;
   zone_key: string | null;

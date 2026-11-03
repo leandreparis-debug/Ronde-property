@@ -63,7 +63,9 @@ export type Database = {
           sort_order: number;
           storage_path: string;
           taken_at: string | null;
+          thumb_path: string | null;
           updated_at: string;
+          upload_status: string;
           visit_id: string;
           width: number | null;
           zone_key: string | null;
@@ -83,7 +85,9 @@ export type Database = {
           sort_order?: number;
           storage_path: string;
           taken_at?: string | null;
+          thumb_path?: string | null;
           updated_at?: string;
+          upload_status?: string;
           visit_id: string;
           width?: number | null;
           zone_key?: string | null;
@@ -102,7 +106,9 @@ export type Database = {
           sort_order?: number;
           storage_path?: string;
           taken_at?: string | null;
+          thumb_path?: string | null;
           updated_at?: string;
+          upload_status?: string;
           visit_id?: string;
           width?: number | null;
           zone_key?: string | null;

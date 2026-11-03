@@ -141,7 +141,7 @@ describe("plan markers and photos", () => {
       await actAs(client, ACTORS.alice);
       const result = await attempt(
         client,
-        "insert into public.photos (visit_id, storage_path, mime_type, is_cover) values ($1, $2, 'image/jpeg', true)",
+        "insert into public.photos (visit_id, storage_path, mime_type, is_cover, upload_status) values ($1, $2, 'image/jpeg', true, 'ready')",
         [VISITS.v1InProgress, `${VISITS.v1InProgress}/second-cover.jpg`],
       );
       expect(result.ok).toBe(false);
