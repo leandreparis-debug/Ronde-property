@@ -101,3 +101,52 @@ describe("parseEnv cross validation of the auth provider", () => {
     expect(parseEnv({ DATABASE_POOL_MAX: "12" }).DATABASE_POOL_MAX).toBe(12);
   });
 });
+
+describe("parseEnv cross validation of the storage provider", () => {
+  const localOk = {
+    STORAGE_PROVIDER: "local",
+    ALLOW_LOCAL_STORAGE: "true",
+    LOCAL_STORAGE_SECRET: "s".repeat(32),
+    DATABASE_URL: "postgres://postgres:postgres@127.0.0.1:5432/ronde_test",
+  };
+
+  it("defaults to supabase and the .storage folder", () => {
+    const env = parseEnv({});
+    expect(env.STORAGE_PROVIDER).toBe("supabase");
+    expect(env.ALLOW_LOCAL_STORAGE).toBe(false);
+    expect(env.LOCAL_STORAGE_SECRET).toBeUndefined();
+    expect(env.LOCAL_STORAGE_DIR).toBe(".storage");
+  });
+
+  it("accepts a complete local configuration and a custom folder", () => {
+    const env = parseEnv({ ...localOk, LOCAL_STORAGE_DIR: "/tmp/ronde-storage" });
+    expect(env.STORAGE_PROVIDER).toBe("local");
+    expect(env.LOCAL_STORAGE_DIR).toBe("/tmp/ronde-storage");
+    expect(parseEnv({ ...localOk, LOCAL_STORAGE_DIR: "" }).LOCAL_STORAGE_DIR).toBe(".storage");
+  });
+
+  it("refuses local without ALLOW_LOCAL_STORAGE=true or without a long enough secret", () => {
+    expect(() => parseEnv({ ...localOk, ALLOW_LOCAL_STORAGE: "false" })).toThrow(
+      /ALLOW_LOCAL_STORAGE/,
+    );
+    expect(() => parseEnv({ ...localOk, LOCAL_STORAGE_SECRET: "court" })).toThrow(
+      /LOCAL_STORAGE_SECRET/,
+    );
+    expect(() => parseEnv({ ...localOk, LOCAL_STORAGE_SECRET: undefined })).toThrow(
+      /LOCAL_STORAGE_SECRET/,
+    );
+  });
+
+  it("refuses local on Vercel and against a remote database", () => {
+    expect(() => parseEnv({ ...localOk, VERCEL: "1" })).toThrow(/interdit sur Vercel/);
+    expect(() =>
+      parseEnv({ ...localOk, DATABASE_URL: "postgres://u:p@db.example.supabase.co:5432/postgres" }),
+    ).toThrow(/DATABASE_URL/);
+    expect(() => parseEnv({ ...localOk, DATABASE_URL: undefined })).toThrow(/DATABASE_URL/);
+  });
+
+  it("does not require the storage variables under the supabase provider", () => {
+    expect(() => parseEnv({ STORAGE_PROVIDER: "supabase", VERCEL: "1" })).not.toThrow();
+    expect(() => parseEnv({ STORAGE_PROVIDER: "s3" })).toThrow(/STORAGE_PROVIDER/);
+  });
+});

@@ -5,8 +5,9 @@ import { z } from "zod";
  *
  * Supabase variables stay optional (steps 1 and 2 run without them); the factories that
  * need them fail at call time with an explicit message. `DATABASE_URL` is required at call
- * time by the data layer. `AUTH_PROVIDER=local` is validated here, at startup, because it
- * must never be enabled by accident on Vercel or against a remote database.
+ * time by the data layer. `AUTH_PROVIDER=local` and `STORAGE_PROVIDER=local` are validated
+ * here, at startup, because they must never be enabled by accident on Vercel or against a
+ * remote database.
  */
 const optionalUrl = z
   .union([z.literal(""), z.url({ protocol: /^https?$/ })])
@@ -30,6 +31,17 @@ const optionalFlag = z
 
 export const AUTH_PROVIDERS = ["supabase", "local"] as const;
 export type AuthProvider = (typeof AUTH_PROVIDERS)[number];
+
+export const STORAGE_PROVIDERS = ["supabase", "local"] as const;
+export type StorageProvider = (typeof STORAGE_PROVIDERS)[number];
+
+/** Default folder of the local storage provider (ignored by git). */
+export const DEFAULT_LOCAL_STORAGE_DIR = ".storage";
+
+const optionalLongSecret = z
+  .union([z.literal(""), z.string().min(32, "32 caractères minimum.")])
+  .optional()
+  .transform((value) => (value === "" ? undefined : value));
 
 /** Hosts accepted for the local database (tests, development, local auth). */
 export const LOCAL_DB_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
@@ -58,14 +70,52 @@ export const envSchema = z
       .optional()
       .transform((value): AuthProvider => (value ? value : "supabase")),
     ALLOW_LOCAL_AUTH: optionalFlag,
-    LOCAL_AUTH_SECRET: z
-      .union([z.literal(""), z.string().min(32, "32 caractères minimum.")])
+    LOCAL_AUTH_SECRET: optionalLongSecret,
+    STORAGE_PROVIDER: z
+      .union([z.literal(""), z.enum(STORAGE_PROVIDERS)])
       .optional()
-      .transform((value) => (value === "" ? undefined : value)),
-    /** Set by Vercel on every deployment. Local auth is forbidden there. */
+      .transform((value): StorageProvider => (value ? value : "supabase")),
+    ALLOW_LOCAL_STORAGE: optionalFlag,
+    LOCAL_STORAGE_SECRET: optionalLongSecret,
+    LOCAL_STORAGE_DIR: z
+      .union([z.literal(""), z.string().trim().min(1)])
+      .optional()
+      .transform((value) => (value ? value : DEFAULT_LOCAL_STORAGE_DIR)),
+    /** Set by Vercel on every deployment. Local auth and local storage are forbidden there. */
     VERCEL: z.string().optional(),
   })
   .superRefine((value, ctx) => {
+    if (value.STORAGE_PROVIDER === "local") {
+      if (!value.ALLOW_LOCAL_STORAGE) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["ALLOW_LOCAL_STORAGE"],
+          message: "STORAGE_PROVIDER=local exige ALLOW_LOCAL_STORAGE=true.",
+        });
+      }
+      if (!value.LOCAL_STORAGE_SECRET) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["LOCAL_STORAGE_SECRET"],
+          message: "STORAGE_PROVIDER=local exige LOCAL_STORAGE_SECRET (32 caractères minimum).",
+        });
+      }
+      if (value.VERCEL !== undefined) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["STORAGE_PROVIDER"],
+          message: "STORAGE_PROVIDER=local est interdit sur Vercel.",
+        });
+      }
+      if (!isLocalDatabaseUrl(value.DATABASE_URL)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["DATABASE_URL"],
+          message:
+            "STORAGE_PROVIDER=local exige une DATABASE_URL sur localhost ou 127.0.0.1 (base distante interdite).",
+        });
+      }
+    }
     if (value.AUTH_PROVIDER !== "local") return;
     if (!value.ALLOW_LOCAL_AUTH) {
       ctx.addIssue({
@@ -140,6 +190,10 @@ export const env: Env = parseEnv({
   AUTH_PROVIDER: process.env.AUTH_PROVIDER,
   ALLOW_LOCAL_AUTH: process.env.ALLOW_LOCAL_AUTH,
   LOCAL_AUTH_SECRET: process.env.LOCAL_AUTH_SECRET,
+  STORAGE_PROVIDER: process.env.STORAGE_PROVIDER,
+  ALLOW_LOCAL_STORAGE: process.env.ALLOW_LOCAL_STORAGE,
+  LOCAL_STORAGE_SECRET: process.env.LOCAL_STORAGE_SECRET,
+  LOCAL_STORAGE_DIR: process.env.LOCAL_STORAGE_DIR,
   VERCEL: process.env.VERCEL,
 });
 

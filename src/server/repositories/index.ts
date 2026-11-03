@@ -5,7 +5,6 @@ export * from "./profile-repository";
 export * from "./report-repository";
 export * from "./reserve-repository";
 export * from "./site-repository";
-export * from "./storage-service";
 export * from "./types";
 export * from "./visit-repository";
 export * from "./zone-note-repository";

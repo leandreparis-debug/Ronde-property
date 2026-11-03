@@ -14,6 +14,9 @@ e2e/.auth/
 test-results/
 blob-report/
 
+# local storage provider (STORAGE_PROVIDER=local)
+.storage/
+
 # environment (never commit secrets)
 .env
 .env.local

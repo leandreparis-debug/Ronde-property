@@ -7,8 +7,8 @@ const PORT = Number(new URL(baseURL).port);
 
 /**
  * End-to-end tests run against a production build (`next build && next start`) with the
- * `local` auth provider on the `ronde_test` database, reset before the suite
- * (e2e/global-setup.ts). The `setup` project signs every seeded role in through the real
+ * `local` auth and storage providers on the `ronde_test` database, reset before the suite
+ * (e2e/global-setup.ts); uploaded files land in `.storage/e2e/` (ignored by git). The `setup` project signs every seeded role in through the real
  * form and stores its cookies; the other tests reuse those storage states.
  */
 export const E2E_ENV = {
@@ -18,6 +18,11 @@ export const E2E_ENV = {
   DATABASE_URL:
     process.env.DATABASE_URL ?? "postgres://postgres:postgres@127.0.0.1:5432/ronde_test",
   DATABASE_POOL_MAX: "4",
+  STORAGE_PROVIDER: "local",
+  ALLOW_LOCAL_STORAGE: "true",
+  LOCAL_STORAGE_SECRET:
+    process.env.LOCAL_STORAGE_SECRET ?? "e2e-local-storage-secret-ronde-0123456789abcdef",
+  LOCAL_STORAGE_DIR: process.env.LOCAL_STORAGE_DIR ?? ".storage/e2e",
 };
 
 export default defineConfig({

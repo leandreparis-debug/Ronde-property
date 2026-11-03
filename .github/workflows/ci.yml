@@ -51,6 +51,9 @@ jobs:
       AUTH_PROVIDER: local
       ALLOW_LOCAL_AUTH: "true"
       LOCAL_AUTH_SECRET: ci-local-secret-ronde-0123456789abcdef
+      STORAGE_PROVIDER: local
+      ALLOW_LOCAL_STORAGE: "true"
+      LOCAL_STORAGE_SECRET: ci-local-storage-secret-ronde-0123456789abcdef
     steps:
       - uses: actions/checkout@v5
 
