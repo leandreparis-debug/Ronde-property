@@ -72,10 +72,40 @@ async function openPlan(page: Page, pageNumber = 2) {
   await expect(page.getByTestId("plan-page-image")).toHaveJSProperty("complete", true);
 }
 
-/** Clicks the plan at a fraction of the canvas. */
+/** Clicks the plan at a fraction of the canvas, after checking nothing covers that point. */
 async function tapCanvas(page: Page, fx: number, fy: number) {
+  await canvas(page).scrollIntoViewIfNeeded();
   const box = (await canvas(page).boundingBox())!;
-  await page.mouse.click(box.x + box.width * fx, box.y + box.height * fy);
+  const x = box.x + box.width * fx;
+  const y = box.y + box.height * fy;
+  const hit = await page.evaluate(
+    ([px, py]) => {
+      const element = document.elementFromPoint(px!, py!);
+      const inCanvas = Boolean(element?.closest("[data-testid=plan-canvas]"));
+      return {
+        inCanvas,
+        element: element ? `${element.tagName}.${String(element.className).slice(0, 60)}` : "none",
+        viewport: `${window.innerWidth}x${window.innerHeight}`,
+      };
+    },
+    [x, y],
+  );
+  expect(
+    hit.inCanvas,
+    `point (${x}, ${y}) covered by ${hit.element} (viewport ${hit.viewport})`,
+  ).toBe(true);
+  await page.mouse.click(x, y);
+}
+
+/** Waits for the sheet of marker `n`, failing with the error shown on screen if any. */
+async function expectSheet(page: Page, n: number) {
+  const sheet = page.getByTestId("marker-sheet").filter({ hasText: `Repère n° ${n}` });
+  const error = page.getByTestId("plans-tab").getByRole("alert").filter({ hasText: /\S/ });
+  await expect(sheet.or(error).first()).toBeVisible();
+  if (await error.count()) {
+    throw new Error(`Repère n° ${n} non créé : ${await error.first().innerText()}`);
+  }
+  return sheet;
 }
 
 async function markerXY(page: Page, n: number) {
@@ -150,8 +180,7 @@ test.describe("Alice", () => {
       "Touchez le plan pour placer le repère n° 1",
     );
     await tapCanvas(page, 0.5, 0.5);
-    const sheet = page.getByTestId("marker-sheet");
-    await expect(sheet).toContainText("Repère n° 1");
+    const sheet = await expectSheet(page, 1);
     await expect(markers(page)).toHaveCount(1);
     await expect(page.getByTestId("toggle-place-marker")).toHaveAttribute("aria-pressed", "false");
 
@@ -170,8 +199,7 @@ test.describe("Alice", () => {
     await page.getByTestId("toggle-place-marker").click();
     await expect(page.getByTestId("marker-sheet")).toHaveCount(0);
     await tapCanvas(page, 0.25, 0.3);
-    const sheet = page.getByTestId("marker-sheet");
-    await expect(sheet).toContainText("Repère n° 2");
+    const sheet = await expectSheet(page, 2);
     await sheet.getByTestId("marker-photo-input").setInputFiles(IMG("gradient.png"));
     await expect(sheet.getByTestId("marker-photo-thumb")).toBeVisible({ timeout: 60_000 });
     await expect(marker(page, 2)).toHaveAttribute("data-has-photo", "true");
