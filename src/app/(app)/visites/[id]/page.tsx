@@ -59,12 +59,32 @@ export default async function VisitPage({
   const canCreate = user.role === "rt" || user.role === "admin";
   const filledZonesCount = notes.filter((note) => isZoneFilled(note.content)).length;
   const uncaptionedPhotosCount = photos.filter((photo) => !photo.caption).length;
+  const readyPhotoIds = new Set(photos.map((photo) => photo.id));
+  const markersWithoutPhotoCount = markers.filter(
+    (marker) => !marker.photoId || !readyPhotoIds.has(marker.photoId),
+  ).length;
+  const planNames = new Map(plans.map((plan) => [plan.id, plan.name]));
+  const markersByPhoto = Object.fromEntries(
+    markers
+      .filter((marker) => marker.photoId)
+      .map((marker) => [
+        marker.photoId!,
+        {
+          markerId: marker.id,
+          number: marker.number,
+          planId: marker.planId,
+          planName: planNames.get(marker.planId) ?? "Plan",
+          page: marker.page,
+        },
+      ]),
+  );
   const points = incompletePoints({
     writerId: visit.writerId,
     subject: visit.subject,
     participantsCount: participants.length,
     filledZonesCount,
     uncaptionedPhotosCount,
+    markersWithoutPhotoCount,
   });
   const zones = notes.map((note) => ({ key: note.zoneKey, label: note.zoneLabel }));
 
@@ -115,6 +135,7 @@ export default async function VisitPage({
             initialPhotos={photos}
             zones={zones}
             canEdit={visit.permissions.canEdit}
+            markersByPhoto={markersByPhoto}
           />
         }
         information={
@@ -125,6 +146,7 @@ export default async function VisitPage({
             writers={writers}
             filledZonesCount={filledZonesCount}
             uncaptionedPhotosCount={uncaptionedPhotosCount}
+            markersWithoutPhotoCount={markersWithoutPhotoCount}
           />
         }
       />

@@ -17,6 +17,7 @@ import {
 } from "@/server/actions/photo-actions";
 import { PHOTO_CATEGORIES, PHOTO_CATEGORY_LABELS, photosCountLabel } from "@/server/domain/photos";
 import type { PhotoPatch, PhotoView } from "@/server/photos/types";
+import type { PhotoMarkerLink } from "@/server/plans/types";
 
 import { PHOTO_ACCEPT, PhotoPickerButtons } from "./photo-picker-buttons";
 import { PhotoThumb } from "./photo-thumb";
@@ -29,6 +30,8 @@ export interface PhotosTabProps {
   initialPhotos: PhotoView[];
   zones: ZoneOption[];
   canEdit: boolean;
+  /** Markers linked to the photos, keyed by photo id (« R3 » badges, viewer mention). */
+  markersByPhoto?: Record<string, PhotoMarkerLink>;
 }
 
 /** Value of the `zone` filter meaning « photos without a zone ». */
@@ -39,7 +42,13 @@ export const NO_ZONE_FILTER = "sans";
  * lazy thumbnails, full-screen viewer with the edit panel, upload queue and empty state.
  * Filters and the open photo live in the URL (`?onglet=photos&zone=…&categorie=…&legende=sans&photo=…`).
  */
-export function PhotosTab({ visitId, initialPhotos, zones, canEdit }: PhotosTabProps) {
+export function PhotosTab({
+  visitId,
+  initialPhotos,
+  zones,
+  canEdit,
+  markersByPhoto = {},
+}: PhotosTabProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -284,6 +293,7 @@ export function PhotosTab({ visitId, initialPhotos, zones, canEdit }: PhotosTabP
             <PhotoThumb
               key={photo.id}
               photo={photo}
+              marker={markersByPhoto[photo.id] ?? null}
               onOpen={(p) => setParams({ photo: p.id })}
               onImageError={(p) => void renew(p)}
             />
@@ -298,6 +308,7 @@ export function PhotosTab({ visitId, initialPhotos, zones, canEdit }: PhotosTabP
         index={viewerIndex}
         zones={zones}
         canEdit={canEdit}
+        markersByPhoto={markersByPhoto}
         onIndexChange={(index) =>
           setParams({ photo: index === null ? null : (visible[index]?.id ?? null) })
         }

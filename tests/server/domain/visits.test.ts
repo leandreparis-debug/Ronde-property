@@ -114,6 +114,16 @@ describe("incompletePoints", () => {
       participantsCount: 2,
       uncaptionedPhotosCount: 3,
     });
+    expect(
+      incompletePoints({
+        writerId: "x",
+        subject: "Objet",
+        participantsCount: 2,
+        markersWithoutPhotoCount: 2,
+      }),
+    ).toEqual([
+      { key: "markers", label: "2 repères sans photo", anchor: "plans", href: "?onglet=plans" },
+    ]);
     expect(photos).toEqual([
       {
         key: "photos",

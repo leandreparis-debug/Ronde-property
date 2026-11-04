@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ImageOff,
+  MapPin,
   Star,
   Trash2,
   X,
@@ -36,6 +37,7 @@ import {
   photoCategoryLabel,
 } from "@/server/domain/photos";
 import type { PhotoPatch, PhotoView } from "@/server/photos/types";
+import type { PhotoMarkerLink } from "@/server/plans/types";
 
 export interface ZoneOption {
   key: string;
@@ -48,6 +50,8 @@ export interface PhotoViewerProps {
   index: number | null;
   zones: ZoneOption[];
   canEdit: boolean;
+  /** Markers linked to the photos, keyed by photo id. */
+  markersByPhoto?: Record<string, PhotoMarkerLink>;
   onIndexChange: (index: number | null) => void;
   /** Saves a patch; resolves with the error message, or `null`. */
   onUpdate: (photoId: string, patch: PhotoPatch) => Promise<string | null>;
@@ -73,6 +77,7 @@ export function PhotoViewer({
   index,
   zones,
   canEdit,
+  markersByPhoto = {},
   onIndexChange,
   onUpdate,
   onSetCover,
@@ -200,6 +205,7 @@ export function PhotoViewer({
                 <EditPanel
                   key={photo.id}
                   photo={photo}
+                  marker={markersByPhoto[photo.id] ?? null}
                   zones={zones}
                   isFirst={index === 0}
                   isLast={index === photos.length - 1}
@@ -209,13 +215,33 @@ export function PhotoViewer({
                   onDelete={onDelete}
                 />
               ) : (
-                <ReadonlyPanel photo={photo} />
+                <ReadonlyPanel photo={photo} marker={markersByPhoto[photo.id] ?? null} />
               )}
             </aside>
           </div>
         ) : null}
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** « Repère n° 3 sur {plan} » with a link to the plan centred on the marker. */
+function MarkerMention({ marker }: { marker: PhotoMarkerLink | null | undefined }) {
+  if (!marker) return null;
+  return (
+    <p
+      className="flex flex-wrap items-center gap-1 rounded-md bg-brand-tint px-3 py-2 text-ui text-ink"
+      data-testid="photo-marker-mention"
+    >
+      <MapPin className="size-4 text-brand" aria-hidden="true" />
+      Repère n° {marker.number} sur {marker.planName}
+      <a
+        href={`?onglet=plans&plan=${marker.planId}&page=${marker.page}&repere=${marker.markerId}`}
+        className="inline-flex min-h-11 items-center font-semibold text-brand-deep underline"
+      >
+        Voir sur le plan
+      </a>
+    </p>
   );
 }
 
@@ -244,9 +270,10 @@ function Meta({ photo }: { photo: PhotoView }) {
   );
 }
 
-function ReadonlyPanel({ photo }: { photo: PhotoView }) {
+function ReadonlyPanel({ photo, marker }: { photo: PhotoView; marker: PhotoMarkerLink | null }) {
   return (
     <>
+      <MarkerMention marker={marker} />
       <div>
         <p className="label-caps text-ink-2">Légende</p>
         <p className={cn("text-body", photo.caption ? "text-ink" : "text-ink-2 italic")}>
@@ -276,6 +303,7 @@ function ReadonlyPanel({ photo }: { photo: PhotoView }) {
 
 function EditPanel({
   photo,
+  marker,
   zones,
   isFirst,
   isLast,
@@ -285,6 +313,7 @@ function EditPanel({
   onDelete,
 }: {
   photo: PhotoView;
+  marker: PhotoMarkerLink | null;
   zones: ZoneOption[];
   isFirst: boolean;
   isLast: boolean;
@@ -353,6 +382,7 @@ function EditPanel({
 
   return (
     <>
+      <MarkerMention marker={marker} />
       <Field
         id={`caption-${photo.id}`}
         label="Légende"
@@ -501,6 +531,9 @@ function EditPanel({
             <DialogDescription>
               La photo et sa miniature seront effacées du stockage. Cette action est tracée et ne
               peut pas être annulée.
+              {marker
+                ? ` Le repère n° ${marker.number} sur « ${marker.planName} » restera, sans photo.`
+                : ""}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

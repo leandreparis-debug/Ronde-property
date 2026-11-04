@@ -19,6 +19,8 @@ export interface VisitInformationTabProps {
   filledZonesCount: number;
   /** Ready photos without a caption (« N photos sans légende »). */
   uncaptionedPhotosCount: number;
+  /** Plan markers without a photo (« N repères sans photo »). */
+  markersWithoutPhotoCount: number;
 }
 
 /** « Informations » tab: visit block, site (read-only), participants and incomplete points. */
@@ -28,6 +30,7 @@ export function VisitInformationTab({
   writers,
   filledZonesCount,
   uncaptionedPhotosCount,
+  markersWithoutPhotoCount,
 }: VisitInformationTabProps) {
   const canEdit = visit.permissions.canEdit;
   const points = incompletePoints({
@@ -36,6 +39,7 @@ export function VisitInformationTab({
     participantsCount: participants.length,
     filledZonesCount,
     uncaptionedPhotosCount,
+    markersWithoutPhotoCount,
   });
 
   return (

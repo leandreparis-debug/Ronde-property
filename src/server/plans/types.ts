@@ -141,3 +141,12 @@ export interface MarkerView {
 /** Outcome of the plan confirmation. */
 export type ConfirmPlanResult =
   { ok: true; plan: PlanView } | { ok: false; error: string; retryable: boolean };
+
+/** Marker linked to a photo, shown in the photo grid (« R3 ») and the photo viewer. */
+export interface PhotoMarkerLink {
+  markerId: string;
+  number: number;
+  planId: string;
+  planName: string;
+  page: number;
+}

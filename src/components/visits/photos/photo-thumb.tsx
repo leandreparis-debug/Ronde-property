@@ -5,6 +5,7 @@ import { ImageOff, MessageSquareDashed, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/cn";
 import type { PhotoView } from "@/server/photos/types";
+import type { PhotoMarkerLink } from "@/server/plans/types";
 
 /** Reserved box of a thumbnail: 4:3, whatever the photo ratio (object-cover). */
 export const THUMB_WIDTH = 400;
@@ -16,10 +17,13 @@ export const THUMB_HEIGHT = 300;
  */
 export function PhotoThumb({
   photo,
+  marker,
   onOpen,
   onImageError,
 }: {
   photo: PhotoView;
+  /** Marker linked to the photo, shown as an « R3 » badge. */
+  marker?: PhotoMarkerLink | null;
   onOpen: (photo: PhotoView) => void;
   onImageError?: (photo: PhotoView) => void;
 }) {
@@ -61,6 +65,19 @@ export function PhotoThumb({
             >
               <Star className="size-4 fill-current text-brand" aria-hidden="true" />
               Garde
+            </span>
+          ) : null}
+          {marker ? (
+            <span
+              className="absolute top-2 right-2 inline-flex h-7 items-center rounded-pill bg-brand px-2 text-label font-bold text-on-brand"
+              data-testid="photo-marker-badge"
+              title={`Repère n° ${marker.number} sur ${marker.planName}`}
+            >
+              R{marker.number}
+              <span className="sr-only">
+                {" "}
+                : repère n° {marker.number} sur {marker.planName}
+              </span>
             </span>
           ) : null}
         </div>
