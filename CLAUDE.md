@@ -1,5 +1,11 @@
 # RONDE — consignes pour les sessions de développement
 
+> **Règle absolue : Claude Code ne modifie jamais un environnement distant** : ni migration,
+> ni écriture, ni `db push` sur un projet Supabase autre que la base locale `ronde_test`, même
+> si des identifiants ou des connecteurs (MCP Supabase, MCP Vercel) sont disponibles. Les
+> migrations distantes sont appliquées par Léandre selon `docs/deploy.md`. Si une tâche semble
+> exiger une action distante, **s'arrêter** et le signaler dans le récapitulatif.
+
 ## Projet
 
 RONDE est l'application des visites de site des Responsables Techniques (RT) de Carrefour
@@ -11,7 +17,7 @@ Utilisateurs : **RT** (saisie sur tablette au doigt et sur PC), **Direction** (l
 
 Étapes : 1 fondations et design system (faite) · 2 modèle de données Supabase et RLS (faite) ·
 3 authentification, rôles, audit (faite) · 4 référentiel des sites (CSV VIGIE, faite) · 5 visites (faite) · 6 notes
-par zone (faite) · 7 photos (faite) · 8 plans AutoCAD et repères · 9 réserves · 10 rapport PDF · 11 recette et
+par zone (faite) · 7 photos (faite) · 8 plans AutoCAD et repères (en cours) · 9 réserves · 10 rapport PDF · 11 recette et
 déploiement.
 
 ## Stack et versions (exactes, pas de `^`)
@@ -29,24 +35,26 @@ déploiement.
 
 ## Commandes
 
-| Commande            | Rôle                                                   |
-| ------------------- | ------------------------------------------------------ |
-| `pnpm dev`          | serveur de développement                               |
-| `pnpm build`        | build de production                                    |
-| `pnpm start`        | serveur de production                                  |
-| `pnpm lint`         | ESLint, zéro avertissement toléré                      |
-| `pnpm format`       | Prettier (écriture)                                    |
-| `pnpm format:check` | Prettier (vérification)                                |
-| `pnpm typecheck`    | `tsc --noEmit`                                         |
-| `pnpm test`         | tests unitaires Vitest                                 |
-| `pnpm test:e2e`     | tests Playwright sur un build de production (Chromium) |
-| `pnpm verify`       | lint → format:check → typecheck → test → build         |
+| Commande                  | Rôle                                                                               |
+| ------------------------- | ---------------------------------------------------------------------------------- |
+| `pnpm dev`                | serveur de développement                                                           |
+| `pnpm build`              | build de production                                                                |
+| `pnpm start`              | serveur de production                                                              |
+| `pnpm lint`               | ESLint, zéro avertissement toléré                                                  |
+| `pnpm format`             | Prettier (écriture)                                                                |
+| `pnpm format:check`       | Prettier (vérification)                                                            |
+| `pnpm typecheck`          | `tsc --noEmit`                                                                     |
+| `pnpm test`               | tests unitaires Vitest                                                             |
+| `pnpm test:e2e`           | tests Playwright sur un build de production (Chromium)                             |
+| `pnpm verify`             | lint → format:check → typecheck → test → build                                     |
+| `pnpm db:migrations:list` | migrations du dépôt avec leur empreinte, à comparer avec `supabase migration list` |
 
 ## Arborescence
 
 ```
 .github/workflows/ci.yml   CI : verify puis test:e2e
 docs/decisions.md          journal des décisions d'architecture
+docs/deploy.md             environnements (local, preview, production), migrations distantes appliquées par Léandre
 docs/design-system.md      règles de la direction artistique
 e2e/                       tests Playwright
 src/app/                   App Router (layout, globals.css, icon.svg, (app)/, design/, not-found)

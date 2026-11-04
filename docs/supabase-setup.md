@@ -54,11 +54,14 @@ La CLI ne nécessite **pas** Docker pour `link` et `db push`.
 
 3. Pour vérifier : `supabase migration list` doit montrer toutes les migrations en « Remote ».
 
-### Méthode C : connecteur Supabase (MCP) depuis Claude Code
+### Méthode C (désormais interdite à Claude Code) : connecteur Supabase (MCP) depuis Claude Code
 
 Chaque fichier peut être appliqué dans l'ordre avec l'outil `apply_migration` du connecteur,
 qui l'enregistre dans `supabase_migrations.schema_migrations` sous son nom. C'est ainsi que le
-projet `ronde` a été initialisé le 3 novembre 2026 (treize migrations).
+projet `ronde` a été initialisé le 3 novembre 2026 (treize migrations), puis que la migration 14
+a été appliquée pendant l'étape 7. **Depuis le 4 novembre 2026, cette méthode est interdite à
+Claude Code** (règle en tête de `CLAUDE.md`) : les migrations distantes sont appliquées par
+Léandre avec la méthode A, selon `docs/deploy.md`.
 
 ### Méthode B : éditeur SQL du dashboard
 

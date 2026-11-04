@@ -76,6 +76,7 @@ tests/               tests Vitest
 - [Notes par zone](docs/notes.md) : trames, puces, enregistrement automatique, conflits par zone.
 - [Photos](docs/photos.md) : prise et import, compression dans le navigateur, envoi direct, galerie, visionneuse.
 - [Stockage des fichiers](docs/storage.md) : `StorageService`, fournisseurs `supabase` et `local`, URL signées, suite de contrat.
+- [Déploiement](docs/deploy.md) : environnements local, preview et production, migrations distantes, liste de contrôle.
 - [Décisions d'architecture](docs/decisions.md).
 - [Couche serveur](src/server/README.md).
 - [Consignes de développement](CLAUDE.md).

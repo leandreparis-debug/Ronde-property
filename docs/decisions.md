@@ -389,3 +389,19 @@ dans le jeton.
 d'autorisation), la vérification à la confirmation (taille, type) et la purge limitent la
 portée d'une URL d'envoi divulguée à l'écrasement d'un objet que l'utilisateur pouvait de
 toute façon écrire.
+
+## 2026-11-04 — Claude Code ne modifie jamais un environnement distant
+
+**Décision.** Claude Code ne lance aucune migration, aucune écriture ni aucun `db push` sur un
+projet Supabase autre que la base locale `ronde_test`, même si des identifiants ou des
+connecteurs sont disponibles dans sa session. Les migrations distantes sont appliquées par
+Léandre depuis son PC, d'abord sur le projet de test puis sur la production, selon
+`docs/deploy.md`. Les déploiements de prévisualisation Vercel pointent sur le projet de test ;
+la production ne se déploie que depuis `main`.
+
+**Motivation.** À l'étape 7, la migration 14 a été appliquée en production par le connecteur
+Supabase de la session, parce que les déploiements automatiques de la branche de travail
+pointaient déjà sur cette base. Ce double couplage (accès d'écriture depuis la session et
+production déployée depuis une branche de travail) est acceptable avec des données de test,
+pas pour le pilote : la base de production doit n'avoir qu'un seul opérateur, humain, avec une
+procédure écrite et une liste de contrôle.
