@@ -102,6 +102,20 @@ Depuis le PC Windows, avec la CLI Supabase (`pnpm exec supabase --version`) :
    **Vercel → Deployments → Promote** sur le déploiement précédent remet le code d'avant ; les
    migrations, elles, ne se retirent pas : écrivez-en une nouvelle (règle 8 de `CLAUDE.md`).
 
+### Migrations à appliquer par Léandre (état au 04/11/2026)
+
+| Version          | Fichier                                                 | Contenu                                                                                                                  | Test    | Production |
+| ---------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------- | ---------- |
+| `20261104090000` | `20261104090000_site_plan_pages_and_marker_checks.sql`  | migration 15 : pages de plans, statut d'envoi, contrôles des repères, purge                                              | à faire | à faire    |
+| `20261104120000` | `20261104120000_reserves_version_markers_and_state.sql` | migration 16 : version des réserves, responsable facultatif, repère de réserve, contrôle des photos, vue enrichie, index | à faire | à faire    |
+
+Vérifiez les versions exactes avec `pnpm db:migrations:list` avant `db push`. La migration 16
+recrée la vue `reserves_with_state` (mêmes colonnes qu'avant plus les nouvelles) et ajoute
+`reserves.version` avec la valeur 1 par défaut : elle s'applique **avant** le déploiement du
+code de l'étape 9, sans interruption pour le code de l'étape 8. Scénario de vérification sur la
+prévisualisation : créer une réserve avec une photo, la placer sur un plan, la lever, la
+rouvrir, la supprimer (le repère disparaît), puis consulter la page du site.
+
 ## 4. Liste de contrôle avant une mise en production
 
 - [ ] CI verte sur la branche (trois jobs).

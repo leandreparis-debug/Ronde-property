@@ -74,6 +74,10 @@ describe("creation", () => {
   });
 
   it("refuses an inactive or unknown site with a clear message", async () => {
+    // The e2e site import reactivates TEST-012: put back its seed state first (as postgres).
+    await withSystem("test.inactive_site", (trx) =>
+      sql`update public.sites set is_active = false where id = ${SITES.rouenInactive}`.execute(trx),
+    );
     await expect(
       createVisitRepository(USERS.alice).create(input({ siteId: SITES.rouenInactive })),
     ).rejects.toThrow(/inactif ou inconnu/);

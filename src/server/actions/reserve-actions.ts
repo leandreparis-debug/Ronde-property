@@ -150,6 +150,7 @@ export async function linkReservePhotosAction(input: unknown): Promise<ReserveRe
   }
 }
 
+/** Removes a defect photo from a reserve. */
 export async function unlinkReservePhotoAction(input: unknown): Promise<ReserveResult> {
   const parsed = unlinkSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Demande invalide." };
@@ -194,6 +195,7 @@ export async function attachReserveMarkerAction(input: unknown): Promise<PlaceRe
   }
 }
 
+/** Deletes the marker of a reserve (« Retirer du plan »). */
 export async function removeReserveFromPlanAction(input: unknown): Promise<SimpleResult> {
   const parsed = reserveIdSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Demande invalide." };

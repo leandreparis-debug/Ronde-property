@@ -66,6 +66,7 @@ export async function getResponsibleSuggestions(siteId: string): Promise<Respons
   return (await forWriter()).suggestions(siteId);
 }
 
+/** rt / admin, visit in progress (RLS): creates a reserve with its defect photos. */
 export async function createReserve(
   visitId: string,
   input: ReserveWrite,
@@ -74,6 +75,7 @@ export async function createReserve(
   return (await forWriter()).create(visitId, input, photoIds);
 }
 
+/** Optimistic update: a stale version returns the current reserve instead of saving. */
 export async function updateReserve(
   id: string,
   input: ReserveWrite,
@@ -83,6 +85,7 @@ export async function updateReserve(
   return (await forWriter()).update(id, input, expectedVersion, photoIds);
 }
 
+/** « Lever », « Rouvrir » or « En cours » (closing date set by trigger). */
 export async function setReserveStatus(
   id: string,
   status: ReserveDetail["status"],
@@ -90,18 +93,22 @@ export async function setReserveStatus(
   return (await forWriter()).setStatus(id, status);
 }
 
+/** Soft delete through `soft_delete_reserve` (removes the marker too). */
 export async function deleteReserve(id: string): Promise<void> {
   return (await forWriter()).softDelete(id);
 }
 
+/** Adds ready photos of the visit as defect photos. */
 export async function linkReservePhotos(id: string, photoIds: string[]): Promise<void> {
   return (await forWriter()).linkPhotos(id, photoIds);
 }
 
+/** Removes a defect photo from a reserve (the photo stays in the visit). */
 export async function unlinkReservePhoto(id: string, photoId: string): Promise<void> {
   return (await forWriter()).unlinkPhoto(id, photoId);
 }
 
+/** Places the reserve on a plan, or moves its marker. */
 export async function placeReserveOnPlan(
   id: string,
   placement: PlacementInput,
@@ -109,6 +116,7 @@ export async function placeReserveOnPlan(
   return (await forWriter()).placeOnPlan(id, placement);
 }
 
+/** Deletes the marker of the reserve. */
 export async function removeReserveFromPlan(id: string): Promise<void> {
   return (await forWriter()).removeFromPlan(id);
 }

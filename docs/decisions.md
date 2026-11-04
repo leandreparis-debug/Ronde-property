@@ -446,3 +446,50 @@ d'un glisser (qui ne doivent jamais en placer), et dessiner les repères à tail
 calque zoomé : une bibliothèque générique masque ces événements ou impose sa propre couche de
 transformation. Le code maison garde la conversion écran ↔ coordonnées relatives testable
 unitairement.
+
+## 2026-11-04 — Réserve modifiable seulement pendant la visite (V1)
+
+**Décision.** En V1, une réserve ne se modifie, ne se lève et ne se supprime que tant que sa
+visite est en cours (règle `can_edit_visit` déjà appliquée par la RLS). Une visite terminée
+fige ses réserves ; le suivi après visite (levée par un autre RT, preuve) viendra avec la
+phase de suivi.
+
+**Motivation.** Choix validé par Léandre à la revue de l'étape 8 : une seule règle de droit,
+déjà testée, et un rapport PDF (étape 10) qui reflète l'état de la visite à sa clôture.
+
+## 2026-11-04 — Responsable facultatif (« À désigner »)
+
+**Décision.** Le responsable d'une réserve peut rester vide. Quand il est renseigné, la base
+vérifie sa cohérence (profil interne seul, ou nom externe non vide). Les réserves sans
+responsable remontent dans les points à compléter.
+
+**Motivation.** Sur le terrain, l'entreprise à mandater n'est souvent pas connue au moment du
+constat ; imposer un responsable pousserait à saisir n'importe qui.
+
+## 2026-11-04 — Un repère au plus par réserve, colonne sur `plan_markers`
+
+**Décision.** Le lien réserve → plan est une colonne `plan_markers.reserve_id` avec un index
+unique partiel, plutôt qu'une table de liaison. Placer une réserve déjà placée déplace son
+repère (ou le recrée sur un autre plan). « Créer une réserve ici » transforme le repère simple
+existant en repère de la réserve.
+
+**Motivation.** Une réserve désigne un endroit ; plusieurs repères pour une même réserve
+brouilleraient le plan et le rapport. Réutiliser `plan_markers` garde la numérotation, les
+droits et la visionneuse existants.
+
+## 2026-11-04 — Le repère d'une réserve supprimée est supprimé
+
+**Décision.** `soft_delete_reserve` supprime physiquement le repère de la réserve dans la même
+transaction ; la réserve, elle, reste en base (suppression logique) avec son numéro.
+
+**Motivation.** Un repère pointant vers une réserve invisible tromperait le lecteur du plan ;
+le garder masqué compliquerait chaque lecture. L'historique de la réserve et le journal d'audit
+gardent la trace de la suppression.
+
+## 2026-11-04 — Photos de preuve (`proof`) refusées jusqu'à l'étape 13
+
+**Décision.** Le trigger `reserve_photos_check` n'accepte que le type `defect`. Une migration de
+l'étape 13 ouvrira `proof` avec son parcours (levée avec photo de preuve).
+
+**Motivation.** Aucun écran ne produit encore de photo de preuve : l'accepter en base laisserait
+entrer des données sans règle d'affichage ni de droits.

@@ -279,6 +279,31 @@ réordonnancement se font en une instruction et ne doivent compter qu'une fois.
 - Numérotation des repères : plus grand numéro de `(visit_id, plan_id)` + 1 sous verrou
   consultatif, jamais réattribué (voir `docs/plans.md`).
 
+## Réserves modifiables et placées sur le plan (migration 16)
+
+- `reserves.version` (≥ 1) : incrémentée par `reserves_before_update` à chaque mise à jour
+  (concurrence optimiste, comme `visits`) ; l'historique l'ignore.
+- Responsable facultatif : `responsible_kind` devient nullable (« À désigner »). La contrainte
+  `reserves_responsible_consistency` est écrite sans valeur NULL possible (`coalesce`) : aucun
+  champ si le type est nul, un profil seul si interne, un nom non vide (entreprise et e-mail
+  facultatifs) si externe.
+- `plan_markers.reserve_id` (nullable, clé étrangère `on delete restrict`, index unique
+  partiel) : au plus un repère par réserve. `plan_markers_check` vérifie à l'insertion ou au
+  changement de réserve qu'elle appartient à la même visite et n'est pas supprimée.
+  `soft_delete_reserve` supprime le repère de la réserve dans la même transaction.
+- Trigger `reserve_photos_check` : la photo appartient à la visite de la réserve ; seul le type
+  `defect` est accepté (`proof` sera ouvert par une migration de l'étape 13).
+- Vue `reserves_with_state` recréée avec des colonnes explicites : `code`, `is_overdue`,
+  `days_overdue` (Europe/Paris), `responsible_display_name`, `responsible_is_active`,
+  `closed_by_name`, `photos_count`, `first_photo_id`, `first_thumb_path` (photos du défaut
+  prêtes), `marker_id`, `marker_plan_id`, `marker_page`. RLS des tables sources appliquée
+  (`security_invoker`).
+- Index : `reserves_visit_active_idx (visit_id, number)` et
+  `reserves_site_open_idx (site_id, priority, due_date)` sur les réserves non supprimées (non
+  levées pour le second), `plan_markers_reserve_idx`.
+
+Voir `docs/reserves.md` pour les règles d'écran.
+
 ## Rôle de connexion et journal d'audit (migration 13)
 
 `private.audit` est exécutable par `service_role` : `withSystem` (session, comptes, import)

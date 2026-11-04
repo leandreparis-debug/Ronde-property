@@ -126,6 +126,9 @@ export function ReserveSheet({
   const cameraRef = useRef<HTMLInputElement>(null);
   const { enqueue, uploaded } = useUploadQueue();
   const [waitingSince, setWaitingSince] = useState<number | null>(null);
+  // « Enregistrer et nouvelle »: focus the action once the submission is over (the disabled
+  // button would otherwise take the focus back).
+  const [refocus, setRefocus] = useState(0);
 
   const zoneKey = watch("zoneKey");
   const priority = watch("priority");
@@ -170,6 +173,10 @@ export function ReserveSheet({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reacts to new uploads only
   }, [uploaded]);
+
+  useEffect(() => {
+    if (refocus > 0 && !isSubmitting) setFocus("action");
+  }, [refocus, isSubmitting, setFocus]);
 
   const allPhotos = useMemo(() => {
     const known = new Set(photos.map((photo) => photo.id));
@@ -231,10 +238,11 @@ export function ReserveSheet({
     }
     onSaved(result.reserve, { again });
     if (again) {
-      reset({ ...emptyReserveForm(values.zoneKey || null), priority: values.priority });
+      // Next reserve: same zone, every other field back to its default (priority « Normale »).
+      reset(emptyReserveForm(values.zoneKey || null));
       confirmedPast.current = null;
       setDescriptionOpen(false);
-      setTimeout(() => setFocus("action"), 0);
+      setRefocus((n) => n + 1);
     }
   }
 
@@ -276,6 +284,7 @@ export function ReserveSheet({
           className={cn(
             "top-0 left-0 h-dvh max-h-dvh w-full max-w-none translate-x-0 translate-y-0 gap-0 overflow-hidden rounded-none p-0",
             "lg:right-0 lg:left-auto lg:w-[32rem] lg:rounded-l-xl",
+            "motion-safe:data-[state=open]:animate-sheet-in",
           )}
           onOpenAutoFocus={(event) => {
             event.preventDefault();

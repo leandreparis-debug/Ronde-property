@@ -120,7 +120,11 @@ const CASES: TableCase[] = [
   },
   {
     table: "sites",
-    read: { sql: "select id from public.sites", expect: activeUsersRead(12) },
+    read: {
+      // Seed sites only: the e2e site import adds TEST-013 and up.
+      sql: "select id from public.sites where id::text like '10000000-0000-4000-8000-%'",
+      expect: activeUsersRead(12),
+    },
     insert: {
       sql: () => "insert into public.sites (warehouse_code, name) values ('TEST-999', 'Nouveau')",
       expect: all("denied"),

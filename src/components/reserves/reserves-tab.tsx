@@ -83,7 +83,10 @@ export function ReservesTab({
 
   useEffect(() => setReserves(initialReserves), [initialReserves]);
 
-  const filters = useMemo(() => parseReserveFilters(searchParams), [searchParams]);
+  // Filters follow the URL; the local copy answers at once while the URL is being replaced.
+  const urlFilters = useMemo(() => parseReserveFilters(searchParams), [searchParams]);
+  const [filters, setFilters] = useState(urlFilters);
+  useEffect(() => setFilters(urlFilters), [urlFilters]);
 
   // « + Réserve » from Notes and « Créer une réserve ici » from the plan open the sheet.
   useEffect(() => {
@@ -110,10 +113,9 @@ export function ReservesTab({
   }, [searchParams, pathname, router, zones, photos, canEdit]);
 
   function updateFilters(patch: Partial<ReserveListFilters>) {
-    const params = writeReserveFilters(new URLSearchParams(searchParams.toString()), {
-      ...filters,
-      ...patch,
-    });
+    const next = { ...filters, ...patch };
+    setFilters(next);
+    const params = writeReserveFilters(new URLSearchParams(searchParams.toString()), next);
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   }
 
