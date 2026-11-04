@@ -303,7 +303,8 @@ const CASES: TableCase[] = [
     },
     update: {
       sql: () =>
-        `update public.reserve_photos set kind = 'proof' where reserve_id = '${RESERVES.r1Open}' and photo_id = '${PHOTO_V1}'`,
+        // `proof` is refused until step 13 (migration 16): the update right is checked on `defect`.
+        `update public.reserve_photos set kind = 'defect' where reserve_id = '${RESERVES.r1Open}' and photo_id = '${PHOTO_V1}'`,
       expect: editorsOfV1,
     },
     delete: {

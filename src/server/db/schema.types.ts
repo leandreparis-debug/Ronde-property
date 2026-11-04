@@ -115,6 +115,10 @@ export interface PlanMarkers {
   page: Generated<number>;
   photo_id: string | null;
   plan_id: string;
+  /**
+   * Réserve placée par ce repère (au plus un repère par réserve, de la même visite).
+   */
+  reserve_id: string | null;
   updated_at: Generated<Timestamp>;
   visit_id: string;
   x: Numeric;
@@ -203,7 +207,10 @@ export interface Reserves {
   priority: Generated<ReservePriority>;
   responsible_company: string | null;
   responsible_email: string | null;
-  responsible_kind: Generated<ResponsibleKind>;
+  /**
+   * internal (profil), external (nom, entreprise, e-mail facultatif) ou null : « À désigner ».
+   */
+  responsible_kind: ResponsibleKind | null;
   responsible_name: string | null;
   responsible_profile_id: string | null;
   /**
@@ -212,6 +219,10 @@ export interface Reserves {
   site_id: Generated<string>;
   status: Generated<ReserveStatus>;
   updated_at: Generated<Timestamp>;
+  /**
+   * Version pour la concurrence optimiste : incrémentée par trigger à chaque mise à jour.
+   */
+  version: Generated<number>;
   visit_id: string;
   zone_key: string | null;
 }
@@ -220,25 +231,36 @@ export interface ReservesWithState {
   action: string | null;
   closed_at: Timestamp | null;
   closed_by: string | null;
+  closed_by_name: string | null;
   code: string | null;
   created_at: Timestamp | null;
   created_by: string | null;
+  days_overdue: number | null;
   deleted_at: Timestamp | null;
   deleted_by: string | null;
   description: string | null;
   due_date: string | null;
+  first_photo_id: string | null;
+  first_thumb_path: string | null;
   id: string | null;
   is_overdue: boolean | null;
+  marker_id: string | null;
+  marker_page: number | null;
+  marker_plan_id: string | null;
   number: number | null;
+  photos_count: number | null;
   priority: ReservePriority | null;
   responsible_company: string | null;
+  responsible_display_name: string | null;
   responsible_email: string | null;
+  responsible_is_active: boolean | null;
   responsible_kind: ResponsibleKind | null;
   responsible_name: string | null;
   responsible_profile_id: string | null;
   site_id: string | null;
   status: ReserveStatus | null;
   updated_at: Timestamp | null;
+  version: number | null;
   visit_id: string | null;
   zone_key: string | null;
 }

@@ -147,6 +147,7 @@ export type Database = {
           page: number;
           photo_id: string | null;
           plan_id: string;
+          reserve_id: string | null;
           updated_at: string;
           visit_id: string;
           x: number;
@@ -162,6 +163,7 @@ export type Database = {
           page?: number;
           photo_id?: string | null;
           plan_id: string;
+          reserve_id?: string | null;
           updated_at?: string;
           visit_id: string;
           x: number;
@@ -176,6 +178,7 @@ export type Database = {
           page?: number;
           photo_id?: string | null;
           plan_id?: string;
+          reserve_id?: string | null;
           updated_at?: string;
           visit_id?: string;
           x?: number;
@@ -201,6 +204,20 @@ export type Database = {
             columns: ["plan_id"];
             isOneToOne: false;
             referencedRelation: "site_plans";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "plan_markers_reserve_id_fkey";
+            columns: ["reserve_id"];
+            isOneToOne: false;
+            referencedRelation: "reserves";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "plan_markers_reserve_id_fkey";
+            columns: ["reserve_id"];
+            isOneToOne: false;
+            referencedRelation: "reserves_with_state";
             referencedColumns: ["id"];
           },
           {
@@ -425,12 +442,13 @@ export type Database = {
           priority: Database["public"]["Enums"]["reserve_priority"];
           responsible_company: string | null;
           responsible_email: string | null;
-          responsible_kind: Database["public"]["Enums"]["responsible_kind"];
+          responsible_kind: Database["public"]["Enums"]["responsible_kind"] | null;
           responsible_name: string | null;
           responsible_profile_id: string | null;
           site_id: string;
           status: Database["public"]["Enums"]["reserve_status"];
           updated_at: string;
+          version: number;
           visit_id: string;
           zone_key: string | null;
         };
@@ -450,12 +468,13 @@ export type Database = {
           priority?: Database["public"]["Enums"]["reserve_priority"];
           responsible_company?: string | null;
           responsible_email?: string | null;
-          responsible_kind?: Database["public"]["Enums"]["responsible_kind"];
+          responsible_kind?: Database["public"]["Enums"]["responsible_kind"] | null;
           responsible_name?: string | null;
           responsible_profile_id?: string | null;
           site_id: string;
           status?: Database["public"]["Enums"]["reserve_status"];
           updated_at?: string;
+          version?: number;
           visit_id: string;
           zone_key?: string | null;
         };
@@ -474,12 +493,13 @@ export type Database = {
           priority?: Database["public"]["Enums"]["reserve_priority"];
           responsible_company?: string | null;
           responsible_email?: string | null;
-          responsible_kind?: Database["public"]["Enums"]["responsible_kind"];
+          responsible_kind?: Database["public"]["Enums"]["responsible_kind"] | null;
           responsible_name?: string | null;
           responsible_profile_id?: string | null;
           site_id?: string;
           status?: Database["public"]["Enums"]["reserve_status"];
           updated_at?: string;
+          version?: number;
           visit_id?: string;
           zone_key?: string | null;
         };
@@ -1011,82 +1031,48 @@ export type Database = {
           action: string;
           closed_at: string | null;
           closed_by: string | null;
+          closed_by_name: string | null;
           code: string | null;
           created_at: string;
           created_by: string | null;
+          days_overdue: number | null;
           deleted_at: string | null;
           deleted_by: string | null;
           description: string | null;
           due_date: string | null;
+          first_photo_id: string | null;
+          first_thumb_path: string | null;
           id: string;
           is_overdue: boolean | null;
+          marker_id: string | null;
+          marker_page: number | null;
+          marker_plan_id: string | null;
           number: number;
+          photos_count: number | null;
           priority: Database["public"]["Enums"]["reserve_priority"];
           responsible_company: string | null;
+          responsible_display_name: string | null;
           responsible_email: string | null;
-          responsible_kind: Database["public"]["Enums"]["responsible_kind"];
+          responsible_is_active: boolean | null;
+          responsible_kind: Database["public"]["Enums"]["responsible_kind"] | null;
           responsible_name: string | null;
           responsible_profile_id: string | null;
           site_id: string;
           status: Database["public"]["Enums"]["reserve_status"];
           updated_at: string;
+          version: number;
           visit_id: string;
           zone_key: string | null;
         };
         ComputedFields: never;
-        Insert: {
-          action?: string | null;
-          closed_at?: string | null;
-          closed_by?: string | null;
-          code?: never;
-          created_at?: string | null;
-          created_by?: string | null;
-          deleted_at?: string | null;
-          deleted_by?: string | null;
-          description?: string | null;
-          due_date?: string | null;
-          id?: string | null;
-          is_overdue?: never;
-          number?: number | null;
-          priority?: Database["public"]["Enums"]["reserve_priority"] | null;
-          responsible_company?: string | null;
-          responsible_email?: string | null;
-          responsible_kind?: Database["public"]["Enums"]["responsible_kind"] | null;
-          responsible_name?: string | null;
-          responsible_profile_id?: string | null;
-          site_id?: string | null;
-          status?: Database["public"]["Enums"]["reserve_status"] | null;
-          updated_at?: string | null;
-          visit_id?: string | null;
-          zone_key?: string | null;
-        };
-        Update: {
-          action?: string | null;
-          closed_at?: string | null;
-          closed_by?: string | null;
-          code?: never;
-          created_at?: string | null;
-          created_by?: string | null;
-          deleted_at?: string | null;
-          deleted_by?: string | null;
-          description?: string | null;
-          due_date?: string | null;
-          id?: string | null;
-          is_overdue?: never;
-          number?: number | null;
-          priority?: Database["public"]["Enums"]["reserve_priority"] | null;
-          responsible_company?: string | null;
-          responsible_email?: string | null;
-          responsible_kind?: Database["public"]["Enums"]["responsible_kind"] | null;
-          responsible_name?: string | null;
-          responsible_profile_id?: string | null;
-          site_id?: string | null;
-          status?: Database["public"]["Enums"]["reserve_status"] | null;
-          updated_at?: string | null;
-          visit_id?: string | null;
-          zone_key?: string | null;
-        };
         Relationships: [
+          {
+            foreignKeyName: "plan_markers_plan_id_fkey";
+            columns: ["marker_plan_id"];
+            isOneToOne: false;
+            referencedRelation: "site_plans";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "reserves_closed_by_fkey";
             columns: ["closed_by"];
@@ -1269,12 +1255,13 @@ export type Database = {
           priority: Database["public"]["Enums"]["reserve_priority"];
           responsible_company: string | null;
           responsible_email: string | null;
-          responsible_kind: Database["public"]["Enums"]["responsible_kind"];
+          responsible_kind: Database["public"]["Enums"]["responsible_kind"] | null;
           responsible_name: string | null;
           responsible_profile_id: string | null;
           site_id: string;
           status: Database["public"]["Enums"]["reserve_status"];
           updated_at: string;
+          version: number;
           visit_id: string;
           zone_key: string | null;
         };
