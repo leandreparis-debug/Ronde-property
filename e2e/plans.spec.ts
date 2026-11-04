@@ -163,7 +163,11 @@ test.describe("Alice", () => {
 
   test("places a second marker with a photo taken on the spot", async ({ page }) => {
     await openPlan(page, 2);
+    await marker(page, 1).click();
+    await expect(page.getByTestId("marker-sheet")).toContainText("Repère n° 1");
+    // Turning placement on closes the sheet of the previous marker.
     await page.getByTestId("toggle-place-marker").click();
+    await expect(page.getByTestId("marker-sheet")).toHaveCount(0);
     await tapCanvas(page, 0.25, 0.3);
     const sheet = page.getByTestId("marker-sheet");
     await expect(sheet).toContainText("Repère n° 2");

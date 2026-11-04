@@ -63,8 +63,8 @@ Mesures sur les plans de test synthétiques (`pnpm fixtures:plans`), Chromium su
 
 | Fichier               | Entrée                   | Pages converties                    | Miniatures | Durée de l'import |
 | --------------------- | ------------------------ | ----------------------------------- | ---------- | ----------------- |
-| `plan-a1-3-pages.pdf` | PDF vectoriel, 5 Ko      | 3 × PNG 3 500 × 2 471, 240 à 254 Ko | ~10 Ko     | 3,7 s             |
-| `plan-5000x3500.png`  | PNG 5 000 × 3 500, 71 Ko | 1 × PNG 3 500 × 2 450               | ~10 Ko     | < 2 s             |
+| `plan-a1-3-pages.pdf` | PDF vectoriel, 5 Ko      | 3 × PNG 3 500 × 2 471, 240 à 254 Ko | 10 à 11 Ko | 2,9 s à 3,7 s     |
+| `plan-5000x3500.png`  | PNG 5 000 × 3 500, 71 Ko | 1 × PNG 3 500 × 2 450, 169 Ko       | 10 Ko      | 1,0 s             |
 
 Un vrai plan AutoCAD dense donnera des PNG de 1 à 6 Mo par page ; au-delà de 8 Mo la page
 passe en JPEG.

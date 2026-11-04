@@ -387,7 +387,11 @@ export function PlansTab({
             type="button"
             variant={mode === "place" ? "primary" : "secondary"}
             aria-pressed={mode === "place"}
-            onClick={() => setMode((m) => (m === "place" ? "view" : "place"))}
+            onClick={() => {
+              // Close the sheet of the previous marker: what is typed next belongs to the new one.
+              if (mode !== "place") setSelectedId(null);
+              setMode((m) => (m === "place" ? "view" : "place"));
+            }}
             data-testid="toggle-place-marker"
             className={cn(mode === "place" && "ring-3 ring-brand-soft")}
           >
