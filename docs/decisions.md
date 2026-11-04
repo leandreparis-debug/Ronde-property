@@ -405,3 +405,44 @@ pointaient déjà sur cette base. Ce double couplage (accès d'écriture depuis 
 production déployée depuis une branche de travail) est acceptable avec des données de test,
 pas pour le pilote : la base de production doit n'avoir qu'un seul opérateur, humain, avec une
 procédure écrite et une liste de contrôle.
+
+## 2026-11-04 — Pages de plans converties en images dans le navigateur
+
+**Décision.** Chaque page d'un plan PDF est dessinée par `pdfjs-dist` dans le navigateur et
+stockée comme image (plus une miniature) ; l'affichage, les repères et le futur rapport PDF ne
+lisent que ces images. Le fichier d'origine est conservé pour être retéléchargé.
+
+**Motivation.** Aucun fichier ne peut transiter par le serveur (limite Vercel de 4,5 Mo), le
+serveur n'a pas à embarquer un moteur PDF, la visionneuse affiche une simple image zoomable sur
+tablette, et le moteur PDF de l'étape 10 sait insérer des images PNG et JPEG mais pas des pages
+de PDF tiers.
+
+## 2026-11-04 — 3 500 px par page, PNG jusqu'à 8 Mo puis JPEG 0,9
+
+**Décision.** Les pages sont rendues à 3 500 px sur leur plus grand côté (2 500 px en repli si
+le canvas échoue), en PNG tant que l'image fait au plus 8 Mo, sinon en JPEG qualité 0,9.
+
+**Motivation.** Un A1 paysage à 3 500 px garde un trait de 1 mm lisible avec le zoom de la
+tablette, tout en restant sous la limite de canvas des navigateurs mobiles (16,7 millions de
+pixels). Le PNG garde les traits nets et reste léger sur un dessin au trait (240 Ko par page de
+test) ; le JPEG ne sert qu'aux plans scannés ou très hachurés.
+
+## 2026-11-04 — Numéros de repères stables
+
+**Décision.** Le numéro d'un repère est le plus grand numéro de `(visite, plan)` plus un, pris
+sous verrou ; il n'est jamais réattribué après une suppression.
+
+**Motivation.** Les libellés, les légendes et le rapport citent « repère 3 » : renuméroter après
+une suppression ferait pointer ces références vers un autre endroit. Les trous sont un moindre
+mal, compréhensible par tous.
+
+## 2026-11-04 — Zoom par Pointer Events, sans bibliothèque
+
+**Décision.** Le zoom et le déplacement de la visionneuse de plan sont écrits avec les Pointer
+Events (environ 200 lignes) et une géométrie pure testée, plutôt qu'avec `react-zoom-pan-pinch`.
+
+**Motivation.** Il faut distinguer finement un toucher (qui place un repère) d'un pincement ou
+d'un glisser (qui ne doivent jamais en placer), et dessiner les repères à taille fixe hors du
+calque zoomé : une bibliothèque générique masque ces événements ou impose sa propre couche de
+transformation. Le code maison garde la conversion écran ↔ coordonnées relatives testable
+unitairement.

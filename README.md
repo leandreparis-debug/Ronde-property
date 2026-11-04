@@ -75,6 +75,7 @@ tests/               tests Vitest
 - [Visites](docs/visits.md) : cycle de vie, droits, duplication, concurrence optimiste.
 - [Notes par zone](docs/notes.md) : trames, puces, enregistrement automatique, conflits par zone.
 - [Photos](docs/photos.md) : prise et import, compression dans le navigateur, envoi direct, galerie, visionneuse.
+- [Plans et repères](docs/plans.md) : import AutoCAD, conversion des pages, repères au doigt, archivage.
 - [Stockage des fichiers](docs/storage.md) : `StorageService`, fournisseurs `supabase` et `local`, URL signées, suite de contrat.
 - [Déploiement](docs/deploy.md) : environnements local, preview et production, migrations distantes, liste de contrôle.
 - [Décisions d'architecture](docs/decisions.md).

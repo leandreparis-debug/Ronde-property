@@ -155,7 +155,8 @@ erDiagram
 | `visit_participants` | Participants internes (profil) ou externes           | Un participant lié à son profil peut modifier la visite.                                                                                    |
 | `visit_zone_notes`   | Notes par zone                                       | Clé de zone de la trame ou `custom-…` ; unique par visite et zone.                                                                          |
 | `photos`             | Métadonnées des photos (bucket `visit-photos`)       | Au plus une photo de garde par visite.                                                                                                      |
-| `site_plans`         | Plans rattachés au **site**                          | Réutilisés de visite en visite ; archivés, jamais supprimés.                                                                                |
+| `site_plans`         | Plans rattachés au **site**                          | Réutilisés de visite en visite ; archivés, jamais supprimés. `pending` jusqu'à la confirmation de l'import (migration 15).                  |
+| `site_plan_pages`    | Pages d'un plan converties en images                 | Image d'affichage 3 500 px et miniature 400 px par page ; figées une fois le plan prêt (migration 15).                                      |
 | `plan_markers`       | Repères posés sur un plan pendant une visite         | Coordonnées relatives 0..1 ; numéro unique par visite et plan.                                                                              |
 | `reserves`           | Réserves relevées en visite                          | Numérotées par site par trigger ; `site_id` rempli et vérifié ; `closed_at` géré ; suppression logique par RPC.                             |
 | `reserve_photos`     | Lien réserve ↔ photo                                 | `defect` ou `proof`.                                                                                                                        |
@@ -217,11 +218,11 @@ fonctions internes, qui posent le marqueur `ronde.internal_write`, peuvent écri
 
 Buckets **privés** créés par migration ; aucun accès public, URL signées à partir de l'étape 7.
 
-| Bucket         | Chemin                        | Limite | Types           | Lecture                          | Écriture                                                                    |
-| -------------- | ----------------------------- | ------ | --------------- | -------------------------------- | --------------------------------------------------------------------------- |
-| `visit-photos` | `{visit_id}/{photo_id}.{ext}` | 15 Mo  | JPEG, PNG, WebP | visite lisible                   | visite modifiable (insert, update, delete)                                  |
-| `site-plans`   | `{site_id}/{plan_id}.{ext}`   | 50 Mo  | PDF, PNG, JPEG  | utilisateur actif, site existant | rt / admin (insert) ; pas de suppression                                    |
-| `reports`      | `{visit_id}/{report_id}.pdf`  | 50 Mo  | PDF             | visite lisible                   | visite lisible (insert, direction comprise) ; ni mise à jour ni suppression |
+| Bucket         | Chemin                                                                    | Limite | Types           | Lecture                          | Écriture                                                                    |
+| -------------- | ------------------------------------------------------------------------- | ------ | --------------- | -------------------------------- | --------------------------------------------------------------------------- |
+| `visit-photos` | `{visit_id}/{photo_id}.{ext}`                                             | 15 Mo  | JPEG, PNG, WebP | visite lisible                   | visite modifiable (insert, update, delete)                                  |
+| `site-plans`   | `{site_id}/{plan_id}/original.{ext}`, `p{n}.{png\|jpg}`, `p{n}_thumb.jpg` | 50 Mo  | PDF, PNG, JPEG  | utilisateur actif, site existant | rt / admin (insert) ; pas de suppression                                    |
+| `reports`      | `{visit_id}/{report_id}.pdf`                                              | 50 Mo  | PDF             | visite lisible                   | visite lisible (insert, direction comprise) ; ni mise à jour ni suppression |
 
 Le premier segment du chemin est l'identifiant de la visite ou du site
 (`private.storage_root_id`).
@@ -257,6 +258,26 @@ Deux niveaux de concurrence optimiste :
 Les participants gardent leur trigger par ligne de l'étape 5 (`touch_parent_visit`). Pour les
 notes, le trigger est par instruction parce que l'insertion d'une trame (neuf zones) ou un
 réordonnancement se font en une instruction et ne doivent compter qu'une fois.
+
+## Pages de plans et repères contrôlés (migration 15)
+
+- `site_plans.upload_status` (`pending` par défaut, `ready`) : un plan en attente n'est visible
+  que de son auteur ; la politique `site_plans_select` est recréée en conséquence.
+- **`site_plan_pages`** : une ligne par page (`page_number` ≥ 1, unique par plan), avec
+  `image_path` et `thumb_path` uniques, `image_mime` (`image/png` ou `image/jpeg`), `width`,
+  `height`, `size_bytes` > 0. `on delete cascade` depuis le plan. RLS : lecture avec le plan ;
+  insertion, mise à jour et suppression par rt / admin **tant que le plan est `pending`**
+  (`private.plan_is_pending`) ; une fois prêt, les pages sont figées.
+- Trigger **`plan_markers_check`** (avant insertion et mise à jour) : la page existe dans
+  `site_plan_pages`, la photo liée appartient à la même visite, le plan est rattaché au site de
+  la visite ; à l'insertion, le plan doit être `ready` et non archivé.
+- `audit_site_plans` : `site_plan.imported` quand le plan passe de `pending` à `ready` (plus à
+  l'insertion de la ligne en attente), `site_plan.renamed`, `site_plan.archived`,
+  `site_plan.unarchived`.
+- `private.purge_stale_pending_plans(interval)` (service_role) : supprime les plans `pending`
+  de plus de 24 h (pages en cascade) et renvoie les chemins de l'original et des pages.
+- Numérotation des repères : plus grand numéro de `(visit_id, plan_id)` + 1 sous verrou
+  consultatif, jamais réattribué (voir `docs/plans.md`).
 
 ## Rôle de connexion et journal d'audit (migration 13)
 

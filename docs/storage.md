@@ -4,7 +4,11 @@ Les photos (étape 7), les plans (étape 8) et les rapports PDF (étape 10) vive
 buckets **privés** créés par la migration 7 : `visit-photos` (15 Mo, JPEG/PNG/WebP),
 `site-plans` (50 Mo, PDF/PNG/JPEG) et `reports` (50 Mo, PDF). Les chemins sont relatifs au
 bucket et commencent par l'identifiant de la visite ou du site : `{visit_id}/{photo_id}.jpg`
-et `{visit_id}/{photo_id}_thumb.jpg` pour les photos.
+et `{visit_id}/{photo_id}_thumb.jpg` pour les photos ; `{site_id}/{plan_id}/original.{pdf|png|jpg}`,
+`{site_id}/{plan_id}/p{n}.{png|jpg}` et `{site_id}/{plan_id}/p{n}_thumb.jpg` pour les plans
+(étape 8). Les politiques du bucket `site-plans` ne lisent que le premier segment
+(`private.storage_root_id`) : ces sous-dossiers, qui commencent par le `site_id`, sont acceptés
+sans nouvelle migration.
 
 Aucun fichier ne transite par une action serveur ni par une route Next.js (limite Vercel de
 4,5 Mo par requête) : le navigateur envoie directement au stockage par **URL signée**, et lit

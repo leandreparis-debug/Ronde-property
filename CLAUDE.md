@@ -17,7 +17,7 @@ Utilisateurs : **RT** (saisie sur tablette au doigt et sur PC), **Direction** (l
 
 Étapes : 1 fondations et design system (faite) · 2 modèle de données Supabase et RLS (faite) ·
 3 authentification, rôles, audit (faite) · 4 référentiel des sites (CSV VIGIE, faite) · 5 visites (faite) · 6 notes
-par zone (faite) · 7 photos (faite) · 8 plans AutoCAD et repères (en cours) · 9 réserves · 10 rapport PDF · 11 recette et
+par zone (faite) · 7 photos (faite) · 8 plans AutoCAD et repères (faite) · 9 réserves · 10 rapport PDF · 11 recette et
 déploiement.
 
 ## Stack et versions (exactes, pas de `^`)
@@ -69,6 +69,10 @@ src/lib/notes/             mise en forme des notes (puces), moteur d'enregistrem
 src/lib/photos/            traitement des images dans le navigateur (octets magiques, EXIF, 1600/400 px), file d'envoi
 src/server/storage/        StorageService (supabase, local), signature HMAC, route locale
 src/server/photos/         dépôt, service et schémas des photos (lignes pending, URL signées, confirmation, purge)
+src/server/plans/          dépôts plans et repères, service (import pending, pages, confirmation, purge, numérotation stable)
+src/lib/plans/             import des plans dans le navigateur (pdf.js, 3 500 px, PNG/JPEG), géométrie de la visionneuse
+src/lib/upload/            PUT signé avec progression, partagé par photos et plans
+src/components/plans/      dialog d'import, visionneuse zoomable (Pointer Events), repères, feuille de repère
 scripts/fixtures/          génération des images de test synthétiques (jamais de vraie photo)
 docs/samples/              échantillons fictifs (export VIGIE)
 src/middleware.ts          protection des routes et rafraîchissement de session (aucune lecture en base)
@@ -145,3 +149,7 @@ tests/                     tests Vitest (miroir de src/)
     développement (mêmes garde-fous que `AUTH_PROVIDER=local`) ; les images sont compressées
     dans le navigateur (JPEG 1600 px + miniature 400 px, EXIF supprimé) et l'original n'est
     jamais envoyé ; 500 photos par visite au plus.
+29. **Plans** : rattachés au site, jamais supprimés (archivés) ; pages converties en images dans
+    le navigateur (`pdfjs-dist`, worker servi localement, 3 500 px, PNG ≤ 8 Mo sinon JPEG 0,9),
+    original conservé ; repères en coordonnées relatives à 5 décimales, numéros jamais
+    réattribués ; un toucher seul place un repère, jamais un pincement.
