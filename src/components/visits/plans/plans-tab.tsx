@@ -246,8 +246,8 @@ export function PlansTab({
                   type="button"
                   className="flex min-h-touch-lg min-w-0 flex-1 rounded-md text-left focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand"
                   onClick={() => setParams({ plan: plan.id, page: null, repere: null })}
-                  aria-label={`Ouvrir le plan ${plan.name}`}
                 >
+                  <span className="sr-only">Ouvrir le plan </span>
                   <PlanCard plan={plan} showMarkers />
                 </button>
                 {canImport ? (

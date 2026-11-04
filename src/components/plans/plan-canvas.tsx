@@ -357,6 +357,7 @@ export const PlanCanvas = forwardRef<PlanCanvasHandle, PlanCanvasProps>(function
                 aria-pressed={selectedId === marker.id}
                 data-testid="plan-marker"
                 data-number={marker.number}
+                data-has-photo={marker.photoId ? "true" : "false"}
                 data-x={marker.x}
                 data-y={marker.y}
                 onPointerDown={(event) => markerPointerDown(event, marker)}
