@@ -618,6 +618,14 @@ export function createReserveRepository(user: UserRef): ReserveRepository {
           .returning(["id", "plan_id", "page"])
           .executeTakeFirst();
         if (!linked) {
+          const marker = await trx
+            .selectFrom("plan_markers")
+            .select(["visit_id", "reserve_id"])
+            .where("id", "=", markerId)
+            .executeTakeFirst();
+          if (marker && marker.visit_id === reserve.visitId && marker.reserve_id === null) {
+            throw new ForbiddenError(RESERVE_NOT_EDITABLE_MESSAGE);
+          }
           throw new ValidationError("Ce repère est introuvable ou déjà lié à une réserve.");
         }
         return { id: linked.id, planId: linked.plan_id, page: linked.page };

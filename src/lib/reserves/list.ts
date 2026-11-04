@@ -196,6 +196,22 @@ export function countReserves(items: readonly ListableReserve[]): {
   return { open, overdue, done };
 }
 
+/**
+ * Incomplete points of a visit related to its reserves not done: without responsible,
+ * without due date, urgent without photo.
+ */
+export function reserveIncompleteCounts(
+  items: readonly (ListableReserve & { responsibleKind: string | null; photosCount: number })[],
+): { withoutResponsible: number; withoutDueDate: number; urgentWithoutPhoto: number } {
+  const open = items.filter((item) => item.status !== "done");
+  return {
+    withoutResponsible: open.filter((item) => item.responsibleKind === null).length,
+    withoutDueDate: open.filter((item) => item.dueDate === null).length,
+    urgentWithoutPhoto: open.filter((item) => item.priority === "urgent" && item.photosCount === 0)
+      .length,
+  };
+}
+
 /** Plural helper for the counters (« 1 ouverte », « 3 ouvertes »). */
 export function plural(count: number, singular: string, pluralForm = `${singular}s`): string {
   return `${count} ${count > 1 ? pluralForm : singular}`;

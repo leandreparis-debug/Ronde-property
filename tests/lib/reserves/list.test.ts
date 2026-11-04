@@ -8,6 +8,7 @@ import {
   type ListableReserve,
   parseReserveFilters,
   plural,
+  reserveIncompleteCounts,
   sortReserves,
   writeReserveFilters,
 } from "@/lib/reserves/list";
@@ -119,5 +120,29 @@ describe("countReserves", () => {
     expect(countReserves(ITEMS)).toEqual({ open: 6, overdue: 2, done: 1 });
     expect(plural(1, "ouverte")).toBe("1 ouverte");
     expect(plural(3, "levée")).toBe("3 levées");
+  });
+});
+
+describe("reserveIncompleteCounts", () => {
+  it("counts reserves not done without responsible, without due date, urgent without photo", () => {
+    const items = [
+      { ...reserve(1, { priority: "urgent" }), responsibleKind: null, photosCount: 0 },
+      { ...reserve(2, { dueDate: "2026-12-01" }), responsibleKind: "internal", photosCount: 0 },
+      {
+        ...reserve(3, { priority: "urgent", dueDate: "2026-12-01" }),
+        responsibleKind: "external",
+        photosCount: 2,
+      },
+      {
+        ...reserve(4, { status: "done", priority: "urgent" }),
+        responsibleKind: null,
+        photosCount: 0,
+      },
+    ];
+    expect(reserveIncompleteCounts(items)).toEqual({
+      withoutResponsible: 1,
+      withoutDueDate: 1,
+      urgentWithoutPhoto: 1,
+    });
   });
 });

@@ -11,7 +11,9 @@ import { formatDate, formatDateTime, formatNumber, formatSurface } from "@/lib/f
 import { requireUser } from "@/server/auth/session";
 import { VISIT_REASON_LABELS, VISIT_STATUS_LABELS } from "@/server/domain/enums";
 import { SitePlansSection } from "@/components/plans/site-plans-section";
+import { SiteReservesSection } from "@/components/reserves/site-reserves-section";
 import { listSitePlans } from "@/server/services/plans";
+import { getSiteReservesSummary } from "@/server/services/reserves";
 import { getSiteWithVisits } from "@/server/services/sites";
 
 type Params = Promise<{ code: string }>;
@@ -30,7 +32,10 @@ export default async function SitePage({ params }: { params: Params }) {
   const { site, visits } = data;
   const canCreate = (user.role === "rt" || user.role === "admin") && site.isActive;
   const canImportPlans = user.role === "rt" || user.role === "admin";
-  const plans = await listSitePlans(site.id, { includeArchived: canImportPlans });
+  const [plans, reserves] = await Promise.all([
+    listSitePlans(site.id, { includeArchived: canImportPlans }),
+    getSiteReservesSummary(site.id),
+  ]);
 
   return (
     <>
@@ -124,6 +129,9 @@ export default async function SitePage({ params }: { params: Params }) {
             )}
           </CardContent>
         </Card>
+      </div>
+      <div className="mt-6">
+        <SiteReservesSection summary={reserves} />
       </div>
       <div className="mt-6">
         <SitePlansSection siteId={site.id} initialPlans={plans} canImport={canImportPlans} />

@@ -1,6 +1,6 @@
 "use client";
 
-import { Camera, ImageMinus, Move, Trash2, X } from "lucide-react";
+import { Camera, ImageMinus, Move, Trash2, TriangleAlert, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 
@@ -30,6 +30,8 @@ export interface MarkerSheetProps {
   photos: PhotoView[];
   zones: Array<{ key: string; label: string }>;
   canEdit: boolean;
+  /** « Créer une réserve ici »: Reserves tab with the photo prelinked and this marker. */
+  createReserveHref?: string;
   moving: boolean;
   onClose: () => void;
   /** Saves a patch; resolves with the error message, or `null`. */
@@ -46,8 +48,8 @@ const LABEL_DEBOUNCE_MS = 800;
  * « Prendre une photo », linked as soon as the upload is confirmed), « Retirer la photo »,
  * « Déplacer » (next tap on the plan) and « Supprimer le repère » with a confirmation.
  * Read-only: the same information without controls.
- *
- * Extension point (step 9): a « Réserve » section will link the marker to a reserve here.
+ * « Créer une réserve ici » opens the reserve sheet with the linked photo; the marker then
+ * becomes the reserve's marker.
  */
 export function MarkerSheet({
   marker,
@@ -55,6 +57,7 @@ export function MarkerSheet({
   photos,
   zones,
   canEdit,
+  createReserveHref,
   moving,
   onClose,
   onUpdate,
@@ -337,6 +340,15 @@ export function MarkerSheet({
       </section>
 
       {error ? <ErrorNotice message={error} /> : null}
+
+      {canEdit && createReserveHref ? (
+        <Button asChild variant="secondary" className="self-start">
+          <Link href={createReserveHref} scroll={false} data-testid="marker-create-reserve">
+            <TriangleAlert className="size-4" aria-hidden="true" />
+            Créer une réserve ici
+          </Link>
+        </Button>
+      ) : null}
 
       {canEdit ? (
         <div className="flex flex-wrap gap-2 border-t border-rule pt-3">

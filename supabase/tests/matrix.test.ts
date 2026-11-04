@@ -261,7 +261,8 @@ const CASES: TableCase[] = [
     },
     insert: {
       sql: () =>
-        `insert into public.plan_markers (visit_id, plan_id, x, y, number) values ('${VISITS.v1InProgress}', '${PLAN_LYON}', 0.5, 0.5, 2)`,
+        // Next free number: e2e runs and manual checks add markers to V1.
+        `insert into public.plan_markers (visit_id, plan_id, x, y, number) select '${VISITS.v1InProgress}', '${PLAN_LYON}', 0.5, 0.5, coalesce(max(number), 0) + 1 from public.plan_markers where visit_id = '${VISITS.v1InProgress}' and plan_id = '${PLAN_LYON}'`,
       expect: editorsOfV1,
     },
     update: {

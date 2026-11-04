@@ -19,6 +19,7 @@ import {
 import { useToast } from "@/components/ui/toast";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { overdueLabel } from "@/lib/reserves/dates";
+import { placeOnPlanHref } from "@/lib/reserves/links";
 import {
   deleteReserveAction,
   removeReserveFromPlanAction,
@@ -30,11 +31,6 @@ import type { ReserveDetail, ReserveHistoryEntry } from "@/server/reserves/types
 
 import { PriorityBadge, ReserveStatusPill, ResponsibleText } from "./reserve-card";
 import { ReserveSheet } from "./reserve-sheet";
-
-/** Link placing (or moving) a reserve on a plan of the visit. */
-export function placeOnPlanHref(visitId: string, reserveId: string): string {
-  return `/visites/${visitId}?onglet=plans&placer=${reserveId}`;
-}
 
 const STATUS_VERBS: Record<ReserveStatus, string> = {
   open: "Rouverte",

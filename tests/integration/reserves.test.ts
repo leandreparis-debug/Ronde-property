@@ -312,6 +312,36 @@ describe("plan placement", () => {
   });
 });
 
+describe("reserve created from a marker", () => {
+  it("turns the marker into the reserve's marker, shown with the reserve code", async () => {
+    const visitId = await newVisit();
+    const markers = createMarkerRepository(USERS.alice);
+    const marker = await markers.create(visitId, { planId: PLAN_LYON, page: 1, x: 0.3, y: 0.3 });
+    expect(await markers.countWithoutPhoto(visitId)).toBe(1);
+    const service = serviceFor(USERS.alice);
+    const reserve = await service.create(visitId, write({ action: "Depuis le repère" }), []);
+    const linked = await service.attachMarker(reserve.id, marker.id);
+    expect(linked.id).toBe(marker.id);
+    const listed = (await markers.listForVisit(visitId)).find((m) => m.id === marker.id);
+    expect(listed?.reserve).toMatchObject({ id: reserve.id, code: reserve.code, status: "open" });
+    // A reserve marker is not a « repère sans photo »: the reserve carries the photos.
+    expect(await markers.countWithoutPhoto(visitId)).toBe(0);
+    // Already placed: a second marker is refused; a marker linked elsewhere too.
+    const other = await markers.create(visitId, { planId: PLAN_LYON, page: 1, x: 0.6, y: 0.6 });
+    await expect(service.attachMarker(reserve.id, other.id)).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+    const second = await service.create(visitId, write(), []);
+    await expect(service.attachMarker(second.id, marker.id)).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+    // Read-only users cannot link.
+    await expect(serviceFor(USERS.emma).attachMarker(second.id, other.id)).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
+  });
+});
+
 describe("links, suggestions and counters", () => {
   it("links and unlinks photos, and finds the reserves of a photo", async () => {
     const visitId = await newVisit();

@@ -154,3 +154,28 @@ describe("todayInParis", () => {
     expect(todayInParis(new Date("2026-11-02T10:00:00Z"))).toBe("2026-11-02");
   });
 });
+
+describe("incompletePoints · reserves", () => {
+  it("lists the reserve points with singular and plural labels and links to the tab", () => {
+    const points = incompletePoints({
+      writerId: "x",
+      subject: "Objet",
+      participantsCount: 1,
+      reserves: { withoutResponsible: 2, withoutDueDate: 1, urgentWithoutPhoto: 1 },
+    });
+    expect(points.map((p) => p.label)).toEqual([
+      "2 réserves sans responsable",
+      "1 réserve sans échéance",
+      "1 réserve urgente sans photo",
+    ]);
+    expect(points.every((p) => p.href?.startsWith("?onglet=reserves"))).toBe(true);
+    expect(
+      incompletePoints({
+        writerId: "x",
+        subject: "Objet",
+        participantsCount: 1,
+        reserves: { withoutResponsible: 0, withoutDueDate: 0, urgentWithoutPhoto: 0 },
+      }),
+    ).toEqual([]);
+  });
+});

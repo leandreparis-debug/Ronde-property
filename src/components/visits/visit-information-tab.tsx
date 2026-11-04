@@ -21,6 +21,12 @@ export interface VisitInformationTabProps {
   uncaptionedPhotosCount: number;
   /** Plan markers without a photo (« N repères sans photo »). */
   markersWithoutPhotoCount: number;
+  /** Reserves not done without responsible, without due date, urgent without photo. */
+  reserveCounts?: {
+    withoutResponsible: number;
+    withoutDueDate: number;
+    urgentWithoutPhoto: number;
+  };
 }
 
 /** « Informations » tab: visit block, site (read-only), participants and incomplete points. */
@@ -31,6 +37,7 @@ export function VisitInformationTab({
   filledZonesCount,
   uncaptionedPhotosCount,
   markersWithoutPhotoCount,
+  reserveCounts,
 }: VisitInformationTabProps) {
   const canEdit = visit.permissions.canEdit;
   const points = incompletePoints({
@@ -40,6 +47,7 @@ export function VisitInformationTab({
     filledZonesCount,
     uncaptionedPhotosCount,
     markersWithoutPhotoCount,
+    reserves: reserveCounts,
   });
 
   return (

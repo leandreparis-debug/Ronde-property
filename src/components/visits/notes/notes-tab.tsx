@@ -36,6 +36,7 @@ import { NoteContent } from "./note-content";
 import { type EditorMode, ZoneEditor } from "./zone-editor";
 import { ZoneNav } from "./zone-nav";
 import { ZonePhotos } from "./zone-photos";
+import { ZoneReserves } from "./zone-reserves";
 
 export interface NotesTabProps {
   visitId: string;
@@ -46,6 +47,8 @@ export interface NotesTabProps {
   userId: string;
   /** Ready photos of the visit, for the per-zone counter and strip. */
   photos: PhotoView[];
+  /** Reserves (not deleted) per zone key, for « N réserves » and « + Réserve ». */
+  reservesByZone?: Record<string, number>;
 }
 
 const IDLE: NoteSaveStatus = { kind: "idle" };
@@ -65,6 +68,7 @@ export function NotesTab({
   canEdit,
   userId,
   photos,
+  reservesByZone = {},
 }: NotesTabProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -367,6 +371,11 @@ export function NotesTab({
             <ZonePhotos
               zoneKey={selected.zoneKey}
               photos={photos.filter((photo) => photo.zoneKey === selected.zoneKey)}
+              canEdit={canEdit}
+            />
+            <ZoneReserves
+              zoneKey={selected.zoneKey}
+              count={reservesByZone[selected.zoneKey] ?? 0}
               canEdit={canEdit}
             />
           </div>

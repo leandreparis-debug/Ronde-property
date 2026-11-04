@@ -32,6 +32,8 @@ export interface PhotosTabProps {
   canEdit: boolean;
   /** Markers linked to the photos, keyed by photo id (« R3 » badges, viewer mention). */
   markersByPhoto?: Record<string, PhotoMarkerLink>;
+  /** Reserves illustrated by the photos, keyed by photo id (« R-07 » badges, viewer mention). */
+  reservesByPhoto?: Record<string, Array<{ reserveId: string; code: string }>>;
 }
 
 /** Value of the `zone` filter meaning « photos without a zone ». */
@@ -48,6 +50,7 @@ export function PhotosTab({
   zones,
   canEdit,
   markersByPhoto = {},
+  reservesByPhoto = {},
 }: PhotosTabProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -294,6 +297,7 @@ export function PhotosTab({
               key={photo.id}
               photo={photo}
               marker={markersByPhoto[photo.id] ?? null}
+              reserves={reservesByPhoto[photo.id] ?? []}
               onOpen={(p) => setParams({ photo: p.id })}
               onImageError={(p) => void renew(p)}
             />
@@ -309,6 +313,15 @@ export function PhotosTab({
         zones={zones}
         canEdit={canEdit}
         markersByPhoto={markersByPhoto}
+        reservesByPhoto={Object.fromEntries(
+          Object.entries(reservesByPhoto).map(([photoId, links]) => [
+            photoId,
+            links.map((link) => ({
+              ...link,
+              href: `/visites/${visitId}/reserves/${link.reserveId}`,
+            })),
+          ]),
+        )}
         onIndexChange={(index) =>
           setParams({ photo: index === null ? null : (visible[index]?.id ?? null) })
         }

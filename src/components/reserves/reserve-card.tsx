@@ -92,10 +92,10 @@ export function ReserveCard({ reserve, href, context }: ReserveCardProps) {
             </span>
           ) : null}
         </div>
-        <h3 className="line-clamp-2 text-body font-semibold text-ink">
+        <h3 className="text-body font-semibold text-ink">
           <Link
             href={href}
-            className="after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none after:focus-visible:outline-3 after:focus-visible:outline-offset-2 after:focus-visible:outline-brand"
+            className="line-clamp-2 min-h-11 after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none after:focus-visible:outline-3 after:focus-visible:outline-offset-2 after:focus-visible:outline-brand"
             data-testid="reserve-card-link"
           >
             {reserve.action}

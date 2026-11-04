@@ -395,6 +395,9 @@ function selectMarkers(trx: Trx) {
     .leftJoin("photos as ph", (join) =>
       join.onRef("ph.id", "=", "m.photo_id").on("ph.upload_status", "=", "ready"),
     )
+    .leftJoin("reserves_with_state as rs", (join) =>
+      join.onRef("rs.id", "=", "m.reserve_id").on("rs.deleted_at", "is", null),
+    )
     .select([
       "m.id",
       "m.visit_id",
@@ -407,6 +410,11 @@ function selectMarkers(trx: Trx) {
       "m.photo_id",
       "ph.thumb_path as photo_thumb_path",
       "ph.caption as photo_caption",
+      "rs.id as reserve_id",
+      "rs.code as reserve_code",
+      "rs.action as reserve_action",
+      "rs.status as reserve_status",
+      "rs.is_overdue as reserve_is_overdue",
       "m.created_by",
       "m.created_at",
       "m.updated_at",
@@ -428,6 +436,16 @@ function toMarker(row: MarkerRow): MarkerRecord {
     photoId: row.photo_id,
     photoThumbPath: row.photo_thumb_path ?? null,
     photoCaption: row.photo_caption ?? null,
+    reserve:
+      row.reserve_id && row.reserve_code && row.reserve_status
+        ? {
+            id: row.reserve_id,
+            code: row.reserve_code,
+            action: row.reserve_action ?? "",
+            status: row.reserve_status,
+            isOverdue: row.reserve_is_overdue ?? false,
+          }
+        : null,
     createdBy: row.created_by,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -614,6 +632,8 @@ export function createMarkerRepository(user: UserRef): MarkerRepository {
           )
           .select((eb) => eb.fn.countAll<number>().as("count"))
           .where("m.visit_id", "=", visitId)
+          // A reserve marker carries the reserve's photos, not its own.
+          .where("m.reserve_id", "is", null)
           .where("ph.id", "is", null)
           .executeTakeFirstOrThrow();
         return Number(row.count);

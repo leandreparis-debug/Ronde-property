@@ -18,12 +18,15 @@ export const THUMB_HEIGHT = 300;
 export function PhotoThumb({
   photo,
   marker,
+  reserves = [],
   onOpen,
   onImageError,
 }: {
   photo: PhotoView;
   /** Marker linked to the photo, shown as an « R3 » badge. */
   marker?: PhotoMarkerLink | null;
+  /** Reserves the photo illustrates, shown as « R-07 » badges. */
+  reserves?: Array<{ reserveId: string; code: string }>;
   onOpen: (photo: PhotoView) => void;
   onImageError?: (photo: PhotoView) => void;
 }) {
@@ -65,6 +68,19 @@ export function PhotoThumb({
             >
               <Star className="size-4 fill-current text-brand" aria-hidden="true" />
               Garde
+            </span>
+          ) : null}
+          {reserves.length > 0 ? (
+            <span
+              className="absolute bottom-2 left-2 inline-flex h-7 items-center rounded-pill bg-ink px-2 text-label font-bold text-paper"
+              data-testid="photo-reserve-badge"
+              title={`Photo de la réserve ${reserves.map((r) => r.code).join(", ")}`}
+            >
+              {reserves.map((r) => r.code).join(" · ")}
+              <span className="sr-only">
+                {" "}
+                : photo de la réserve {reserves.map((r) => r.code).join(", ")}
+              </span>
             </span>
           ) : null}
           {marker ? (

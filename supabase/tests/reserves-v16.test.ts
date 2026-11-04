@@ -145,16 +145,22 @@ describe("plan_markers.reserve_id (migration 16)", () => {
   it("links a reserve of the same visit, at most once, and refuses another visit", async () => {
     await inTransaction(client, async () => {
       await actAs(client, ACTORS.alice);
+      // A reserve created here: the seed ones may already be placed by e2e runs or manual checks.
+      const { rows: fresh } = await client.query<{ id: string }>(
+        "insert into public.reserves (visit_id, action) values ($1, 'À placer') returning id",
+        [VISITS.v1InProgress],
+      );
+      const reserveId = fresh[0]!.id;
       const first = await attempt(
         client,
-        "insert into public.plan_markers (visit_id, plan_id, page, x, y, number, reserve_id) values ($1, $2, 1, 0.2, 0.2, 70, $3)",
-        [VISITS.v1InProgress, PLAN_LYON, RESERVES.r1Open],
+        "insert into public.plan_markers (visit_id, plan_id, page, x, y, number, reserve_id) values ($1, $2, 1, 0.2, 0.2, 9070, $3)",
+        [VISITS.v1InProgress, PLAN_LYON, reserveId],
       );
       expect(succeeded(first)).toBe(true);
       const second = await attempt(
         client,
-        "insert into public.plan_markers (visit_id, plan_id, page, x, y, number, reserve_id) values ($1, $2, 1, 0.3, 0.3, 71, $3)",
-        [VISITS.v1InProgress, PLAN_LYON, RESERVES.r1Open],
+        "insert into public.plan_markers (visit_id, plan_id, page, x, y, number, reserve_id) values ($1, $2, 1, 0.3, 0.3, 9071, $3)",
+        [VISITS.v1InProgress, PLAN_LYON, reserveId],
       );
       expect(!second.ok && second.code).toBe("23505");
 
@@ -165,7 +171,7 @@ describe("plan_markers.reserve_id (migration 16)", () => {
       );
       const foreign = await attempt(
         client,
-        "insert into public.plan_markers (visit_id, plan_id, page, x, y, number, reserve_id) values ($1, $2, 1, 0.4, 0.4, 72, $3)",
+        "insert into public.plan_markers (visit_id, plan_id, page, x, y, number, reserve_id) values ($1, $2, 1, 0.4, 0.4, 9072, $3)",
         [VISITS.v1InProgress, PLAN_LYON, rows[0]!.id],
       );
       expect(!foreign.ok && foreign.message).toMatch(/même visite/);
@@ -181,7 +187,7 @@ describe("plan_markers.reserve_id (migration 16)", () => {
       );
       const reserve = created[0]!;
       await client.query(
-        "insert into public.plan_markers (visit_id, plan_id, page, x, y, number, reserve_id) values ($1, $2, 1, 0.5, 0.5, 73, $3)",
+        "insert into public.plan_markers (visit_id, plan_id, page, x, y, number, reserve_id) values ($1, $2, 1, 0.5, 0.5, 9073, $3)",
         [VISITS.v1InProgress, PLAN_LYON, reserve.id],
       );
       // A direct physical delete of the reserve is refused (no delete grant, restrict FK).
@@ -214,7 +220,7 @@ describe("plan_markers.reserve_id (migration 16)", () => {
       await client.query("select public.soft_delete_reserve($1)", [rows[0]!.id]);
       const result = await attempt(
         client,
-        "insert into public.plan_markers (visit_id, plan_id, page, x, y, number, reserve_id) values ($1, $2, 1, 0.5, 0.5, 74, $3)",
+        "insert into public.plan_markers (visit_id, plan_id, page, x, y, number, reserve_id) values ($1, $2, 1, 0.5, 0.5, 9074, $3)",
         [VISITS.v1InProgress, PLAN_LYON, rows[0]!.id],
       );
       expect(result.ok).toBe(false);
@@ -258,8 +264,12 @@ describe("reserves_with_state (migration 16)", () => {
   it("exposes days_overdue, the responsible name, photos and the marker", async () => {
     await inTransaction(client, async () => {
       await actAs(client, ACTORS.alice);
+      // R4 may already be placed by an e2e run: start from no marker (rolled back).
+      await client.query("delete from public.plan_markers where reserve_id = $1", [
+        RESERVES.r4Overdue,
+      ]);
       await client.query(
-        "insert into public.plan_markers (visit_id, plan_id, page, x, y, number, reserve_id) values ($1, $2, 2, 0.5, 0.5, 75, $3)",
+        "insert into public.plan_markers (visit_id, plan_id, page, x, y, number, reserve_id) values ($1, $2, 2, 0.5, 0.5, 9075, $3)",
         [VISITS.v1InProgress, PLAN_LYON, RESERVES.r4Overdue],
       );
       const { rows } = await client.query<{

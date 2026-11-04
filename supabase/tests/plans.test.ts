@@ -178,13 +178,13 @@ describe("plan_markers checks (migration 15)", () => {
             visitId: VISITS.v1InProgress,
             planId: PLAN_LYON,
             page: 2,
-            number: 50,
+            number: 9050,
           }),
         ),
       ).toBe(true);
       const edge = await attempt(
         client,
-        "insert into public.plan_markers (visit_id, plan_id, page, x, y, number) values ($1, $2, 1, 0, 1, 51)",
+        "insert into public.plan_markers (visit_id, plan_id, page, x, y, number) values ($1, $2, 1, 0, 1, 9051)",
         [VISITS.v1InProgress, PLAN_LYON],
       );
       expect(succeeded(edge)).toBe(true);

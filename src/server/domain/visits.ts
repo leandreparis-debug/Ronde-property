@@ -47,7 +47,16 @@ export function visitDateWarning(visitDate: string, today: string): string | nul
 }
 
 export interface IncompletePoint {
-  key: "writer" | "participants" | "subject" | "notes" | "photos" | "markers";
+  key:
+    | "writer"
+    | "participants"
+    | "subject"
+    | "notes"
+    | "photos"
+    | "markers"
+    | "reserves-responsible"
+    | "reserves-due"
+    | "reserves-photo";
   label: string;
   /** Id of the field to focus. */
   anchor: string;
@@ -66,6 +75,8 @@ export function incompletePoints(input: {
   uncaptionedPhotosCount?: number;
   /** Plan markers of the visit without a photo; omit when the markers are not loaded. */
   markersWithoutPhotoCount?: number;
+  /** Reserves not done of the visit; omit when the reserves are not loaded. */
+  reserves?: { withoutResponsible: number; withoutDueDate: number; urgentWithoutPhoto: number };
 }): IncompletePoint[] {
   const points: IncompletePoint[] = [];
   if (!input.writerId)
@@ -95,5 +106,35 @@ export function incompletePoints(input: {
       anchor: "plans",
       href: "?onglet=plans",
     });
+  const reserves = input.reserves;
+  if (reserves?.withoutResponsible)
+    points.push({
+      key: "reserves-responsible",
+      label: reservesLabel(reserves.withoutResponsible, "sans responsable"),
+      anchor: "reserves",
+      href: "?onglet=reserves",
+    });
+  if (reserves?.withoutDueDate)
+    points.push({
+      key: "reserves-due",
+      label: reservesLabel(reserves.withoutDueDate, "sans échéance"),
+      anchor: "reserves",
+      href: "?onglet=reserves",
+    });
+  if (reserves?.urgentWithoutPhoto)
+    points.push({
+      key: "reserves-photo",
+      label:
+        reserves.urgentWithoutPhoto > 1
+          ? `${reserves.urgentWithoutPhoto} réserves urgentes sans photo`
+          : "1 réserve urgente sans photo",
+      anchor: "reserves",
+      href: "?onglet=reserves&priorite=urgent",
+    });
   return points;
+}
+
+/** « 1 réserve sans responsable », « 3 réserves sans échéance ». */
+function reservesLabel(count: number, suffix: string): string {
+  return `${count} réserve${count > 1 ? "s" : ""} ${suffix}`;
 }

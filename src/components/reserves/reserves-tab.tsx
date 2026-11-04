@@ -36,31 +36,15 @@ import { attachReserveMarkerAction } from "@/server/actions/reserve-actions";
 import type { PhotoView } from "@/server/photos/types";
 import type { ReserveDetail, ReserveListItem } from "@/server/reserves/types";
 
+import {
+  NEW_RESERVE_MARKER_PARAM,
+  NEW_RESERVE_PARAM,
+  NEW_RESERVE_PHOTO_PARAM,
+  reserveHref,
+} from "@/lib/reserves/links";
+
 import { ReserveCard } from "./reserve-card";
 import { ReserveSheet, type ReserveSheetTarget } from "./reserve-sheet";
-
-/** URL parameters opening the sheet from another tab (Notes « + Réserve », marker sheet). */
-export const NEW_RESERVE_PARAM = "nouvelle";
-export const NEW_RESERVE_PHOTO_PARAM = "photo-defaut";
-export const NEW_RESERVE_MARKER_PARAM = "depuis-repere";
-
-/** Link opening the Reserves tab with the creation sheet (zone, photo, marker prefilled). */
-export function newReserveHref(options: {
-  zoneKey?: string | null;
-  photoId?: string | null;
-  markerId?: string | null;
-}): string {
-  const params = new URLSearchParams({ onglet: "reserves" });
-  params.set(NEW_RESERVE_PARAM, options.zoneKey ?? "1");
-  if (options.photoId) params.set(NEW_RESERVE_PHOTO_PARAM, options.photoId);
-  if (options.markerId) params.set(NEW_RESERVE_MARKER_PARAM, options.markerId);
-  return `?${params.toString()}`;
-}
-
-/** Detail page of a reserve. */
-export function reserveHref(visitId: string, reserveId: string): string {
-  return `/visites/${visitId}/reserves/${reserveId}`;
-}
 
 export interface ReservesTabProps {
   visitId: string;

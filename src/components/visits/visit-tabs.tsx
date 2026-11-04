@@ -51,7 +51,7 @@ export function VisitTabs({
     }
     if (value === "photos") params.delete("zone");
     if (value !== "plans") {
-      for (const key of ["plan", "page", "repere"]) params.delete(key);
+      for (const key of ["plan", "page", "repere", "placer"]) params.delete(key);
     }
     const query = params.toString();
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });

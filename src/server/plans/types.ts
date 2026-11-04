@@ -46,9 +46,20 @@ export interface MarkerRecord {
   /** Thumbnail path of the linked photo (ready photos only). */
   photoThumbPath: string | null;
   photoCaption: string | null;
+  /** Reserve placed by this marker (step 9), `null` for a plain marker. */
+  reserve: MarkerReserveRef | null;
   createdBy: string | null;
   createdAt: Date;
   updatedAt: Date;
+}
+
+/** Reserve shown by a marker: code (R-07), status and delay decide its look. */
+export interface MarkerReserveRef {
+  id: string;
+  code: string;
+  action: string;
+  status: "open" | "in_progress" | "done";
+  isOverdue: boolean;
 }
 
 /** Signed `PUT` target of one object. */
@@ -135,6 +146,8 @@ export interface MarkerView {
   photoId: string | null;
   photoThumbUrl: string | null;
   photoCaption: string | null;
+  /** Reserve placed by this marker: drawn as a reserve marker, opens the reserve. */
+  reserve: MarkerReserveRef | null;
   createdAt: string;
   /** Last change, used to merge server and local lists (the latest wins). */
   updatedAt: string;

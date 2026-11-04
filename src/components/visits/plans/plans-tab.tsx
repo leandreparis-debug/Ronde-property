@@ -14,7 +14,7 @@ import {
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { MarkerPin } from "@/components/plans/marker-pin";
+import { MarkerPin, ReservePin } from "@/components/plans/marker-pin";
 import { MarkerSheet } from "@/components/plans/marker-sheet";
 import { ImportPlanDialog } from "@/components/plans/import-plan-dialog";
 import { PlanActionsMenu } from "@/components/plans/plan-actions-menu";
@@ -28,6 +28,7 @@ import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 import type { Point } from "@/lib/plans/geometry";
 import { mergeSnapshot } from "@/lib/plans/merge";
+import { newReserveHref, PLACE_RESERVE_PARAM, reserveHref } from "@/lib/reserves/links";
 import {
   createMarkerAction,
   moveMarkerAction,
@@ -35,6 +36,7 @@ import {
   renewPlanUrlsAction,
   updateMarkerAction,
 } from "@/server/actions/plan-actions";
+import { placeReserveOnPlanAction } from "@/server/actions/reserve-actions";
 import type { PhotoView } from "@/server/photos/types";
 import type { MarkerView, PlanDetailView, PlanView } from "@/server/plans/types";
 
@@ -51,6 +53,8 @@ export interface PlansTabProps {
   zones: Array<{ key: string; label: string }>;
   canEdit: boolean;
   canImport: boolean;
+  /** Reserves of the visit that can be placed (`?placer=<id>`, from the reserve detail). */
+  reserves?: Array<{ id: string; code: string }>;
 }
 
 /**
@@ -70,6 +74,7 @@ export function PlansTab({
   zones,
   canEdit,
   canImport,
+  reserves = [],
 }: PlansTabProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -110,6 +115,10 @@ export function PlansTab({
   const planId = searchParams.get("plan");
   const pageNumber = Math.max(1, Number(searchParams.get("page") ?? "1") || 1);
   const focusMarker = searchParams.get("repere");
+  const placingId = searchParams.get(PLACE_RESERVE_PARAM);
+  const placing = canEdit ? (reserves.find((r) => r.id === placingId) ?? null) : null;
+  // « Masquer les levées » is shared with the Reserves tab (on by default).
+  const showDone = searchParams.get("levees") === "afficher";
 
   const setParams = useCallback(
     (patch: Record<string, string | null>) => {
@@ -145,14 +154,30 @@ export function PlansTab({
 
   const page = detail?.pages.find((p) => p.pageNumber === pageNumber) ?? detail?.pages[0] ?? null;
   const planMarkers = useMemo(
-    () => markers.filter((m) => m.planId === detail?.id).sort((a, b) => a.number - b.number),
-    [markers, detail?.id],
+    () =>
+      markers
+        .filter((m) => m.planId === detail?.id)
+        .filter((m) => showDone || m.reserve?.status !== "done")
+        .sort((a, b) => a.number - b.number),
+    [markers, detail?.id, showDone],
   );
+  const hiddenDoneCount = markers.filter(
+    (m) => m.planId === detail?.id && m.reserve?.status === "done",
+  ).length;
   const pageMarkers = planMarkers.filter((m) => m.page === page?.pageNumber);
   const selected = markers.find((m) => m.id === selectedId) ?? null;
   const nextNumber = planMarkers.reduce((max, m) => Math.max(max, m.number), 0) + 1;
   const archived = detail?.isArchived ?? false;
   const canPlace = canEdit && !archived;
+
+  // Placement of a reserve: the next tap on the plan creates (or moves) its marker.
+  useEffect(() => {
+    if (placing && detail && canPlace) {
+      setSelectedId(null);
+      setMode("place");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- on placement request or plan change
+  }, [placing?.id, detail?.id, canPlace]);
 
   // Centre on the marker given in the URL (link from the photo viewer).
   useEffect(() => {
@@ -183,6 +208,23 @@ export function PlansTab({
   async function tapPlan(point: Point) {
     if (!detail || !page) return;
     setError(null);
+    if (mode === "place" && placing) {
+      const result = await placeReserveOnPlanAction({
+        reserveId: placing.id,
+        planId: detail.id,
+        page: page.pageNumber,
+        x: point.x,
+        y: point.y,
+      });
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setMode("view");
+      toast({ variant: "success", title: `${placing.code} placée sur le plan` });
+      router.push(reserveHref(visitId, placing.id));
+      return;
+    }
     if (mode === "place") {
       const result = await createMarkerAction({
         visitId,
@@ -237,6 +279,15 @@ export function PlansTab({
             </Button>
           ) : null}
         </div>
+        {placing ? (
+          <p
+            className="rounded-md bg-brand-soft px-3 py-2 text-ui font-semibold text-brand-deep"
+            role="status"
+            data-testid="place-reserve-choose-plan"
+          >
+            Choisissez le plan sur lequel placer {placing.code}.
+          </p>
+        ) : null}
         {error ? (
           <p role="alert" className="text-ui font-medium text-status-open">
             {error}
@@ -392,6 +443,17 @@ export function PlansTab({
           )}
           {showNumbers ? "Masquer les numéros" : "Afficher les numéros"}
         </Button>
+        {hiddenDoneCount > 0 || showDone ? (
+          <Button
+            type="button"
+            variant="secondary"
+            aria-pressed={!showDone}
+            onClick={() => setParams({ levees: showDone ? null : "afficher" })}
+            data-testid="plan-toggle-done-reserves"
+          >
+            {showDone ? "Masquer les réserves levées" : "Afficher les réserves levées"}
+          </Button>
+        ) : null}
         {detail?.originalUrl ? (
           <Button asChild variant="ghost">
             <a href={detail.originalUrl} download data-testid="plan-download-original">
@@ -419,7 +481,26 @@ export function PlansTab({
         ) : null}
       </div>
 
-      {mode === "place" ? (
+      {mode === "place" && placing ? (
+        <div
+          className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-brand-soft px-3 py-2"
+          role="status"
+        >
+          <p className="text-ui font-semibold text-brand-deep" data-testid="place-reserve-hint">
+            Touchez le plan pour placer {placing.code}
+          </p>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => {
+              setMode("view");
+              setParams({ [PLACE_RESERVE_PARAM]: null });
+            }}
+          >
+            Annuler
+          </Button>
+        </div>
+      ) : mode === "place" ? (
         <p
           className="rounded-md bg-brand-soft px-3 py-2 text-ui font-semibold text-brand-deep"
           role="status"
@@ -445,7 +526,12 @@ export function PlansTab({
         </p>
       ) : null}
 
-      <div className={cn("grid grid-cols-1 gap-4", selected && "lg:grid-cols-[1fr_360px]")}>
+      <div
+        className={cn(
+          "grid grid-cols-1 gap-4",
+          selected && !selected.reserve && "lg:grid-cols-[1fr_360px]",
+        )}
+      >
         <div className="flex min-w-0 flex-col gap-4">
           {page ? (
             <PlanCanvas
@@ -458,6 +544,11 @@ export function PlansTab({
               canDragMarkers={canEdit}
               onTapPlan={(point) => void tapPlan(point)}
               onSelectMarker={(marker) => {
+                // A reserve marker opens its reserve.
+                if (marker.reserve && mode !== "move") {
+                  router.push(reserveHref(visitId, marker.reserve.id));
+                  return;
+                }
                 setSelectedId(marker.id);
                 if (mode === "move") setMode("view");
               }}
@@ -469,6 +560,35 @@ export function PlansTab({
               Chargement du plan…
             </div>
           )}
+
+          <ul
+            className="flex flex-wrap gap-x-5 gap-y-2 text-ui text-ink-2"
+            aria-label="Légende du plan"
+            data-testid="plan-legend"
+          >
+            <li className="flex items-center gap-2">
+              <MarkerPin number={1} hasPhoto showNumber={false} />
+              Repère avec photo
+            </li>
+            <li className="flex items-center gap-2">
+              <MarkerPin number={1} hasPhoto={false} showNumber={false} />
+              Repère sans photo
+            </li>
+            <li className="flex items-center gap-2">
+              <ReservePin
+                reserve={{ code: "R", status: "open", isOverdue: false }}
+                showCode={false}
+              />
+              Réserve ouverte ou en retard
+            </li>
+            <li className="flex items-center gap-2">
+              <ReservePin
+                reserve={{ code: "R", status: "done", isOverdue: false }}
+                showCode={false}
+              />
+              Réserve levée
+            </li>
+          </ul>
 
           <section aria-labelledby="markers-list-title" className="flex flex-col gap-2">
             <h4 id="markers-list-title" className="label-caps text-ink-2">
@@ -492,6 +612,10 @@ export function PlansTab({
                         selectedId === marker.id && "bg-brand-tint",
                       )}
                       onClick={() => {
+                        if (marker.reserve) {
+                          router.push(reserveHref(visitId, marker.reserve.id));
+                          return;
+                        }
                         if (marker.page !== page?.pageNumber)
                           setParams({ page: String(marker.page), repere: marker.id });
                         else canvasRef.current?.focus({ x: marker.x, y: marker.y });
@@ -499,15 +623,20 @@ export function PlansTab({
                       }}
                       data-testid="markers-list-item"
                     >
-                      <MarkerPin number={marker.number} hasPhoto={Boolean(marker.photoId)} />
+                      {marker.reserve ? (
+                        <ReservePin reserve={marker.reserve} showCode={false} />
+                      ) : (
+                        <MarkerPin number={marker.number} hasPhoto={Boolean(marker.photoId)} />
+                      )}
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-ui font-semibold text-ink">
-                          n° {marker.number}
-                          {marker.label ? ` · ${marker.label}` : ""}
+                          {marker.reserve
+                            ? `${marker.reserve.code} · ${marker.reserve.action}`
+                            : `n° ${marker.number}${marker.label ? ` · ${marker.label}` : ""}`}
                         </span>
                         <span className="block text-label text-ink-2">
                           Page {marker.page}
-                          {marker.photoId ? "" : " · sans photo"}
+                          {marker.reserve ? " · réserve" : marker.photoId ? "" : " · sans photo"}
                         </span>
                       </span>
                       {marker.photoThumbUrl ? (
@@ -529,7 +658,7 @@ export function PlansTab({
           </section>
         </div>
 
-        {selected && detail ? (
+        {selected && detail && !selected.reserve ? (
           <MarkerSheet
             key={selected.id}
             marker={selected}
@@ -537,6 +666,11 @@ export function PlansTab({
             photos={allPhotos}
             zones={zones}
             canEdit={canEdit}
+            createReserveHref={newReserveHref({
+              zoneKey: allPhotos.find((p) => p.id === selected.photoId)?.zoneKey ?? null,
+              photoId: selected.photoId,
+              markerId: selected.id,
+            })}
             moving={mode === "move"}
             onClose={() => {
               setSelectedId(null);

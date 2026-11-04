@@ -15,11 +15,12 @@ import { VisitInformationTab } from "@/components/visits/visit-information-tab";
 import { VisitTabs } from "@/components/visits/visit-tabs";
 import { requireUser } from "@/server/auth/session";
 import { isZoneFilled } from "@/lib/notes/format";
+import { reserveIncompleteCounts } from "@/lib/reserves/list";
 import { incompletePoints } from "@/server/domain/visits";
 import { toZoneNoteView } from "@/server/domain/zone-notes";
 import { listPhotos } from "@/server/services/photos";
 import { getPlanDetail, listVisitPlans, snapshotVisitMarkers } from "@/server/services/plans";
-import { listVisitReserves } from "@/server/services/reserves";
+import { listVisitReserves, reservesByPhotoIds } from "@/server/services/reserves";
 import { getVisit, listAssignable, listParticipants } from "@/server/services/visits";
 import { listZoneNotes } from "@/server/services/zone-notes";
 
@@ -65,9 +66,17 @@ export default async function VisitPage({
   const markers = markerSnapshot.markers;
   const uncaptionedPhotosCount = photos.filter((photo) => !photo.caption).length;
   const readyPhotoIds = new Set(photos.map((photo) => photo.id));
+  // A reserve marker carries the photos of its reserve, not its own.
   const markersWithoutPhotoCount = markers.filter(
-    (marker) => !marker.photoId || !readyPhotoIds.has(marker.photoId),
+    (marker) => !marker.reserve && (!marker.photoId || !readyPhotoIds.has(marker.photoId)),
   ).length;
+  const reserveCounts = reserveIncompleteCounts(reserves);
+  const reservesByZone: Record<string, number> = {};
+  for (const reserve of reserves) {
+    if (reserve.zoneKey)
+      reservesByZone[reserve.zoneKey] = (reservesByZone[reserve.zoneKey] ?? 0) + 1;
+  }
+  const reservesByPhoto = await reservesByPhotoIds(photos.map((photo) => photo.id));
   const planNames = new Map(plans.map((plan) => [plan.id, plan.name]));
   const markersByPhoto = Object.fromEntries(
     markers
@@ -90,6 +99,7 @@ export default async function VisitPage({
     filledZonesCount,
     uncaptionedPhotosCount,
     markersWithoutPhotoCount,
+    reserves: reserveCounts,
   });
   const zones = notes.map((note) => ({ key: note.zoneKey, label: note.zoneLabel }));
 
@@ -117,6 +127,7 @@ export default async function VisitPage({
             canEdit={visit.permissions.canEdit}
             userId={user.id}
             photos={photos}
+            reservesByZone={reservesByZone}
           />
         }
         reserves={
@@ -143,6 +154,7 @@ export default async function VisitPage({
             zones={zones}
             canEdit={visit.permissions.canEdit}
             canImport={canCreate}
+            reserves={reserves.map((reserve) => ({ id: reserve.id, code: reserve.code }))}
           />
         }
         photos={
@@ -153,6 +165,7 @@ export default async function VisitPage({
             zones={zones}
             canEdit={visit.permissions.canEdit}
             markersByPhoto={markersByPhoto}
+            reservesByPhoto={reservesByPhoto}
           />
         }
         information={
@@ -164,6 +177,7 @@ export default async function VisitPage({
             filledZonesCount={filledZonesCount}
             uncaptionedPhotosCount={uncaptionedPhotosCount}
             markersWithoutPhotoCount={markersWithoutPhotoCount}
+            reserveCounts={reserveCounts}
           />
         }
       />

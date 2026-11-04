@@ -10,6 +10,7 @@ import {
   MapPin,
   Star,
   Trash2,
+  TriangleAlert,
   X,
 } from "lucide-react";
 import { type TouchEvent, useEffect, useRef, useState } from "react";
@@ -52,6 +53,8 @@ export interface PhotoViewerProps {
   canEdit: boolean;
   /** Markers linked to the photos, keyed by photo id. */
   markersByPhoto?: Record<string, PhotoMarkerLink>;
+  /** Reserves illustrated by each photo, with the link to their detail page. */
+  reservesByPhoto?: Record<string, PhotoReserveMention[]>;
   onIndexChange: (index: number | null) => void;
   /** Saves a patch; resolves with the error message, or `null`. */
   onUpdate: (photoId: string, patch: PhotoPatch) => Promise<string | null>;
@@ -78,6 +81,7 @@ export function PhotoViewer({
   zones,
   canEdit,
   markersByPhoto = {},
+  reservesByPhoto = {},
   onIndexChange,
   onUpdate,
   onSetCover,
@@ -206,6 +210,7 @@ export function PhotoViewer({
                   key={photo.id}
                   photo={photo}
                   marker={markersByPhoto[photo.id] ?? null}
+                  reserves={reservesByPhoto[photo.id] ?? []}
                   zones={zones}
                   isFirst={index === 0}
                   isLast={index === photos.length - 1}
@@ -215,13 +220,49 @@ export function PhotoViewer({
                   onDelete={onDelete}
                 />
               ) : (
-                <ReadonlyPanel photo={photo} marker={markersByPhoto[photo.id] ?? null} />
+                <ReadonlyPanel
+                  photo={photo}
+                  marker={markersByPhoto[photo.id] ?? null}
+                  reserves={reservesByPhoto[photo.id] ?? []}
+                />
               )}
             </aside>
           </div>
         ) : null}
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** Reserve illustrated by a photo, with the link to its detail page. */
+export interface PhotoReserveMention {
+  reserveId: string;
+  code: string;
+  href: string;
+}
+
+/** « Photo de la réserve R-07 » with a link to the reserve, one line per reserve. */
+function ReserveMentions({ reserves }: { reserves: PhotoReserveMention[] }) {
+  if (reserves.length === 0) return null;
+  return (
+    <>
+      {reserves.map((reserve) => (
+        <p
+          key={reserve.reserveId}
+          className="flex flex-wrap items-center gap-1 rounded-md bg-craie px-3 py-2 text-ui text-ink"
+          data-testid="photo-reserve-mention"
+        >
+          <TriangleAlert className="size-4 text-ink-2" aria-hidden="true" />
+          Photo de la réserve {reserve.code}
+          <a
+            href={reserve.href}
+            className="inline-flex min-h-11 items-center font-semibold text-brand-deep underline"
+          >
+            Voir la réserve
+          </a>
+        </p>
+      ))}
+    </>
   );
 }
 
@@ -270,10 +311,20 @@ function Meta({ photo }: { photo: PhotoView }) {
   );
 }
 
-function ReadonlyPanel({ photo, marker }: { photo: PhotoView; marker: PhotoMarkerLink | null }) {
+function ReadonlyPanel({
+  photo,
+  marker,
+  reserves,
+}: {
+  photo: PhotoView;
+  marker: PhotoMarkerLink | null;
+  reserves: PhotoReserveMention[];
+}) {
   return (
     <>
       <MarkerMention marker={marker} />
+      <ReserveMentions reserves={reserves} />
+      <ReserveMentions reserves={reserves} />
       <div>
         <p className="label-caps text-ink-2">Légende</p>
         <p className={cn("text-body", photo.caption ? "text-ink" : "text-ink-2 italic")}>
@@ -304,6 +355,7 @@ function ReadonlyPanel({ photo, marker }: { photo: PhotoView; marker: PhotoMarke
 function EditPanel({
   photo,
   marker,
+  reserves,
   zones,
   isFirst,
   isLast,
@@ -314,6 +366,7 @@ function EditPanel({
 }: {
   photo: PhotoView;
   marker: PhotoMarkerLink | null;
+  reserves: PhotoReserveMention[];
   zones: ZoneOption[];
   isFirst: boolean;
   isLast: boolean;
@@ -533,6 +586,9 @@ function EditPanel({
               peut pas être annulée.
               {marker
                 ? ` Le repère n° ${marker.number} sur « ${marker.planName} » restera, sans photo.`
+                : ""}
+              {reserves.length > 0
+                ? ` Elle illustre ${reserves.length > 1 ? "les réserves" : "la réserve"} ${reserves.map((r) => r.code).join(", ")} : ${reserves.length > 1 ? "elles resteront" : "elle restera"}, sans cette photo.`
                 : ""}
             </DialogDescription>
           </DialogHeader>

@@ -30,7 +30,7 @@ import {
 } from "@/lib/plans/geometry";
 import type { MarkerView, PlanPageView } from "@/server/plans/types";
 
-import { MARKER_HIT, MarkerPin } from "./marker-pin";
+import { MARKER_HIT, MarkerPin, ReservePin } from "./marker-pin";
 
 /** What a tap on the plan does. */
 export type CanvasMode = "view" | "place" | "move";
@@ -334,7 +334,9 @@ export const PlanCanvas = forwardRef<PlanCanvasHandle, PlanCanvasProps>(function
           const position =
             drag && drag.id === marker.id ? drag.point : { x: marker.x, y: marker.y };
           const screen = relativeToScreen(position, transform, image);
-          const label = `Repère n° ${marker.number}${marker.label ? ` : ${marker.label}` : ""}${marker.photoId ? "" : " (sans photo)"}`;
+          const label = marker.reserve
+            ? `Réserve ${marker.reserve.code} : ${marker.reserve.action}`
+            : `Repère n° ${marker.number}${marker.label ? ` : ${marker.label}` : ""}${marker.photoId ? "" : " (sans photo)"}`;
           return (
             <li
               key={marker.id}
@@ -358,6 +360,7 @@ export const PlanCanvas = forwardRef<PlanCanvasHandle, PlanCanvasProps>(function
                 data-testid="plan-marker"
                 data-number={marker.number}
                 data-has-photo={marker.photoId ? "true" : "false"}
+                data-reserve={marker.reserve?.code}
                 data-x={marker.x}
                 data-y={marker.y}
                 onPointerDown={(event) => markerPointerDown(event, marker)}
@@ -367,12 +370,20 @@ export const PlanCanvas = forwardRef<PlanCanvasHandle, PlanCanvasProps>(function
                   if (!drag?.moved) onSelectMarker(marker);
                 }}
               >
-                <MarkerPin
-                  number={marker.number}
-                  hasPhoto={Boolean(marker.photoId)}
-                  selected={selectedId === marker.id}
-                  showNumber={showNumbers}
-                />
+                {marker.reserve ? (
+                  <ReservePin
+                    reserve={marker.reserve}
+                    selected={selectedId === marker.id}
+                    showCode={showNumbers}
+                  />
+                ) : (
+                  <MarkerPin
+                    number={marker.number}
+                    hasPhoto={Boolean(marker.photoId)}
+                    selected={selectedId === marker.id}
+                    showNumber={showNumbers}
+                  />
+                )}
               </button>
             </li>
           );
