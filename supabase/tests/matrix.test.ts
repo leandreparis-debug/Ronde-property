@@ -233,7 +233,11 @@ const CASES: TableCase[] = [
   },
   {
     table: "site_plans",
-    read: { sql: "select id from public.site_plans", expect: activeUsersRead(1) },
+    // Only the Lyon site: the integration suite imports committed plans on other sites.
+    read: {
+      sql: `select id from public.site_plans where site_id = '${SITES.lyon}'`,
+      expect: activeUsersRead(1),
+    },
     insert: {
       sql: () =>
         `insert into public.site_plans (site_id, name, storage_path, mime_type) values ('${SITES.lyon}', 'Nouveau plan', '${SITES.lyon}/new.pdf', 'application/pdf')`,
