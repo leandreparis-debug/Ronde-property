@@ -268,6 +268,26 @@ export interface SiteImportRuns {
   rows_updated: Generated<number>;
 }
 
+export interface SitePlanPages {
+  created_at: Generated<Timestamp>;
+  height: number;
+  id: Generated<string>;
+  image_mime: string;
+  /**
+   * Chemin dans site-plans : {site_id}/{plan_id}/p{n}.{png|jpg}.
+   */
+  image_path: string;
+  page_number: number;
+  plan_id: string;
+  size_bytes: Int8;
+  /**
+   * Chemin dans site-plans : {site_id}/{plan_id}/p{n}_thumb.jpg.
+   */
+  thumb_path: string;
+  updated_at: Generated<Timestamp>;
+  width: number;
+}
+
 export interface SitePlans {
   created_at: Generated<Timestamp>;
   id: Generated<string>;
@@ -277,10 +297,14 @@ export interface SitePlans {
   page_count: Generated<number>;
   site_id: string;
   /**
-   * Chemin dans le bucket site-plans : {site_id}/{plan_id}.{ext}.
+   * Chemin de l'original dans le bucket site-plans : {site_id}/{plan_id}/original.{pdf|png|jpg}.
    */
   storage_path: string;
   updated_at: Generated<Timestamp>;
+  /**
+   * pending : ligne créée avant l'envoi (URL signées délivrées) ; ready : original et pages vérifiés.
+   */
+  upload_status: Generated<string>;
   uploaded_by: string | null;
 }
 
@@ -427,6 +451,7 @@ export interface DB {
   reserves: Reserves;
   reserves_with_state: ReservesWithState;
   site_import_runs: SiteImportRuns;
+  site_plan_pages: SitePlanPages;
   site_plans: SitePlans;
   sites: Sites;
   visit_participants: VisitParticipants;

@@ -234,7 +234,7 @@ describe("audit coverage", () => {
 
       await actAs(client, ACTORS.alice);
       const plan = await client.query<{ id: string }>(
-        "insert into public.site_plans (site_id, name, storage_path, mime_type) values ($1, 'Plan audité', $2, 'application/pdf') returning id",
+        "insert into public.site_plans (site_id, name, storage_path, mime_type, upload_status) values ($1, 'Plan audité', $2, 'application/pdf', 'ready') returning id",
         [SITES.lyon, `${SITES.lyon}/audit.pdf`],
       );
       await actAs(client, ACTORS.alice);

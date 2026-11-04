@@ -144,10 +144,21 @@ insert into public.photos (id, visit_id, storage_path, thumb_path, original_file
    '00000000-0000-4000-8000-000000000001')
 on conflict (id) do nothing;
 
-insert into public.site_plans (id, site_id, name, storage_path, mime_type, page_count, uploaded_by) values
+insert into public.site_plans (id, site_id, name, storage_path, mime_type, page_count, uploaded_by, upload_status) values
   ('70000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000001',
-   'Plan de masse (fictif)', '10000000-0000-4000-8000-000000000001/70000000-0000-4000-8000-000000000001.pdf',
-   'application/pdf', 2, '00000000-0000-4000-8000-000000000001')
+   'Plan de masse (fictif)', '10000000-0000-4000-8000-000000000001/70000000-0000-4000-8000-000000000001/original.pdf',
+   'application/pdf', 2, '00000000-0000-4000-8000-000000000001', 'ready')
+on conflict (id) do nothing;
+
+insert into public.site_plan_pages (id, plan_id, page_number, image_path, thumb_path, image_mime, width, height, size_bytes) values
+  ('71000000-0000-4000-8000-000000000001', '70000000-0000-4000-8000-000000000001', 1,
+   '10000000-0000-4000-8000-000000000001/70000000-0000-4000-8000-000000000001/p1.png',
+   '10000000-0000-4000-8000-000000000001/70000000-0000-4000-8000-000000000001/p1_thumb.jpg',
+   'image/png', 3500, 2475, 120000),
+  ('71000000-0000-4000-8000-000000000002', '70000000-0000-4000-8000-000000000001', 2,
+   '10000000-0000-4000-8000-000000000001/70000000-0000-4000-8000-000000000001/p2.png',
+   '10000000-0000-4000-8000-000000000001/70000000-0000-4000-8000-000000000001/p2_thumb.jpg',
+   'image/png', 3500, 2475, 110000)
 on conflict (id) do nothing;
 
 insert into public.plan_markers (id, visit_id, plan_id, page, x, y, number, label, photo_id, created_by) values

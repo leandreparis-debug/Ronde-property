@@ -592,6 +592,57 @@ export type Database = {
           },
         ];
       };
+      site_plan_pages: {
+        Row: {
+          created_at: string;
+          height: number;
+          id: string;
+          image_mime: string;
+          image_path: string;
+          page_number: number;
+          plan_id: string;
+          size_bytes: number;
+          thumb_path: string;
+          updated_at: string;
+          width: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          height: number;
+          id?: string;
+          image_mime: string;
+          image_path: string;
+          page_number: number;
+          plan_id: string;
+          size_bytes: number;
+          thumb_path: string;
+          updated_at?: string;
+          width: number;
+        };
+        Update: {
+          created_at?: string;
+          height?: number;
+          id?: string;
+          image_mime?: string;
+          image_path?: string;
+          page_number?: number;
+          plan_id?: string;
+          size_bytes?: number;
+          thumb_path?: string;
+          updated_at?: string;
+          width?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "site_plan_pages_plan_id_fkey";
+            columns: ["plan_id"];
+            isOneToOne: false;
+            referencedRelation: "site_plans";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       site_plans: {
         Row: {
           created_at: string;
@@ -603,6 +654,7 @@ export type Database = {
           site_id: string;
           storage_path: string;
           updated_at: string;
+          upload_status: string;
           uploaded_by: string | null;
         };
         ComputedFields: never;
@@ -616,6 +668,7 @@ export type Database = {
           site_id: string;
           storage_path: string;
           updated_at?: string;
+          upload_status?: string;
           uploaded_by?: string | null;
         };
         Update: {
@@ -628,6 +681,7 @@ export type Database = {
           site_id?: string;
           storage_path?: string;
           updated_at?: string;
+          upload_status?: string;
           uploaded_by?: string | null;
         };
         Relationships: [
