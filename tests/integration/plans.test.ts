@@ -233,6 +233,40 @@ describe("plan import", () => {
     ).toBeNull();
   });
 
+  it("accepts pages one at a time, replaces a retried page, refuses a page beyond the count", async () => {
+    const service = serviceFor(USERS.alice);
+    const prepared = await service.prepare(SITE_TOULOUSE, {
+      name: "Page par page",
+      mimeType: "application/pdf",
+      sizeBytes: PDF.byteLength,
+      pageCount: 2,
+    });
+    const page = (n: number, mime: "image/png" | "image/jpeg" = "image/png") => ({
+      pageNumber: n,
+      imageMime: mime,
+      width: 10,
+      height: 10,
+      sizeBytes: PNG.byteLength,
+      thumbSizeBytes: JPEG.byteLength,
+    });
+    const [first] = await service.preparePages(prepared.planId, [page(1)]);
+    await putThrough(prepared.original, PDF);
+    await putThrough(first!.image, PNG);
+    await putThrough(first!.thumb, JPEG);
+    // Only one page of two: not confirmable yet.
+    expect((await service.confirm(prepared.planId)).ok).toBe(false);
+    await expect(service.preparePages(prepared.planId, [page(3)])).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+    const [again] = await service.preparePages(prepared.planId, [page(2)]);
+    const [retried] = await service.preparePages(prepared.planId, [page(2)]);
+    expect(retried!.image.url.split("?")[0]).toBe(again!.image.url.split("?")[0]);
+    await putThrough(retried!.image, PNG);
+    await putThrough(retried!.thumb, JPEG);
+    const confirmed = await service.confirm(prepared.planId);
+    expect(confirmed.ok ? confirmed.plan.pageCount : confirmed.error).toBe(2);
+  });
+
   it("refuses new pages once the plan is ready", async () => {
     const planId = await importPlan(USERS.alice);
     await expect(

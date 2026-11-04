@@ -10,6 +10,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { formatDate, formatDateTime, formatNumber, formatSurface } from "@/lib/format";
 import { requireUser } from "@/server/auth/session";
 import { VISIT_REASON_LABELS, VISIT_STATUS_LABELS } from "@/server/domain/enums";
+import { SitePlansSection } from "@/components/plans/site-plans-section";
+import { listSitePlans } from "@/server/services/plans";
 import { getSiteWithVisits } from "@/server/services/sites";
 
 type Params = Promise<{ code: string }>;
@@ -27,6 +29,8 @@ export default async function SitePage({ params }: { params: Params }) {
   if (!data) notFound();
   const { site, visits } = data;
   const canCreate = (user.role === "rt" || user.role === "admin") && site.isActive;
+  const canImportPlans = user.role === "rt" || user.role === "admin";
+  const plans = await listSitePlans(site.id, { includeArchived: canImportPlans });
 
   return (
     <>
@@ -120,6 +124,9 @@ export default async function SitePage({ params }: { params: Params }) {
             )}
           </CardContent>
         </Card>
+      </div>
+      <div className="mt-6">
+        <SitePlansSection siteId={site.id} initialPlans={plans} canImport={canImportPlans} />
       </div>
     </>
   );

@@ -253,7 +253,8 @@ export function createPlanService(
 
     async preparePages(planId, pageInputs) {
       const { pages } = await plans.addPages(planId, pageInputs);
-      return signPages(pages);
+      const requested = new Set(pageInputs.map((page) => page.pageNumber));
+      return signPages(pages.filter((page) => requested.has(page.pageNumber)));
     },
 
     async renewUploads(planId) {
@@ -289,6 +290,9 @@ export function createPlanService(
         throw error;
       }
       if (pages.length === 0) return { ok: false, error: NO_PAGES_MESSAGE, retryable: false };
+      if (pages.length !== plan.pageCount) {
+        return { ok: false, error: MISSING_OBJECT_MESSAGE, retryable: true };
+      }
       const original = await storage.stat(BUCKET, plan.storagePath);
       if (!original) return { ok: false, error: MISSING_OBJECT_MESSAGE, retryable: true };
       if (!original.contentType.startsWith(plan.mimeType)) {

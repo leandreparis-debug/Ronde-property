@@ -19,6 +19,7 @@ blob-report/
 
 # synthetic test images (scripts/fixtures/generate-images.mjs)
 e2e/fixtures/images/
+e2e/fixtures/plans/
 
 # environment (never commit secrets)
 .env

@@ -147,7 +147,7 @@ export interface PlanRepository {
   getWithPages(planId: string): Promise<{ plan: PlanRecord; pages: PlanPageRecord[] }>;
   /** Inserts the pending row (RLS: rt/admin) and returns it. */
   createPending(siteId: string, input: PreparePlanInput): Promise<PlanRecord>;
-  /** Inserts the page rows of a pending plan (replacing any previous ones) and sets page_count. */
+  /** Inserts or replaces the given page rows of a pending plan (page numbers ≤ page_count). */
   addPages(
     planId: string,
     pages: PreparePageInput[],
@@ -241,9 +241,18 @@ export function createPlanRepository(user: UserRef): PlanRepository {
       return withUser(user, async (trx) => {
         const plan = await pendingOrThrow(trx, planId);
         const paths = planPaths(plan.siteId, plan.id, plan.mimeType);
-        const numbers = new Set(pages.map((page) => page.pageNumber));
-        if (numbers.size !== pages.length) throw new ValidationError("Pages en double.");
-        await trx.deleteFrom("site_plan_pages").where("plan_id", "=", planId).execute();
+        const numbers = pages.map((page) => page.pageNumber);
+        if (new Set(numbers).size !== pages.length) throw new ValidationError("Pages en double.");
+        if (numbers.some((n) => n > plan.pageCount)) {
+          throw new ValidationError(`Ce plan compte ${plan.pageCount} page(s).`);
+        }
+        // Pages are prepared one at a time by the browser (one page in memory): replace only
+        // the given page numbers, so that a retried page never duplicates its row.
+        await trx
+          .deleteFrom("site_plan_pages")
+          .where("plan_id", "=", planId)
+          .where("page_number", "in", numbers)
+          .execute();
         await trx
           .insertInto("site_plan_pages")
           .values(
@@ -258,11 +267,6 @@ export function createPlanRepository(user: UserRef): PlanRepository {
               size_bytes: page.sizeBytes,
             })),
           )
-          .execute();
-        await trx
-          .updateTable("site_plans")
-          .set({ page_count: Math.max(...pages.map((page) => page.pageNumber)) })
-          .where("id", "=", planId)
           .execute();
         return { plan: await planById(trx, planId), pages: await pagesOf(trx, planId) };
       });
