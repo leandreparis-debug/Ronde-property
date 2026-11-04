@@ -176,7 +176,7 @@ const CASES: TableCase[] = [
   {
     table: "visit_participants",
     read: {
-      sql: `select id from public.visit_participants where visit_id = '${VISITS.v1InProgress}'`,
+      sql: `select id from public.visit_participants where visit_id = '${VISITS.v1InProgress}' and id::text like '30000000-0000-4000-8000-%'`,
       expect: activeUsersRead(3),
     },
     insert: {
@@ -197,7 +197,7 @@ const CASES: TableCase[] = [
   {
     table: "visit_zone_notes",
     read: {
-      sql: `select id from public.visit_zone_notes where visit_id = '${VISITS.v1InProgress}'`,
+      sql: `select id from public.visit_zone_notes where visit_id = '${VISITS.v1InProgress}' and id::text like '40000000-0000-4000-8000-%'`,
       expect: activeUsersRead(4),
     },
     insert: {
@@ -218,7 +218,7 @@ const CASES: TableCase[] = [
   {
     table: "photos",
     read: {
-      sql: `select id from public.photos where visit_id = '${VISITS.v1InProgress}'`,
+      sql: `select id from public.photos where visit_id = '${VISITS.v1InProgress}' and id::text like '60000000-0000-4000-8000-%'`,
       expect: activeUsersRead(1),
     },
     insert: {
@@ -236,7 +236,7 @@ const CASES: TableCase[] = [
     table: "site_plans",
     // Only the Lyon site: the integration suite imports committed plans on other sites.
     read: {
-      sql: `select id from public.site_plans where site_id = '${SITES.lyon}'`,
+      sql: `select id from public.site_plans where site_id = '${SITES.lyon}' and id::text like '70000000-0000-4000-8000-%'`,
       expect: activeUsersRead(1),
     },
     insert: {
@@ -256,7 +256,7 @@ const CASES: TableCase[] = [
   {
     table: "plan_markers",
     read: {
-      sql: `select id from public.plan_markers where visit_id = '${VISITS.v1InProgress}'`,
+      sql: `select id from public.plan_markers where visit_id = '${VISITS.v1InProgress}' and id::text like '80000000-0000-4000-8000-%'`,
       expect: activeUsersRead(1),
     },
     insert: {
@@ -276,7 +276,7 @@ const CASES: TableCase[] = [
   {
     table: "reserves",
     read: {
-      sql: `select id from public.reserves where visit_id = '${VISITS.v1InProgress}'`,
+      sql: `select id from public.reserves where visit_id = '${VISITS.v1InProgress}' and id::text like '50000000-0000-4000-8000-%'`,
       expect: activeUsersRead(5),
     },
     insert: {
@@ -324,7 +324,7 @@ const CASES: TableCase[] = [
   {
     table: "reserve_events",
     read: {
-      sql: `select id from public.reserve_events where reserve_id in (select id from public.reserves where visit_id = '${VISITS.v1InProgress}')`,
+      sql: `select id from public.reserve_events where event_type = 'created' and reserve_id in (select id from public.reserves where visit_id = '${VISITS.v1InProgress}' and id::text like '50000000-0000-4000-8000-%')`,
       expect: activeUsersRead(5),
     },
     insert: {
@@ -337,7 +337,10 @@ const CASES: TableCase[] = [
   },
   {
     table: "reports",
-    read: { sql: "select id from public.reports", expect: activeUsersRead(1) },
+    read: {
+      sql: `select id from public.reports where id::text like '90000000-0000-4000-8000-%'`,
+      expect: activeUsersRead(1),
+    },
     insert: {
       sql: (actor) =>
         `insert into public.reports (visit_id, storage_path, size_bytes, generated_by) values ('${VISITS.v1InProgress}', '${VISITS.v1InProgress}/new.pdf', 1000, '${userId(actor)}')`,
@@ -395,6 +398,8 @@ function expectWrite(result: Attempt, expectation: WriteExpectation) {
 }
 
 for (const tableCase of CASES) {
+  // Reads are limited to seed rows (fixed ids): integration and e2e runs add rows that stay in
+  // ronde_test, so a read never depends on the number of rows in the database.
   describe(`matrice · ${tableCase.table}`, () => {
     for (const actor of MATRIX_ACTORS) {
       const readExpectation = tableCase.read.expect[actor];

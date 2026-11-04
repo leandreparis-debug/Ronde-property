@@ -169,6 +169,7 @@ export interface ReserveService {
   unlinkPhoto(id: string, photoId: string): Promise<void>;
   placeOnPlan(id: string, placement: PlacementInput): Promise<ReserveMarkerRef>;
   removeFromPlan(id: string): Promise<void>;
+  attachMarker(id: string, markerId: string): Promise<ReserveMarkerRef>;
   suggestions(siteId: string): Promise<ResponsibleSuggestions>;
   incompleteCounts(visitId: string): Promise<ReserveIncompleteCounts>;
   byPhotoIds(photoIds: string[]): Promise<Record<string, PhotoReserveLink[]>>;
@@ -293,6 +294,7 @@ export function createReserveService(
     unlinkPhoto: (id, photoId) => repository.unlinkPhoto(id, photoId),
     placeOnPlan: (id, placement) => repository.placeOnPlan(id, placement),
     removeFromPlan: (id) => repository.removeFromPlan(id),
+    attachMarker: (id, markerId) => repository.attachMarker(id, markerId),
     suggestions: (siteId) => repository.suggestions(siteId),
     incompleteCounts: (visitId) => repository.incompleteCounts(visitId),
     byPhotoIds: (photoIds) => repository.byPhotoIds(photoIds),

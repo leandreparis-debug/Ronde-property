@@ -8,6 +8,7 @@ import { VisitHeader } from "@/components/visits/visit-header";
 import { NotesTab } from "@/components/visits/notes/notes-tab";
 import { PhotosTab } from "@/components/visits/photos/photos-tab";
 import { PlansTab } from "@/components/visits/plans/plans-tab";
+import { ReservesTab } from "@/components/reserves/reserves-tab";
 import { UploadQueuePill } from "@/components/visits/photos/upload-queue-pill";
 import { UploadQueueProvider } from "@/components/visits/photos/upload-queue-provider";
 import { VisitInformationTab } from "@/components/visits/visit-information-tab";
@@ -18,6 +19,7 @@ import { incompletePoints } from "@/server/domain/visits";
 import { toZoneNoteView } from "@/server/domain/zone-notes";
 import { listPhotos } from "@/server/services/photos";
 import { getPlanDetail, listVisitPlans, snapshotVisitMarkers } from "@/server/services/plans";
+import { listVisitReserves } from "@/server/services/reserves";
 import { getVisit, listAssignable, listParticipants } from "@/server/services/visits";
 import { listZoneNotes } from "@/server/services/zone-notes";
 
@@ -47,7 +49,7 @@ export default async function VisitPage({
   const query = await searchParams;
   const planParam =
     typeof query.plan === "string" && z.uuid().safeParse(query.plan).success ? query.plan : null;
-  const [participants, writers, notes, photos, plans, markerSnapshot, planDetail] =
+  const [participants, writers, notes, photos, plans, markerSnapshot, planDetail, reserves] =
     await Promise.all([
       listParticipants(id),
       listAssignable(),
@@ -56,6 +58,7 @@ export default async function VisitPage({
       listVisitPlans(id, visit.siteId),
       snapshotVisitMarkers(id),
       planParam ? getPlanDetail(planParam, id).catch(() => null) : Promise.resolve(null),
+      listVisitReserves(id),
     ]);
   const canCreate = user.role === "rt" || user.role === "admin";
   const filledZonesCount = notes.filter((note) => isZoneFilled(note.content)).length;
@@ -114,6 +117,17 @@ export default async function VisitPage({
             canEdit={visit.permissions.canEdit}
             userId={user.id}
             photos={photos}
+          />
+        }
+        reserves={
+          <ReservesTab
+            key={`reserves-${visit.status}-${visit.permissions.canEdit}`}
+            visitId={visit.id}
+            siteId={visit.siteId}
+            initialReserves={reserves}
+            zones={zones}
+            photos={photos}
+            canEdit={visit.permissions.canEdit}
           />
         }
         plans={

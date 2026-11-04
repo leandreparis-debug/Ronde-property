@@ -351,6 +351,11 @@ export interface ReserveRepository {
   /** Creates the reserve's marker, or moves it (another plan: the marker is recreated). */
   placeOnPlan(id: string, placement: PlacementInput): Promise<ReserveMarkerRef>;
   removeFromPlan(id: string): Promise<void>;
+  /**
+   * « Créer une réserve ici »: the existing marker (same visit, not yet linked) becomes the
+   * reserve's marker; the reserve must not be placed yet.
+   */
+  attachMarker(id: string, markerId: string): Promise<ReserveMarkerRef>;
   /** Events in order, with the names of the profiles and the zone labels they mention. */
   history(id: string): Promise<{
     events: ReserveEventRecord[];
@@ -595,6 +600,27 @@ export function createReserveRepository(user: UserRef): ReserveRepository {
         if (Number(removed.numDeletedRows) === 0) {
           throw new ForbiddenError(RESERVE_NOT_EDITABLE_MESSAGE);
         }
+      });
+    },
+
+    attachMarker(id, markerId) {
+      return withUser(user, async (trx) => {
+        const reserve = await recordById(trx, id);
+        if (reserve.marker) {
+          throw new ValidationError("Cette réserve est déjà placée sur un plan.");
+        }
+        const linked = await trx
+          .updateTable("plan_markers")
+          .set({ reserve_id: id })
+          .where("id", "=", markerId)
+          .where("visit_id", "=", reserve.visitId)
+          .where("reserve_id", "is", null)
+          .returning(["id", "plan_id", "page"])
+          .executeTakeFirst();
+        if (!linked) {
+          throw new ValidationError("Ce repère est introuvable ou déjà lié à une réserve.");
+        }
+        return { id: linked.id, planId: linked.plan_id, page: linked.page };
       });
     },
 

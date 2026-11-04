@@ -10,18 +10,24 @@ import { VISIT_TABS } from "@/lib/constants";
 const TAB_VALUES = VISIT_TABS.map((tab) => tab.value);
 type TabValue = (typeof TAB_VALUES)[number];
 
+/** Filters of the Reserves tab dropped when leaving it (`levees` is shared with Plans). */
+const RESERVE_ONLY_PARAMS = ["statut", "priorite", "retard", "tri"];
+
 /**
- * The six visit tabs, synchronised with `?onglet=`. « Informations », « Notes », « Photos » and
- * « Plans » have content. Leaving a tab drops its own parameters (zone, photo, filters).
+ * The six visit tabs, synchronised with `?onglet=`. « Informations », « Notes », « Réserves »,
+ * « Photos » and « Plans » have content. Leaving a tab drops its own parameters (zone, photo,
+ * filters).
  */
 export function VisitTabs({
   information,
   notes,
+  reserves,
   photos,
   plans,
 }: {
   information: ReactNode;
   notes: ReactNode;
+  reserves: ReactNode;
   photos: ReactNode;
   plans: ReactNode;
 }) {
@@ -38,6 +44,8 @@ export function VisitTabs({
     if (value === "information") params.delete("onglet");
     else params.set("onglet", value);
     if (value !== "notes" && value !== "photos") params.delete("zone");
+    if (value !== "reserves") for (const key of RESERVE_ONLY_PARAMS) params.delete(key);
+    if (value !== "reserves" && value !== "plans") params.delete("levees");
     if (value !== "photos") {
       for (const key of ["photo", "categorie", "legende"]) params.delete(key);
     }
@@ -64,6 +72,8 @@ export function VisitTabs({
             information
           ) : tab.value === "notes" ? (
             notes
+          ) : tab.value === "reserves" ? (
+            reserves
           ) : tab.value === "photos" ? (
             photos
           ) : tab.value === "plans" ? (

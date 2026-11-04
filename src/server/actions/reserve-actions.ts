@@ -13,6 +13,7 @@ import type {
   ResponsibleSuggestions,
 } from "@/server/reserves/types";
 import {
+  attachReserveMarker,
   createReserve,
   deleteReserve,
   getReserve,
@@ -172,6 +173,20 @@ export async function placeReserveOnPlanAction(input: unknown): Promise<PlaceRes
     const { reserveId, ...placement } = parsed.data;
     const marker = await placeReserveOnPlan(reserveId, placement);
     const reserve = await getReserve(reserveId);
+    revalidateReserves(reserve.visitId);
+    return { ok: true, marker };
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+/** Links an existing marker of the visit to a reserve (« Créer une réserve ici »). */
+export async function attachReserveMarkerAction(input: unknown): Promise<PlaceReserveResult> {
+  const parsed = reserveIdSchema.extend({ markerId: z.uuid() }).safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Demande invalide." };
+  try {
+    const marker = await attachReserveMarker(parsed.data.reserveId, parsed.data.markerId);
+    const reserve = await getReserve(parsed.data.reserveId);
     revalidateReserves(reserve.visitId);
     return { ok: true, marker };
   } catch (error) {

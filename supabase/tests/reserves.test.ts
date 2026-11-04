@@ -229,8 +229,9 @@ describe("is_overdue", () => {
     await inTransaction(client, async () => {
       await actAs(client, ACTORS.claire);
       const { rows } = await client.query<{ code: string; is_overdue: boolean; status: string }>(
-        "select code, is_overdue, status from public.reserves_with_state where visit_id = $1 order by number",
-        [VISITS.v1InProgress],
+        // Seed reserves only: e2e runs and manual checks add reserves to V1.
+        "select code, is_overdue, status from public.reserves_with_state where visit_id = $1 and id = any($2::uuid[]) order by number",
+        [VISITS.v1InProgress, Object.values(RESERVES)],
       );
       expect(rows.map((r) => r.code)).toEqual(["R-01", "R-02", "R-03", "R-04", "R-05"]);
       expect(rows.map((r) => r.is_overdue)).toEqual([false, false, false, true, false]);
@@ -246,10 +247,20 @@ describe("is_overdue", () => {
       expect(rows.length).toBeGreaterThanOrEqual(2);
       // Seed visits by id: integration tests add visits on the same sites.
       const v1 = rows.find((r) => r.id === VISITS.v1InProgress)!;
-      expect(v1.open_reserves_count).toBe(4);
-      expect(v1.overdue_reserves_count).toBe(1);
-      expect(v1.done_reserves_count).toBe(1);
-      expect(v1.photos_count).toBe(1);
+      // V1 is shared with the e2e runs: compare with a direct count instead of fixed numbers.
+      const { rows: direct } = await client.query<Record<string, number>>(
+        `select
+           count(*) filter (where status <> 'done')::int as open,
+           count(*) filter (where status <> 'done' and due_date < (now() at time zone 'Europe/Paris')::date)::int as overdue,
+           count(*) filter (where status = 'done')::int as done
+         from public.reserves where visit_id = $1 and deleted_at is null`,
+        [VISITS.v1InProgress],
+      );
+      expect(v1.open_reserves_count).toBe(direct[0]!.open);
+      expect(v1.overdue_reserves_count).toBe(direct[0]!.overdue);
+      expect(v1.done_reserves_count).toBe(direct[0]!.done);
+      expect(Number(v1.open_reserves_count)).toBeGreaterThanOrEqual(4);
+      expect(Number(v1.photos_count)).toBeGreaterThanOrEqual(1);
       const v2 = rows.find((r) => r.id === VISITS.v2Completed)!;
       expect(v2.last_report_at).not.toBeNull();
     });

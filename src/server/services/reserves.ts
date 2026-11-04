@@ -112,3 +112,8 @@ export async function placeReserveOnPlan(
 export async function removeReserveFromPlan(id: string): Promise<void> {
   return (await forWriter()).removeFromPlan(id);
 }
+
+/** « Créer une réserve ici »: the marker becomes the reserve's marker. */
+export async function attachReserveMarker(id: string, markerId: string): Promise<ReserveMarkerRef> {
+  return (await forWriter()).attachMarker(id, markerId);
+}
