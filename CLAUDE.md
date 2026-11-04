@@ -98,7 +98,12 @@ tests/                     tests Vitest (miroir de src/)
 6. **Aucune donnée réelle dans le dépôt** : données fictives uniquement (sites, personnes,
    réserves), et jamais de secret (`.env.local` est ignoré, `.env.example` documente).
 7. **Commit et push après chaque point de spécification**, en Conventional Commits
-   (`feat:`, `fix:`, `chore:`, `test:`, `docs:`, `ci:`), petits et cohérents.
+   (`feat:`, `fix:`, `chore:`, `test:`, `docs:`, `ci:`), petits et cohérents. **Jamais de commit
+   quand `pnpm verify` ou `pnpm test:db` échoue** sur ce qui a été modifié : lancer les deux et lire
+   leur code de sortie avant `git commit`. Les tests d'intégration ne dépendent ni du nombre de
+   lignes en base ni de l'ordre d'exécution : `audit_log` et les données en ajout seul
+   s'accumulent dans `ronde_test`, toute assertion de comptage se limite aux lignes créées par le
+   test.
 8. **Ne jamais modifier une migration existante** : toute correction est une nouvelle migration
    horodatée dans `supabase/migrations/` (voir la migration 8, corrective, comme exemple).
 9. **`pnpm verify` et `pnpm test:e2e` doivent passer** avant de terminer une étape, en local et

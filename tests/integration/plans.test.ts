@@ -366,6 +366,18 @@ describe("markers", () => {
     expect(m4.number).toBe(3);
   });
 
+  it("returns a snapshot time that follows every marker it lists and precedes later ones", async () => {
+    const planId = await importPlan(USERS.alice);
+    const visitId = await newVisit();
+    const markers = serviceFor(USERS.alice).markers;
+    const first = await markers.create(visitId, { planId, page: 1, x: 0.1, y: 0.1 });
+    const snapshot = await markers.snapshotForVisit(visitId);
+    expect(snapshot.markers.map((m) => m.id)).toEqual([first.id]);
+    expect(Date.parse(snapshot.snapshotAt)).toBeGreaterThanOrEqual(Date.parse(first.updatedAt));
+    const later = await markers.create(visitId, { planId, page: 1, x: 0.2, y: 0.2 });
+    expect(Date.parse(later.updatedAt)).toBeGreaterThan(Date.parse(snapshot.snapshotAt));
+  });
+
   it("gives distinct numbers to two writers creating at the same time", async () => {
     const planId = await importPlan(USERS.alice);
     const visitId = await newVisit();

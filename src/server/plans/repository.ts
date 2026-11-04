@@ -451,6 +451,12 @@ async function markerById(trx: Trx, markerId: string): Promise<MarkerRecord> {
  */
 export interface MarkerRepository {
   listForVisit(visitId: string): Promise<MarkerRecord[]>;
+  /**
+   * Markers of the visit with the database time of the read (`now()`, start of the same
+   * transaction: anything committed before it is in the list), so that the client can tell a marker deleted elsewhere (absent and older
+   * than the snapshot) from one it created after the snapshot.
+   */
+  snapshotForVisit(visitId: string): Promise<{ records: MarkerRecord[]; snapshotAt: Date }>;
   listForVisitPlan(visitId: string, planId: string, page?: number): Promise<MarkerRecord[]>;
   create(
     visitId: string,
@@ -493,6 +499,18 @@ export function createMarkerRepository(user: UserRef): MarkerRepository {
           .orderBy("m.number")
           .execute();
         return rows.map(toMarker);
+      });
+    },
+
+    snapshotForVisit(visitId) {
+      return withUser(user, async (trx) => {
+        const rows = await selectMarkers(trx)
+          .where("m.visit_id", "=", visitId)
+          .orderBy("m.plan_id")
+          .orderBy("m.number")
+          .execute();
+        const { rows: clock } = await sql<{ at: Date }>`select now() as at`.execute(trx);
+        return { records: rows.map(toMarker), snapshotAt: clock[0]!.at };
       });
     },
 

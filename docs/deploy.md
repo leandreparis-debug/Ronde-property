@@ -7,6 +7,30 @@ de chaque environnement Vercel, l'ordre de mise en production et les vérificati
 > ni écriture, ni `db push`) : seule la base locale `ronde_test` est à sa portée. Les migrations
 > distantes sont appliquées par Léandre, depuis son PC, selon ce document.
 
+## 0. Mise en place initiale (à faire une fois, par Léandre)
+
+> **Tant que la branche `main` n'existe pas, chaque push sur la branche de travail
+> (`claude/focused-allen-2pfr6m`) est déployé en production** : Vercel prend la branche par
+> défaut du dépôt comme branche de production.
+
+1. **Couper l'accès de Claude Code à la production.** Sur claude.ai → **Settings →
+   Connectors**, déconnecter le connecteur **Supabase** (ou le désactiver pour les sessions
+   Claude Code). La règle écrite de `CLAUDE.md` interdit son usage en écriture, mais seule la
+   déconnexion supprime réellement l'accès. Faire de même pour le connecteur Vercel si l'on ne
+   veut garder aucun accès en écriture.
+2. **Créer la branche `main`** sur GitHub à partir de `claude/focused-allen-2pfr6m` : page du
+   dépôt → menu des branches → saisir `main` → « Create branch main from
+   claude/focused-allen-2pfr6m ». Puis **Settings → General → Default branch** : choisir `main`.
+3. **Production depuis `main`** : Vercel → projet `ronde` → **Settings → Git → Production
+   Branch** = `main`. Dès lors, toute autre branche produit un déploiement de prévisualisation.
+4. **Projet Supabase de test** : créer un second projet (même région), y appliquer toutes les
+   migrations (`supabase link --project-ref <ref-test>` puis `supabase db push`), créer son rôle
+   `ronde_app` (voir `docs/supabase-setup.md`), puis dans Vercel → **Settings → Environment
+   Variables**, renseigner pour l'environnement **Preview** uniquement les variables du tableau
+   ci-dessous avec les valeurs du projet de test.
+5. Vérifier : un push sur la branche de travail crée un déploiement « Preview » (et non
+   « Production ») qui se connecte au projet de test.
+
 ## 1. Environnements
 
 | Environnement  | Code                                    | Base et stockage                                                                          | Qui déploie                                         |

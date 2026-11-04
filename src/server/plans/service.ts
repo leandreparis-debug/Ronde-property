@@ -67,6 +67,8 @@ export interface PlanService {
   setArchived(planId: string, archived: boolean): Promise<PlanView>;
   markers: {
     listForVisit(visitId: string): Promise<MarkerView[]>;
+    /** Markers with the database time of the read, for the client-side merge. */
+    snapshotForVisit(visitId: string): Promise<{ markers: MarkerView[]; snapshotAt: string }>;
     create(visitId: string, input: Parameters<MarkerRepository["create"]>[1]): Promise<MarkerView>;
     move(markerId: string, x: number, y: number): Promise<MarkerView>;
     update(
@@ -361,6 +363,10 @@ export function createPlanService(
     markers: {
       async listForVisit(visitId) {
         return markerViews(await markers.listForVisit(visitId));
+      },
+      async snapshotForVisit(visitId) {
+        const { records, snapshotAt } = await markers.snapshotForVisit(visitId);
+        return { markers: await markerViews(records), snapshotAt: snapshotAt.toISOString() };
       },
       async create(visitId, input) {
         const [view] = await markerViews([await markers.create(visitId, input)]);

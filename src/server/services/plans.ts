@@ -49,6 +49,13 @@ export async function listVisitMarkers(visitId: string): Promise<MarkerView[]> {
   return (await forReader()).markers.listForVisit(visitId);
 }
 
+/** Markers of a visit with the database time of the read (client-side merge). */
+export async function snapshotVisitMarkers(
+  visitId: string,
+): Promise<{ markers: MarkerView[]; snapshotAt: string }> {
+  return (await forReader()).markers.snapshotForVisit(visitId);
+}
+
 /** Markers linked to the given photos (viewer mention and grid badge). */
 export async function markersByPhotoIds(photoIds: string[]) {
   return (await forReader()).markers.byPhotoIds(photoIds);

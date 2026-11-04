@@ -27,7 +27,7 @@ import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 import type { Point } from "@/lib/plans/geometry";
-import { mergeByVersion } from "@/lib/plans/merge";
+import { mergeSnapshot } from "@/lib/plans/merge";
 import {
   createMarkerAction,
   moveMarkerAction,
@@ -43,6 +43,8 @@ export interface PlansTabProps {
   siteId: string;
   initialPlans: PlanView[];
   initialMarkers: MarkerView[];
+  /** Database time at which `initialMarkers` was read (client-side merge). */
+  markersSnapshotAt: string;
   /** Plan opened from the URL, loaded by the page. */
   initialDetail: PlanDetailView | null;
   photos: PhotoView[];
@@ -62,6 +64,7 @@ export function PlansTab({
   siteId,
   initialPlans,
   initialMarkers,
+  markersSnapshotAt,
   initialDetail,
   photos,
   zones,
@@ -92,7 +95,15 @@ export function PlansTab({
   // merge them, never replace the local list.
   const removedRef = useRef(new Set<string>());
   useEffect(
-    () => setMarkers((local) => mergeByVersion(local, initialMarkers, removedRef.current)),
+    () =>
+      setMarkers((local) =>
+        mergeSnapshot(
+          local,
+          { items: initialMarkers, snapshotAt: markersSnapshotAt },
+          removedRef.current,
+        ),
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a new snapshot comes with new markers
     [initialMarkers],
   );
 

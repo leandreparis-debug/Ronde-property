@@ -17,7 +17,7 @@ import { isZoneFilled } from "@/lib/notes/format";
 import { incompletePoints } from "@/server/domain/visits";
 import { toZoneNoteView } from "@/server/domain/zone-notes";
 import { listPhotos } from "@/server/services/photos";
-import { getPlanDetail, listVisitMarkers, listVisitPlans } from "@/server/services/plans";
+import { getPlanDetail, listVisitPlans, snapshotVisitMarkers } from "@/server/services/plans";
 import { getVisit, listAssignable, listParticipants } from "@/server/services/visits";
 import { listZoneNotes } from "@/server/services/zone-notes";
 
@@ -47,17 +47,19 @@ export default async function VisitPage({
   const query = await searchParams;
   const planParam =
     typeof query.plan === "string" && z.uuid().safeParse(query.plan).success ? query.plan : null;
-  const [participants, writers, notes, photos, plans, markers, planDetail] = await Promise.all([
-    listParticipants(id),
-    listAssignable(),
-    listZoneNotes(id),
-    listPhotos(id),
-    listVisitPlans(id, visit.siteId),
-    listVisitMarkers(id),
-    planParam ? getPlanDetail(planParam, id).catch(() => null) : Promise.resolve(null),
-  ]);
+  const [participants, writers, notes, photos, plans, markerSnapshot, planDetail] =
+    await Promise.all([
+      listParticipants(id),
+      listAssignable(),
+      listZoneNotes(id),
+      listPhotos(id),
+      listVisitPlans(id, visit.siteId),
+      snapshotVisitMarkers(id),
+      planParam ? getPlanDetail(planParam, id).catch(() => null) : Promise.resolve(null),
+    ]);
   const canCreate = user.role === "rt" || user.role === "admin";
   const filledZonesCount = notes.filter((note) => isZoneFilled(note.content)).length;
+  const markers = markerSnapshot.markers;
   const uncaptionedPhotosCount = photos.filter((photo) => !photo.caption).length;
   const readyPhotoIds = new Set(photos.map((photo) => photo.id));
   const markersWithoutPhotoCount = markers.filter(
@@ -121,6 +123,7 @@ export default async function VisitPage({
             siteId={visit.siteId}
             initialPlans={plans}
             initialMarkers={markers}
+            markersSnapshotAt={markerSnapshot.snapshotAt}
             initialDetail={planDetail}
             photos={photos}
             zones={zones}
