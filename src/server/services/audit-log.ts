@@ -21,6 +21,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "photo.deleted": "Photo supprimée",
   "report.generated": "Rapport généré",
   "site_plan.imported": "Plan importé",
+  "site_plan.renamed": "Plan renommé",
   "site_plan.archived": "Plan archivé",
   "site_plan.unarchived": "Plan désarchivé",
   "site_import.simulated": "Import VIGIE simulé",
