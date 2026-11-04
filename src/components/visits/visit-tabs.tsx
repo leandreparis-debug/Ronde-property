@@ -11,17 +11,19 @@ const TAB_VALUES = VISIT_TABS.map((tab) => tab.value);
 type TabValue = (typeof TAB_VALUES)[number];
 
 /**
- * The six visit tabs, synchronised with `?onglet=`. « Informations », « Notes » and « Photos »
- * have content. Leaving a tab drops its own parameters (zone, photo, filters).
+ * The six visit tabs, synchronised with `?onglet=`. « Informations », « Notes », « Photos » and
+ * « Plans » have content. Leaving a tab drops its own parameters (zone, photo, filters).
  */
 export function VisitTabs({
   information,
   notes,
   photos,
+  plans,
 }: {
   information: ReactNode;
   notes: ReactNode;
   photos: ReactNode;
+  plans: ReactNode;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -40,6 +42,9 @@ export function VisitTabs({
       for (const key of ["photo", "categorie", "legende"]) params.delete(key);
     }
     if (value === "photos") params.delete("zone");
+    if (value !== "plans") {
+      for (const key of ["plan", "page", "repere"]) params.delete(key);
+    }
     const query = params.toString();
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
   }
@@ -61,6 +66,8 @@ export function VisitTabs({
             notes
           ) : tab.value === "photos" ? (
             photos
+          ) : tab.value === "plans" ? (
+            plans
           ) : (
             <EmptyState
               mood="asleep"

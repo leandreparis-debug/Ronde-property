@@ -7,6 +7,7 @@ import { VisitBanner } from "@/components/visits/visit-banner";
 import { VisitHeader } from "@/components/visits/visit-header";
 import { NotesTab } from "@/components/visits/notes/notes-tab";
 import { PhotosTab } from "@/components/visits/photos/photos-tab";
+import { PlansTab } from "@/components/visits/plans/plans-tab";
 import { UploadQueuePill } from "@/components/visits/photos/upload-queue-pill";
 import { UploadQueueProvider } from "@/components/visits/photos/upload-queue-provider";
 import { VisitInformationTab } from "@/components/visits/visit-information-tab";
@@ -16,10 +17,12 @@ import { isZoneFilled } from "@/lib/notes/format";
 import { incompletePoints } from "@/server/domain/visits";
 import { toZoneNoteView } from "@/server/domain/zone-notes";
 import { listPhotos } from "@/server/services/photos";
+import { getPlanDetail, listVisitMarkers, listVisitPlans } from "@/server/services/plans";
 import { getVisit, listAssignable, listParticipants } from "@/server/services/visits";
 import { listZoneNotes } from "@/server/services/zone-notes";
 
 type Params = Promise<{ id: string }>;
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { id } = await params;
@@ -29,17 +32,29 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 }
 
 /** Visit page: header, actions, read-only banner and the six tabs. */
-export default async function VisitPage({ params }: { params: Params }) {
+export default async function VisitPage({
+  params,
+  searchParams,
+}: {
+  params: Params;
+  searchParams: SearchParams;
+}) {
   const user = await requireUser();
   const { id } = await params;
   if (!z.uuid().safeParse(id).success) notFound();
   const visit = await getVisit(id);
   if (!visit) notFound();
-  const [participants, writers, notes, photos] = await Promise.all([
+  const query = await searchParams;
+  const planParam =
+    typeof query.plan === "string" && z.uuid().safeParse(query.plan).success ? query.plan : null;
+  const [participants, writers, notes, photos, plans, markers, planDetail] = await Promise.all([
     listParticipants(id),
     listAssignable(),
     listZoneNotes(id),
     listPhotos(id),
+    listVisitPlans(id, visit.siteId),
+    listVisitMarkers(id),
+    planParam ? getPlanDetail(planParam, id).catch(() => null) : Promise.resolve(null),
   ]);
   const canCreate = user.role === "rt" || user.role === "admin";
   const filledZonesCount = notes.filter((note) => isZoneFilled(note.content)).length;
@@ -77,6 +92,20 @@ export default async function VisitPage({ params }: { params: Params }) {
             canEdit={visit.permissions.canEdit}
             userId={user.id}
             photos={photos}
+          />
+        }
+        plans={
+          <PlansTab
+            key={`plans-${visit.status}-${visit.permissions.canEdit}`}
+            visitId={visit.id}
+            siteId={visit.siteId}
+            initialPlans={plans}
+            initialMarkers={markers}
+            initialDetail={planDetail}
+            photos={photos}
+            zones={zones}
+            canEdit={visit.permissions.canEdit}
+            canImport={canCreate}
           />
         }
         photos={
