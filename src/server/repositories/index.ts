@@ -1,7 +1,6 @@
 export * from "./participant-repository";
 export * from "./profile-repository";
 export * from "./report-repository";
-export * from "./reserve-repository";
 export * from "./site-repository";
 export * from "./types";
 export * from "./visit-repository";

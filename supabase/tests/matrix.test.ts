@@ -154,7 +154,8 @@ const CASES: TableCase[] = [
   {
     table: "visits",
     read: {
-      sql: `select id from public.visits where site_id in ('${SITES.lyon}', '${SITES.lille}', '${SITES.marseille}')`,
+      // Seed visits only: integration tests commit visits that accumulate in ronde_test.
+      sql: `select id from public.visits where id in ('${VISITS.v1InProgress}', '${VISITS.v2Completed}', '${VISITS.v3Deleted}')`,
       expect: { ...activeUsersRead(2), david: 3 },
     },
     insert: {
@@ -295,7 +296,15 @@ const CASES: TableCase[] = [
   },
   {
     table: "reserve_photos",
-    read: { sql: "select reserve_id from public.reserve_photos", expect: activeUsersRead(1) },
+    read: {
+      // Seed reserves only (integration tests link photos that stay in ronde_test).
+      sql: `select reserve_id from public.reserve_photos where reserve_id in (${Object.values(
+        RESERVES,
+      )
+        .map((id) => `'${id}'`)
+        .join(", ")})`,
+      expect: activeUsersRead(1),
+    },
     insert: {
       sql: () =>
         `insert into public.reserve_photos (reserve_id, photo_id, kind) values ('${RESERVES.r2InProgress}', '${PHOTO_V1}', 'defect')`,

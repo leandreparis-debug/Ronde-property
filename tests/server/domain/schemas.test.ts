@@ -3,14 +3,12 @@ import { describe, expect, it } from "vitest";
 import {
   participantInputSchema,
   planMarkerInputSchema,
-  reserveInputSchema,
   siteSchema,
   visitInputSchema,
   zoneNoteInputSchema,
 } from "@/server/domain/schemas";
 
 const SITE_ID = "10000000-0000-4000-8000-000000000001";
-const PROFILE_ID = "00000000-0000-4000-8000-000000000001";
 
 describe("visitInputSchema", () => {
   it("accepts a minimal visit and applies defaults", () => {
@@ -50,56 +48,6 @@ describe("visitInputSchema", () => {
       visitInputSchema.safeParse({ siteId: "pas-un-uuid", title: "Ok", visitDate: "2026-11-02" })
         .success,
     ).toBe(false);
-  });
-});
-
-describe("reserveInputSchema", () => {
-  it("requires a profile for an internal responsible", () => {
-    const result = reserveInputSchema.safeParse({ action: "Remplacer les butoirs" });
-    expect(result.success).toBe(false);
-    expect(result.error?.issues.map((issue) => issue.path.join("."))).toContain(
-      "responsibleProfileId",
-    );
-  });
-
-  it("requires a name for an external responsible", () => {
-    const result = reserveInputSchema.safeParse({
-      action: "Resserrer la visserie",
-      responsibleKind: "external",
-    });
-    expect(result.success).toBe(false);
-    expect(result.error?.issues.map((issue) => issue.path.join("."))).toContain("responsibleName");
-  });
-
-  it("accepts both responsible kinds and validates lengths and emails", () => {
-    expect(
-      reserveInputSchema.safeParse({ action: "Action", responsibleProfileId: PROFILE_ID }).success,
-    ).toBe(true);
-    expect(
-      reserveInputSchema.safeParse({
-        action: "Action",
-        responsibleKind: "external",
-        responsibleName: "Marc Imaginaire",
-        responsibleEmail: "marc@example.test",
-        dueDate: "2026-12-15",
-      }).success,
-    ).toBe(true);
-    expect(
-      reserveInputSchema.safeParse({
-        action: "Action",
-        responsibleKind: "external",
-        responsibleName: "Marc",
-        responsibleEmail: "pas-un-email",
-      }).success,
-    ).toBe(false);
-    expect(
-      reserveInputSchema.safeParse({ action: "x".repeat(501), responsibleProfileId: PROFILE_ID })
-        .success,
-    ).toBe(false);
-    expect(
-      reserveInputSchema.safeParse({ action: "x".repeat(500), responsibleProfileId: PROFILE_ID })
-        .success,
-    ).toBe(true);
   });
 });
 

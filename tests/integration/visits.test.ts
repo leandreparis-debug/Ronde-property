@@ -317,11 +317,20 @@ describe("list", () => {
   });
 
   it("scopes to mine for the creator, writer and linked participant", async () => {
-    const mineAlice = await createVisitRepository(USERS.alice).list({ scope: "mine" });
-    expect(mineAlice.items.some((v) => v.id === V1)).toBe(true);
-    const mineBruno = await createVisitRepository(USERS.bruno).list({ scope: "mine" });
-    expect(mineBruno.items.some((v) => v.id === V1)).toBe(true); // participant
-    expect(mineBruno.items.some((v) => v.id === V2_COMPLETED)).toBe(true); // creator
+    // Other test files commit visits for Alice: look through every page, not only the first.
+    async function mineIds(user: { id: string }): Promise<string[]> {
+      const repo = createVisitRepository(user);
+      const first = await repo.list({ scope: "mine" });
+      const ids = first.items.map((v) => v.id);
+      for (let page = 2; page <= first.pageCount; page += 1) {
+        ids.push(...(await repo.list({ scope: "mine", page })).items.map((v) => v.id));
+      }
+      return ids;
+    }
+    expect(await mineIds(USERS.alice)).toContain(V1);
+    const mineBruno = await mineIds(USERS.bruno);
+    expect(mineBruno).toContain(V1); // participant
+    expect(mineBruno).toContain(V2_COMPLETED); // creator
     const mineEmma = await createVisitRepository(USERS.emma).list({ scope: "mine", q: "Lyon Sud" });
     expect(mineEmma.items.some((v) => v.id === V1)).toBe(false);
     const all = await createVisitRepository(USERS.claire).list({ scope: "all" });

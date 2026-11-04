@@ -241,15 +241,16 @@ describe("is_overdue", () => {
     await inTransaction(client, async () => {
       await actAs(client, ACTORS.claire);
       const { rows } = await client.query<Record<string, number | string>>(
-        "select site_code, open_reserves_count, overdue_reserves_count, done_reserves_count, photos_count, last_report_at from public.visit_summaries order by visit_date",
+        "select id, site_code, open_reserves_count, overdue_reserves_count, done_reserves_count, photos_count, last_report_at from public.visit_summaries order by visit_date",
       );
       expect(rows.length).toBeGreaterThanOrEqual(2);
-      const v1 = rows.find((r) => r.site_code === "TEST-001")!;
+      // Seed visits by id: integration tests add visits on the same sites.
+      const v1 = rows.find((r) => r.id === VISITS.v1InProgress)!;
       expect(v1.open_reserves_count).toBe(4);
       expect(v1.overdue_reserves_count).toBe(1);
       expect(v1.done_reserves_count).toBe(1);
       expect(v1.photos_count).toBe(1);
-      const v2 = rows.find((r) => r.site_code === "TEST-002")!;
+      const v2 = rows.find((r) => r.id === VISITS.v2Completed)!;
       expect(v2.last_report_at).not.toBeNull();
     });
   });
