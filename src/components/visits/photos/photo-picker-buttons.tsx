@@ -35,8 +35,11 @@ export function PhotoPickerButtons({
   const cameraRef = useRef<HTMLInputElement>(null);
   const importRef = useRef<HTMLInputElement>(null);
   const [touch, setTouch] = useState(false);
+  // Set after hydration: the hidden inputs only react to a change once React is attached.
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    setReady(true);
     if (typeof window.matchMedia !== "function") return;
     const query = window.matchMedia("(pointer: coarse)");
     setTouch(query.matches);
@@ -80,7 +83,11 @@ export function PhotoPickerButtons({
   );
 
   return (
-    <div className={cn("flex flex-wrap items-center gap-2", className)}>
+    <div
+      className={cn("flex flex-wrap items-center gap-2", className)}
+      data-testid="photo-picker"
+      data-ready={ready ? "true" : undefined}
+    >
       {touch ? [camera, upload] : [upload, camera]}
       <input
         ref={cameraRef}

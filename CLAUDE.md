@@ -11,7 +11,7 @@ Utilisateurs : **RT** (saisie sur tablette au doigt et sur PC), **Direction** (l
 
 Étapes : 1 fondations et design system (faite) · 2 modèle de données Supabase et RLS (faite) ·
 3 authentification, rôles, audit (faite) · 4 référentiel des sites (CSV VIGIE, faite) · 5 visites (faite) · 6 notes
-par zone (faite) · 7 photos · 8 plans AutoCAD et repères · 9 réserves · 10 rapport PDF · 11 recette et
+par zone (faite) · 7 photos (faite) · 8 plans AutoCAD et repères · 9 réserves · 10 rapport PDF · 11 recette et
 déploiement.
 
 ## Stack et versions (exactes, pas de `^`)
@@ -56,8 +56,12 @@ src/components/ui/         primitives façon shadcn, écrites à la main
 src/lib/                   cn, env (zod), format (dates fr-FR), constants
 src/server/                db/ (pool, Kysely, withUser/withSystem), auth/ (AuthService local et supabase, session), services/, actions/, sites/import/ (moteur d'import VIGIE), supabase/ (clients auth), domain/, repositories/ (interfaces, SiteRepository implémenté)
 src/components/sites/      SiteCard, SiteSearchForm, SitePicker (combobox réutilisable)
-src/components/visits/     liste, création, fiche (en-tête, actions, bandeau, onglets, informations, participants), notes/ (onglet Notes)
+src/components/visits/     liste, création, fiche (en-tête, actions, bandeau, onglets, informations, participants), notes/ (onglet Notes), photos/ (onglet Photos, visionneuse, file d'envoi)
 src/lib/notes/             mise en forme des notes (puces), moteur d'enregistrement automatique
+src/lib/photos/            traitement des images dans le navigateur (octets magiques, EXIF, 1600/400 px), file d'envoi
+src/server/storage/        StorageService (supabase, local), signature HMAC, route locale
+src/server/photos/         dépôt, service et schémas des photos (lignes pending, URL signées, confirmation, purge)
+scripts/fixtures/          génération des images de test synthétiques (jamais de vraie photo)
 docs/samples/              échantillons fictifs (export VIGIE)
 src/middleware.ts          protection des routes et rafraîchissement de session (aucune lecture en base)
 supabase/migrations/       migrations SQL horodatées (jamais modifiées après commit)
@@ -125,5 +129,11 @@ tests/                     tests Vitest (miroir de src/)
     `truncate`, même en test (seule la réinitialisation complète de `ronde_test` les vide).
 27. **Notes** : le contenu d'une zone envoie la `version` de la note, la structure des zones
     (ajout, retrait, libellé, ordre) envoie la `version` de la visite ; les clés de zone sont
-    stables (les libellés se renomment) ; une zone ne se retire que vide ; le texte est du texte
-    brut mis en forme par `parseNoteContent` (jamais de HTML).
+    stables (les libellés se renomment) ; une zone ne se retire que vide et sans photo liée ; le
+    texte est du texte brut mis en forme par `parseNoteContent` (jamais de HTML).
+28. **Aucune URL signée sans vérification de droit via `withUser`** : une URL d'envoi n'est
+    délivrée qu'après l'insertion d'une ligne `photos` en `pending` sous RLS, une URL de lecture
+    qu'après la lecture de la ligne sous RLS. `STORAGE_PROVIDER=local` est réservé aux tests et au
+    développement (mêmes garde-fous que `AUTH_PROVIDER=local`) ; les images sont compressées
+    dans le navigateur (JPEG 1600 px + miniature 400 px, EXIF supprimé) et l'original n'est
+    jamais envoyé ; 500 photos par visite au plus.

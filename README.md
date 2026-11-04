@@ -74,6 +74,8 @@ tests/               tests Vitest
 - [Import des sites depuis VIGIE](docs/sites-import.md) : export attendu, simulation, options, garde-fou.
 - [Visites](docs/visits.md) : cycle de vie, droits, duplication, concurrence optimiste.
 - [Notes par zone](docs/notes.md) : trames, puces, enregistrement automatique, conflits par zone.
+- [Photos](docs/photos.md) : prise et import, compression dans le navigateur, envoi direct, galerie, visionneuse.
+- [Stockage des fichiers](docs/storage.md) : `StorageService`, fournisseurs `supabase` et `local`, URL signées, suite de contrat.
 - [Décisions d'architecture](docs/decisions.md).
 - [Couche serveur](src/server/README.md).
 - [Consignes de développement](CLAUDE.md).

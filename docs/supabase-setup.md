@@ -89,7 +89,16 @@ select id, public, file_size_limit, allowed_mime_types from storage.buckets orde
 select proname from pg_proc where pronamespace = 'private'::regnamespace order by 1;
 ```
 
-Dans **Storage**, les trois buckets apparaissent avec le cadenas « private ».
+Dans **Storage**, les trois buckets apparaissent avec le cadenas « private ». Vérifiez en
+particulier `visit-photos` : privé, 15 Mo par objet, types `image/jpeg`, `image/png`,
+`image/webp`. Les photos de l'étape 7 y sont déposées directement par le navigateur
+(`{visit_id}/{photo_id}.jpg` et `{visit_id}/{photo_id}_thumb.jpg`), via des URL signées par le
+serveur avec la clé `service_role` : `SUPABASE_SERVICE_ROLE_KEY` est donc **obligatoire** sur
+Vercel dès cette étape (voir `docs/storage.md`).
+
+**Volume** : comptez environ 400 Ko par photo (image 1600 px et miniature), soit environ 20 Mo
+pour une visite de 50 photos et 1 Go pour 50 visites ; l'offre gratuite de Supabase (1 Go)
+suffit à la recette, pas à la production.
 
 ## 4. Récupérer l'URL et les clés
 
@@ -187,9 +196,11 @@ depuis `withSystem`.
 | `DATABASE_URL`                  | pooler transaction (6543) | **non**                 |
 | `DATABASE_POOL_MAX`             | `5` (optionnel)           | non                     |
 | `AUTH_PROVIDER`                 | `supabase` (ou absente)   | non                     |
+| `STORAGE_PROVIDER`              | `supabase` (ou absente)   | non                     |
 
-Ne définissez **jamais** `ALLOW_LOCAL_AUTH` ni `LOCAL_AUTH_SECRET` sur Vercel : le fournisseur
-`local` y est refusé au démarrage.
+Ne définissez **jamais** `ALLOW_LOCAL_AUTH`, `LOCAL_AUTH_SECRET`, `ALLOW_LOCAL_STORAGE`,
+`LOCAL_STORAGE_SECRET` ni `LOCAL_STORAGE_DIR` sur Vercel : les fournisseurs `local` y sont
+refusés au démarrage, et la route `/api/local-storage` répond 404 sous tout autre fournisseur.
 
 ## 5. Base de test locale (facultatif sur Windows)
 

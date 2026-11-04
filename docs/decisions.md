@@ -322,3 +322,70 @@ connecte avec un rôle dédié (`ronde_app`, `noinherit`, membre de `authenticat
 et ne doit pas circuler ; un rôle dédié limite les droits de l'application à ceux de la
 plateforme (`service_role` contourne la RLS, rien de plus) et rend le comportement identique
 entre la base de test locale et Supabase.
+
+## 2026-11-03 — Sortie photo toujours en JPEG
+
+**Décision.** Quel que soit le format d'entrée (JPEG, PNG, WebP), la photo stockée et sa
+miniature sont des JPEG (qualité 0,8 à 1600 px, 0,7 à 400 px) ; la transparence devient
+blanche.
+
+**Motivation.** Le moteur PDF de l'étape 10 ne lit que JPEG et PNG, le JPEG est le plus
+compact pour des photos de chantier, et un seul format simplifie `stat`, les limites et les
+politiques des buckets.
+
+## 2026-11-03 — Compression dans le navigateur
+
+**Décision.** Le redimensionnement et l'encodage ont lieu dans le navigateur (Web Worker +
+`OffscreenCanvas` quand c'est possible), avant tout envoi ; l'original n'est jamais transmis.
+
+**Motivation.** Aucun fichier ne peut transiter par une action serveur ni une route (limite
+Vercel de 4,5 Mo), le serveur n'a pas à décoder des images de 12 Mpx, et la tablette envoie
+dix fois moins d'octets sur un réseau d'entrepôt souvent médiocre.
+
+## 2026-11-03 — Miniature stockée, pas de transformation d'image Supabase
+
+**Décision.** Chaque photo a deux objets : l'image principale et une miniature de 400 px,
+toutes deux produites par le navigateur.
+
+**Motivation.** Les transformations d'image à la volée de Supabase Storage sont réservées aux
+offres payantes et n'existent pas dans l'implémentation locale ni sur le futur serveur interne
+(V2) ; une miniature stockée coûte quelques kilo-octets et se sert par une simple URL signée.
+
+## 2026-11-03 — La ligne `pending` est la preuve d'autorisation
+
+**Décision.** Aucune URL d'envoi n'est signée sans qu'une ligne `photos` en `pending` ait été
+insérée sous RLS (`withUser`) ; aucune URL de lecture sans lecture de la ligne sous RLS. La
+confirmation repasse par RLS pour passer en `ready`. Règle inscrite dans `CLAUDE.md`.
+
+**Motivation.** Les deux implémentations du stockage contournent les politiques du stockage
+(clé `service_role`, fichiers locaux) : la seule autorité est la base. Si la RLS accepte
+l'insertion, l'utilisateur peut modifier la visite ; la ligne porte en plus le chemin exact
+qui sera signé, et une ligne jamais confirmée reste invisible puis est purgée.
+
+## 2026-11-03 — EXIF supprimé, seule la date de prise de vue est conservée
+
+**Décision.** Le ré-encodage retire toutes les métadonnées (GPS, appareil, numéro de série) ;
+`DateTimeOriginal` est lue avant et stockée dans `taken_at`.
+
+**Motivation.** RGPD et minimisation : la position de la tablette et l'identité de l'appareil
+n'ont aucune utilité métier ; la date de prise de vue, si.
+
+## 2026-11-03 — Plafond de 500 photos par visite
+
+**Décision.** La préparation refuse toute photo au-delà de 500 par visite, lignes `pending`
+comprises, sous un verrou par visite.
+
+**Motivation.** Une visite technique réelle compte quelques dizaines de photos ; 500 couvre
+les cas extrêmes tout en bornant le volume stocké (environ 200 Mo), la taille du rapport PDF
+et la mémoire de la galerie sur tablette.
+
+## 2026-11-03 — URL d'envoi Supabase valables 2 heures (durée fixée par l'API)
+
+**Décision.** Le fournisseur local signe des URL d'envoi de 2 minutes ; `createSignedUploadUrl`
+de Supabase Storage impose 2 heures, sans option. Le service renvoie la vraie expiration lue
+dans le jeton.
+
+**Motivation.** Pas de contournement possible côté API ; la ligne `pending` (preuve
+d'autorisation), la vérification à la confirmation (taille, type) et la purge limitent la
+portée d'une URL d'envoi divulguée à l'écrasement d'un objet que l'utilisateur pouvait de
+toute façon écrire.

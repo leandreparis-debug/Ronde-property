@@ -30,6 +30,7 @@ test.describe("as rt", () => {
     "/?scope=all",
     "/visites/nouvelle",
     "/visites/20000000-0000-4000-8000-000000000001",
+    "/visites/20000000-0000-4000-8000-000000000001?onglet=photos",
   ] as const) {
     test(`${path} has no serious or critical axe violation`, async ({ page }) => {
       await page.goto(path);

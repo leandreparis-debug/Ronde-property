@@ -441,7 +441,12 @@ function EditPanel({
           type="button"
           variant="secondary"
           disabled={busy || photo.isCover}
-          onClick={() => void run(() => onSetCover(photo.id))}
+          onClick={(event) => {
+            // The button is disabled once the photo is the cover: a disabled element keeps
+            // the focus but receives no key, so Escape would stop closing the viewer.
+            event.currentTarget.blur();
+            void run(() => onSetCover(photo.id));
+          }}
           data-testid="set-cover"
         >
           <Star
@@ -455,7 +460,10 @@ function EditPanel({
             type="button"
             variant="secondary"
             disabled={busy || isFirst}
-            onClick={() => void run(() => onMove(photo.id, "before"))}
+            onClick={(event) => {
+              event.currentTarget.blur();
+              void run(() => onMove(photo.id, "before"));
+            }}
           >
             <ArrowLeft className="size-5" aria-hidden="true" />
             Déplacer avant
@@ -464,7 +472,10 @@ function EditPanel({
             type="button"
             variant="secondary"
             disabled={busy || isLast}
-            onClick={() => void run(() => onMove(photo.id, "after"))}
+            onClick={(event) => {
+              event.currentTarget.blur();
+              void run(() => onMove(photo.id, "after"));
+            }}
           >
             Déplacer après
             <ArrowRight className="size-5" aria-hidden="true" />

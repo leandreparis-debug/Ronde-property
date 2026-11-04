@@ -33,8 +33,8 @@ export function PhotoThumb({
           "group flex w-full flex-col gap-2 rounded-lg border border-rule bg-paper p-2 text-left",
           "hover:border-brand focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand",
         )}
-        aria-label={`Ouvrir la photo : ${label}${photo.isCover ? " (photo de garde)" : ""}`}
       >
+        <span className="sr-only">Ouvrir la photo : </span>
         <div className="relative aspect-[4/3] w-full overflow-hidden rounded-md bg-galet">
           {photo.thumbUrl ? (
             // eslint-disable-next-line @next/next/no-img-element -- signed URL, no optimiser

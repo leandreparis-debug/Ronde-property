@@ -60,12 +60,14 @@ export function UploadQueueProvider({
   const router = useRouter();
   const [items, setItems] = useState<UploadItem[]>([]);
   const [uploaded, setUploaded] = useState<PhotoView[]>([]);
-  const queueRef = useRef<UploadQueue | null>(null);
+  const [queue, setQueue] = useState<UploadQueue | null>(null);
   const wasActive = useRef(false);
 
-  if (!queueRef.current && typeof window !== "undefined") {
+  // Created in an effect (not during render) so that React strict mode, which mounts twice in
+  // development, never leaves a disposed queue behind.
+  useEffect(() => {
     const processor = createPhotoProcessor({ concurrency: 2 });
-    queueRef.current = createUploadQueue({
+    const created = createUploadQueue({
       process: (file, filename) => processor.process(file, filename),
       prepare: async (prepared) => {
         const result = await preparePhotoUploadAction({ visitId, items: prepared });
@@ -85,18 +87,15 @@ export function UploadQueueProvider({
         await discardPendingPhotoAction({ photoId });
       },
     });
-  }
-  const queue = queueRef.current;
-
-  useEffect(() => {
-    if (!queue) return;
-    const unsubscribe = queue.onChange(setItems);
+    const unsubscribe = created.onChange(setItems);
+    setQueue(created);
     return () => {
       unsubscribe();
+      created.dispose();
+      processor.dispose();
+      setItems([]);
     };
-  }, [queue]);
-
-  useEffect(() => () => queue?.dispose(), [queue]);
+  }, [visitId]);
 
   const active = items.some((item) => !["done", "rejected", "failed"].includes(item.status));
 

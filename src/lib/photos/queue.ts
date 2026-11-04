@@ -192,6 +192,14 @@ export function createUploadQueue(deps: UploadQueueDeps): UploadQueue {
     }
     for (const entry of entries) {
       if (uploading >= uploadConcurrency) break;
+      // Keep the order the user picked: an item is prepared (and numbered) only once every
+      // earlier item has been processed, so that sort_order follows the selection.
+      if (
+        !entry.removed &&
+        (entry.item.status === "queued" || entry.item.status === "processing")
+      ) {
+        break;
+      }
       if (
         entry.item.status === "preparing" &&
         entry.processed &&

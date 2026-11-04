@@ -48,6 +48,9 @@ export function PhotosTab({ visitId, initialPhotos, zones, canEdit }: PhotosTabP
 
   const [photos, setPhotos] = useState(initialPhotos);
   const [dragging, setDragging] = useState(false);
+  // Filters and the viewer are driven by the URL, so nothing reacts before hydration.
+  const [ready, setReady] = useState(false);
+  useEffect(() => setReady(true), []);
   const knownUploads = useRef(0);
 
   // Server data refreshed (router.refresh after a batch, revalidation): take it as the truth,
@@ -72,20 +75,29 @@ export function PhotosTab({ visitId, initialPhotos, zones, canEdit }: PhotosTabP
 
   const zoneFilter = searchParams.get("zone") ?? "";
   const categoryFilter = searchParams.get("categorie") ?? "";
-  const uncaptionedOnly = searchParams.get("legende") === "sans";
   const openId = searchParams.get("photo");
+  // The checkbox answers at once; the URL (source of truth) follows through the router.
+  const [uncaptionedOnly, setUncaptionedOnly] = useState(searchParams.get("legende") === "sans");
+  useEffect(() => setUncaptionedOnly(searchParams.get("legende") === "sans"), [searchParams]);
 
+  // Two quick changes (zone then caption filter) must build on each other, not on the URL
+  // the router has not updated yet.
+  const paramsRef = useRef(searchParams.toString());
+  useEffect(() => {
+    paramsRef.current = searchParams.toString();
+  }, [searchParams]);
   const setParams = useCallback(
     (patch: Record<string, string | null>) => {
-      const params = new URLSearchParams(searchParams.toString());
+      const params = new URLSearchParams(paramsRef.current);
       params.set("onglet", "photos");
       for (const [key, value] of Object.entries(patch)) {
         if (value === null || value === "") params.delete(key);
         else params.set(key, value);
       }
+      paramsRef.current = params.toString();
       router.replace(`${pathname}?${params.toString()}`, { scroll: false });
     },
-    [pathname, router, searchParams],
+    [pathname, router],
   );
 
   const visible = useMemo(
@@ -178,6 +190,7 @@ export function PhotosTab({ visitId, initialPhotos, zones, canEdit }: PhotosTabP
         dragging && canEdit && "outline-3 outline-brand outline-dashed",
       )}
       data-testid="photos-tab"
+      data-ready={ready ? "true" : undefined}
       onDragOver={(event) => {
         if (!canEdit) return;
         event.preventDefault();
@@ -228,9 +241,10 @@ export function PhotosTab({ visitId, initialPhotos, zones, canEdit }: PhotosTabP
               type="checkbox"
               className="size-5 accent-brand"
               checked={uncaptionedOnly}
-              onChange={(event) =>
-                setParams({ legende: event.target.checked ? "sans" : null, photo: null })
-              }
+              onChange={(event) => {
+                setUncaptionedOnly(event.target.checked);
+                setParams({ legende: event.target.checked ? "sans" : null, photo: null });
+              }}
               data-testid="uncaptioned-filter"
             />
             Sans légende
