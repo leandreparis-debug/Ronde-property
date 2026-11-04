@@ -27,6 +27,7 @@ import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 import type { Point } from "@/lib/plans/geometry";
+import { mergeByVersion } from "@/lib/plans/merge";
 import {
   createMarkerAction,
   moveMarkerAction,
@@ -87,7 +88,13 @@ export function PlansTab({
 
   useEffect(() => setReady(true), []);
   useEffect(() => setPlans(initialPlans), [initialPlans]);
-  useEffect(() => setMarkers(initialMarkers), [initialMarkers]);
+  // Server lists can arrive out of order (page change in flight while a marker is created):
+  // merge them, never replace the local list.
+  const removedRef = useRef(new Set<string>());
+  useEffect(
+    () => setMarkers((local) => mergeByVersion(local, initialMarkers, removedRef.current)),
+    [initialMarkers],
+  );
 
   const planId = searchParams.get("plan");
   const pageNumber = Math.max(1, Number(searchParams.get("page") ?? "1") || 1);
@@ -534,6 +541,7 @@ export function PlansTab({
             onDelete={async () => {
               const result = await removeMarkerAction({ markerId: selected.id, visitId });
               if (!result.ok) return result.error;
+              removedRef.current.add(selected.id);
               setMarkers((list) => list.filter((m) => m.id !== selected.id));
               setSelectedId(null);
               toast({ variant: "success", title: `Repère n° ${selected.number} supprimé` });

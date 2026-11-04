@@ -136,6 +136,8 @@ export interface MarkerView {
   photoThumbUrl: string | null;
   photoCaption: string | null;
   createdAt: string;
+  /** Last change, used to merge server and local lists (the latest wins). */
+  updatedAt: string;
 }
 
 /** Outcome of the plan confirmation. */

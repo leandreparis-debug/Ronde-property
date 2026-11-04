@@ -12,6 +12,8 @@ test.describe.configure({ mode: "serial" });
 const expect = baseExpect.configure({ timeout: 30_000 });
 
 const SITE = "TEST-006";
+// Unique per run: a retried serial group starts again on a database that already has the plan.
+const PLAN_NAME = `Plan de masse e2e ${Date.now().toString(36)}`;
 const PLAN = (name: string) => path.join(FIXTURE_PLANS_DIR, name);
 const IMG = (name: string) => path.join(FIXTURE_IMAGES_DIR, name);
 let visitUrl = "";
@@ -61,7 +63,7 @@ async function expectTouchTargets(page: Page, scope: Locator) {
 async function openPlan(page: Page, pageNumber = 2) {
   await page.goto(`${visitUrl}?onglet=plans`);
   await expect(page.getByTestId("plans-tab")).toHaveAttribute("data-ready", "true");
-  await page.getByRole("button", { name: /Ouvrir le plan.*Plan de masse e2e/ }).click();
+  await page.getByRole("button", { name: new RegExp(`Ouvrir le plan.*${PLAN_NAME}`) }).click();
   await expect(page.getByTestId("plan-page-image")).toBeVisible();
   if (pageNumber !== 1) {
     await page.getByTestId("plan-page-select").selectOption(String(pageNumber));
@@ -106,18 +108,17 @@ test.describe("Alice", () => {
     page,
   }) => {
     await page.goto(`/sites/${SITE}`);
-    await expect(page.getByTestId("site-plans")).toContainText("Aucun plan pour ce site");
     await page.getByTestId("open-plan-import").click();
     const dialog = page.getByTestId("import-plan-dialog");
     await dialog.getByTestId("plan-file-input").setInputFiles(PLAN("plan-a1-3-pages.pdf"));
     await expect(dialog.getByTestId("plan-preview")).toBeVisible();
     await expect(dialog.getByTestId("plan-file-summary")).toContainText("3 pages");
     await expect(dialog.getByTestId("plan-name-input")).toHaveValue("plan-a1-3-pages");
-    await dialog.getByTestId("plan-name-input").fill("Plan de masse e2e");
+    await dialog.getByTestId("plan-name-input").fill(PLAN_NAME);
     await dialog.getByTestId("start-plan-import").click();
     await expect(dialog.getByTestId("plan-import-progress")).toBeVisible();
     await expect(dialog).toHaveCount(0, { timeout: 60_000 });
-    const plan = page.getByTestId("site-plan").filter({ hasText: "Plan de masse e2e" });
+    const plan = page.getByTestId("site-plan").filter({ hasText: PLAN_NAME });
     await expect(plan).toContainText("3 pages");
   });
 
@@ -236,7 +237,7 @@ test.describe("Alice", () => {
     const viewer = page.getByTestId("photo-viewer");
     await viewer.getByTestId("delete-photo").click();
     await expect(page.getByTestId("delete-photo-dialog")).toContainText(
-      "Le repère n° 1 sur « Plan de masse e2e » restera, sans photo.",
+      `Le repère n° 1 sur « ${PLAN_NAME} » restera, sans photo.`,
     );
     await page.getByTestId("confirm-delete-photo").click();
     await expect(page.getByText("Photo supprimée").first()).toBeVisible();
@@ -310,7 +311,7 @@ test.describe("Alice archives the plan", () => {
 
   test("keeps showing it with its markers but refuses new ones", async ({ page }) => {
     await page.goto(`/sites/${SITE}`);
-    const plan = page.getByTestId("site-plan").filter({ hasText: "Plan de masse e2e" });
+    const plan = page.getByTestId("site-plan").filter({ hasText: PLAN_NAME });
     await plan.getByTestId("archive-plan").click();
     await page.getByTestId("confirm-archive-plan").click();
     await expect(plan.getByTestId("plan-archived")).toBeVisible();

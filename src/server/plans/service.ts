@@ -198,6 +198,7 @@ export function createPlanService(
       photoThumbUrl: m.photoThumbPath ? (urls[m.photoThumbPath] ?? null) : null,
       photoCaption: m.photoCaption,
       createdAt: m.createdAt.toISOString(),
+      updatedAt: m.updatedAt.toISOString(),
     }));
   }
 
