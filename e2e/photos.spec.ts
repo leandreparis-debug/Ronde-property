@@ -42,6 +42,8 @@ async function importFiles(
 }
 
 async function expectNoBlockingViolation(page: Page) {
+  // During a client transition Next.js swaps the <head>: axe must not catch an empty title.
+  await expect(page).toHaveTitle(/\S/);
   const results = await new AxeBuilder({ page }).analyze();
   const blocking = results.violations.filter((v) =>
     ["serious", "critical"].includes(v.impact ?? ""),

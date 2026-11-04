@@ -79,10 +79,10 @@ accept="image/*" capture="environment">`, en premier sur écran tactile) et « I
 
   | Image                    | Entrée              | Image principale   | Miniature |
   | ------------------------ | ------------------- | ------------------ | --------- |
-  | `exif-orientation-6.jpg` | 400 × 600, 16 Ko    | 600 × 400, 11 Ko   | ~4 Ko     |
-  | `gradient.png`           | 1200 × 900, 65 Ko   | 1200 × 900, 23 Ko  | ~5 Ko     |
-  | `shapes.webp`            | 900 × 900, 13 Ko    | 900 × 900, 24 Ko   | ~7 Ko     |
-  | `large-4000x3000.jpg`    | 4000 × 3000, 396 Ko | 1600 × 1200, 48 Ko | ~9 Ko     |
+  | `exif-orientation-6.jpg` | 400 × 600, 16 Ko    | 600 × 400, 11 Ko   | 5 Ko      |
+  | `gradient.png`           | 1200 × 900, 65 Ko   | 1200 × 900, 23 Ko  | 6 Ko      |
+  | `shapes.webp`            | 900 × 900, 13 Ko    | 900 × 900, 24 Ko   | 7 Ko      |
+  | `large-4000x3000.jpg`    | 4000 × 3000, 396 Ko | 1600 × 1200, 48 Ko | 9 Ko      |
 
   Des photos réelles de chantier (textures, bruit) donnent des fichiers plus lourds : comptez
   200 à 400 Ko pour l'image principale et 20 à 40 Ko pour la miniature.

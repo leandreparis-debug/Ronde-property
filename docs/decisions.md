@@ -257,7 +257,7 @@ modifier la visite tant qu'elle est en cours (règle RLS existante). Le dialogue
 **Motivation.** Les visites se font souvent à plusieurs RT ; le collègue présent doit pouvoir
 saisir sans que le créateur ait à déléguer explicitement.
 
-## 2026-11-02 — Pas de `Suspense` autour des onglets de la visite
+## 2026-11-02 — Pas de `Suspense` autour des onglets de la visite (ni du formulaire de recherche des sites)
 
 **Décision.** La page `/visites/[id]` rend ses onglets sans frontière `Suspense`. Les autres
 frontières (`FlashToast`, filtres des listes) restent, car leur contenu est petit.

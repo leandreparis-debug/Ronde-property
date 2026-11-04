@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { SiteCard } from "@/components/sites/site-card";
@@ -48,14 +47,15 @@ export default async function SitesPage({ searchParams }: { searchParams: Promis
     <>
       <PageHeader eyebrow="Référentiel VIGIE" title="Sites" />
       <div className="flex flex-col gap-6">
-        <Suspense fallback={null}>
-          <SiteSearchForm
-            q={q}
-            category={category}
-            includeInactive={includeInactive}
-            categories={categories}
-          />
-        </Suspense>
+        {/* No Suspense boundary: the page is dynamic (searchParams), and a streamed boundary
+            leaves a hidden server copy of the form behind for a moment, which made the e2e
+            locators resolve twice on slow CI runners (same cause as on the visit page). */}
+        <SiteSearchForm
+          q={q}
+          category={category}
+          includeInactive={includeInactive}
+          categories={categories}
+        />
         {result.items.length === 0 ? (
           <EmptyState
             mood="asleep"
