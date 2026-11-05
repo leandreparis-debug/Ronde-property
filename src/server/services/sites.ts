@@ -16,6 +16,9 @@ export interface SiteVisitSummary {
   status: VisitStatus;
   openReservesCount: number;
   overdueReservesCount: number;
+  /** Last ready report: date and id (« Dernier rapport »). */
+  lastReportAt: string | null;
+  lastReportId: string | null;
 }
 
 /** Searches sites as the current user. */
@@ -53,6 +56,8 @@ async function listSiteVisits(user: UserRef, siteId: string): Promise<SiteVisitS
         "status",
         "open_reserves_count",
         "overdue_reserves_count",
+        "last_report_at",
+        "last_report_id",
       ])
       .where("site_id", "=", siteId)
       .orderBy("visit_date", "desc")
@@ -69,6 +74,8 @@ async function listSiteVisits(user: UserRef, siteId: string): Promise<SiteVisitS
             status: row.status,
             openReservesCount: row.open_reserves_count ?? 0,
             overdueReservesCount: row.overdue_reserves_count ?? 0,
+            lastReportAt: row.last_report_at ? row.last_report_at.toISOString() : null,
+            lastReportId: row.last_report_id,
           },
         ]
       : [],

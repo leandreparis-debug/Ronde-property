@@ -123,6 +123,15 @@ export default async function SitePage({ params }: { params: Params }) {
                           : ""}
                       </p>
                     </Link>
+                    {visit.lastReportId && visit.lastReportAt ? (
+                      <a
+                        href={`/visites/${visit.id}/rapports/${visit.lastReportId}`}
+                        className="inline-flex min-h-11 items-center gap-1.5 text-ui font-semibold text-brand-deep underline"
+                        data-testid="site-visit-last-report"
+                      >
+                        Dernier rapport ({formatDate(visit.lastReportAt)})
+                      </a>
+                    ) : null}
                   </li>
                 ))}
               </ul>

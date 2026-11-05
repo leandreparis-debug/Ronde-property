@@ -3,7 +3,6 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { EmptyState } from "@/components/ui/empty-state";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VISIT_TABS } from "@/lib/constants";
 
@@ -14,8 +13,8 @@ type TabValue = (typeof TAB_VALUES)[number];
 const RESERVE_ONLY_PARAMS = ["statut", "priorite", "retard", "tri"];
 
 /**
- * The six visit tabs, synchronised with `?onglet=`. « Informations », « Notes », « Réserves »,
- * « Photos » and « Plans » have content. Leaving a tab drops its own parameters (zone, photo,
+ * The six visit tabs, synchronised with `?onglet=`. Every tab has content (« Rapport » since
+ * step 10). Leaving a tab drops its own parameters (zone, photo,
  * filters).
  */
 export function VisitTabs({
@@ -24,12 +23,14 @@ export function VisitTabs({
   reserves,
   photos,
   plans,
+  report,
 }: {
   information: ReactNode;
   notes: ReactNode;
   reserves: ReactNode;
   photos: ReactNode;
   plans: ReactNode;
+  report: ReactNode;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -68,23 +69,17 @@ export function VisitTabs({
       </TabsList>
       {VISIT_TABS.map((tab) => (
         <TabsContent key={tab.value} value={tab.value}>
-          {tab.value === "information" ? (
-            information
-          ) : tab.value === "notes" ? (
-            notes
-          ) : tab.value === "reserves" ? (
-            reserves
-          ) : tab.value === "photos" ? (
-            photos
-          ) : tab.value === "plans" ? (
-            plans
-          ) : (
-            <EmptyState
-              mood="asleep"
-              title="Cette section arrive bientôt"
-              description={`L'onglet « ${tab.label} » sera disponible prochainement.`}
-            />
-          )}
+          {tab.value === "information"
+            ? information
+            : tab.value === "notes"
+              ? notes
+              : tab.value === "reserves"
+                ? reserves
+                : tab.value === "photos"
+                  ? photos
+                  : tab.value === "plans"
+                    ? plans
+                    : report}
         </TabsContent>
       ))}
     </Tabs>

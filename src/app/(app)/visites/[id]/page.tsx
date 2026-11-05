@@ -9,6 +9,7 @@ import { NotesTab } from "@/components/visits/notes/notes-tab";
 import { PhotosTab } from "@/components/visits/photos/photos-tab";
 import { PlansTab } from "@/components/visits/plans/plans-tab";
 import { ReservesTab } from "@/components/reserves/reserves-tab";
+import { ReportTab } from "@/components/report/report-tab";
 import { UploadQueuePill } from "@/components/visits/photos/upload-queue-pill";
 import { UploadQueueProvider } from "@/components/visits/photos/upload-queue-provider";
 import { VisitInformationTab } from "@/components/visits/visit-information-tab";
@@ -21,6 +22,7 @@ import { toZoneNoteView } from "@/server/domain/zone-notes";
 import { listPhotos } from "@/server/services/photos";
 import { getPlanDetail, listVisitPlans, snapshotVisitMarkers } from "@/server/services/plans";
 import { listVisitReserves, reservesByPhotoIds } from "@/server/services/reserves";
+import { lastReportOptions, listVisitReports } from "@/server/services/reports";
 import { getVisit, listAssignable, listParticipants } from "@/server/services/visits";
 import { listZoneNotes } from "@/server/services/zone-notes";
 
@@ -50,17 +52,29 @@ export default async function VisitPage({
   const query = await searchParams;
   const planParam =
     typeof query.plan === "string" && z.uuid().safeParse(query.plan).success ? query.plan : null;
-  const [participants, writers, notes, photos, plans, markerSnapshot, planDetail, reserves] =
-    await Promise.all([
-      listParticipants(id),
-      listAssignable(),
-      listZoneNotes(id),
-      listPhotos(id),
-      listVisitPlans(id, visit.siteId),
-      snapshotVisitMarkers(id),
-      planParam ? getPlanDetail(planParam, id).catch(() => null) : Promise.resolve(null),
-      listVisitReserves(id),
-    ]);
+  const [
+    participants,
+    writers,
+    notes,
+    photos,
+    plans,
+    markerSnapshot,
+    planDetail,
+    reserves,
+    reports,
+    reportOptions,
+  ] = await Promise.all([
+    listParticipants(id),
+    listAssignable(),
+    listZoneNotes(id),
+    listPhotos(id),
+    listVisitPlans(id, visit.siteId),
+    snapshotVisitMarkers(id),
+    planParam ? getPlanDetail(planParam, id).catch(() => null) : Promise.resolve(null),
+    listVisitReserves(id),
+    listVisitReports(id),
+    lastReportOptions(id),
+  ]);
   const canCreate = user.role === "rt" || user.role === "admin";
   const filledZonesCount = notes.filter((note) => isZoneFilled(note.content)).length;
   const markers = markerSnapshot.markers;
@@ -141,6 +155,15 @@ export default async function VisitPage({
             zones={zones}
             photos={photos}
             canEdit={visit.permissions.canEdit}
+          />
+        }
+        report={
+          <ReportTab
+            visitId={visit.id}
+            initialReports={reports}
+            initialOptions={reportOptions}
+            photos={photos}
+            incomplete={points}
           />
         }
         plans={

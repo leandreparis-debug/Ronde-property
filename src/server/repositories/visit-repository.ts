@@ -141,6 +141,7 @@ function toSummary(row: {
   done_reserves_count: number | null;
   photos_count: number | null;
   last_report_at: Date | null;
+  last_report_id: string | null;
   zones_count: number | null;
   filled_zones_count: number | null;
 }): VisitSummary | null {
@@ -170,6 +171,7 @@ function toSummary(row: {
     doneReservesCount: row.done_reserves_count ?? 0,
     photosCount: row.photos_count ?? 0,
     lastReportAt: row.last_report_at ? row.last_report_at.toISOString() : null,
+    lastReportId: row.last_report_id,
     zonesCount: row.zones_count ?? 0,
     filledZonesCount: row.filled_zones_count ?? 0,
   };
@@ -191,6 +193,7 @@ const SUMMARY_COLUMNS = [
   "done_reserves_count",
   "photos_count",
   "last_report_at",
+  "last_report_id",
   "zones_count",
   "filled_zones_count",
 ] as const;

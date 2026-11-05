@@ -150,6 +150,8 @@ export const visitSummarySchema = z.object({
   doneReservesCount: z.number().int().nonnegative(),
   photosCount: z.number().int().nonnegative(),
   lastReportAt: isoDateTime.nullable(),
+  /** Last ready report (« Dernier rapport » link). */
+  lastReportId: uuid.nullable(),
   /** Zones of the notes tab (total and with a non-blank content), computed at read time. */
   zonesCount: z.number().int().nonnegative(),
   filledZonesCount: z.number().int().nonnegative(),

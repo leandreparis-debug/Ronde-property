@@ -11,7 +11,10 @@ import { VISIT_REASON_LABELS } from "@/server/domain/labels";
 import { zonesLabel } from "./visit-header";
 import { VisitStatusBadge } from "./visit-status-badge";
 
-/** Clickable visit card: date, title, site, reason, status and counters. */
+/**
+ * Clickable visit card: date, title, site, reason, status and counters; « Dernier rapport »
+ * downloads the last stored report.
+ */
 export function VisitCard({ visit }: { visit: VisitSummary }) {
   return (
     <Card className="transition-colors hover:bg-brand-tint">
@@ -53,16 +56,20 @@ export function VisitCard({ visit }: { visit: VisitSummary }) {
                 {zonesLabel(visit.filledZonesCount, visit.zonesCount)}
               </span>
             ) : null}
-            {visit.lastReportAt ? (
-              <span className="inline-flex items-center gap-1">
-                <FileText className="size-4" aria-hidden="true" />
-                Rapport du {formatDate(visit.lastReportAt)}
-              </span>
-            ) : null}
           </div>
         </div>
         <ChevronRight className="size-5 shrink-0 text-ink-2" aria-hidden="true" />
       </Link>
+      {visit.lastReportId && visit.lastReportAt ? (
+        <a
+          href={`/visites/${visit.id}/rapports/${visit.lastReportId}`}
+          className="mx-4 -mt-2 mb-3 inline-flex min-h-11 items-center gap-1.5 text-ui font-semibold text-brand-deep underline"
+          data-testid="visit-last-report"
+        >
+          <FileText className="size-4" aria-hidden="true" />
+          Dernier rapport ({formatDate(visit.lastReportAt)})
+        </a>
+      ) : null}
     </Card>
   );
 }
