@@ -357,13 +357,14 @@ describe("markers", () => {
     });
     expect([m1.number, m2.number]).toEqual([1, 2]);
     expect(m2.label).toBe("Quai 3");
+    // Removing the last marker does not give its number back (counter, migration 17).
     await markers.remove(m2.id);
     const m3 = await markers.create(visitId, { planId, page: 1, x: 0.5, y: 0.5 });
-    expect(m3.number).toBe(2);
+    expect(m3.number).toBe(3);
     await markers.remove(m1.id);
+    await markers.remove(m3.id);
     const m4 = await markers.create(visitId, { planId, page: 1, x: 0.5, y: 0.5 });
-    // The highest number is 2 (m3): the next one is 3, number 1 is never reused while m3 exists.
-    expect(m4.number).toBe(3);
+    expect(m4.number).toBe(4);
   });
 
   it("returns a snapshot time that follows every marker it lists and precedes later ones", async () => {

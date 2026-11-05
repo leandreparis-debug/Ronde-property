@@ -160,8 +160,9 @@ tests/                     tests Vitest (miroir de src/)
     jamais envoyé ; 500 photos par visite au plus.
 29. **Plans** : rattachés au site, jamais supprimés (archivés) ; pages converties en images dans
     le navigateur (`pdfjs-dist`, worker servi localement, 3 500 px, PNG ≤ 8 Mo sinon JPEG 0,9),
-    original conservé ; repères en coordonnées relatives à 5 décimales, numéros jamais
-    réattribués ; un toucher seul place un repère, jamais un pincement.
+    original conservé ; repères en coordonnées relatives à 5 décimales, numéros attribués par le
+    compteur `plan_marker_counters` (trigger, migration 17), jamais réattribués, même après la
+    suppression du dernier ; un toucher seul place un repère, jamais un pincement.
 30. **Réserves** : toute mise à jour envoie la `version` connue (conflit = réserve actuelle
     renvoyée, saisie conservée) ; modifiables seulement pendant la visite (`can_edit_visit`) ;
     suppression par `soft_delete_reserve` (le repère part avec) ; numéros par site jamais

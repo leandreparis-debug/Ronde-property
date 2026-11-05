@@ -75,10 +75,12 @@ passe en JPEG.
   page, avec 5 décimales (`numeric(6,5)`) : la position ne dépend ni de la résolution
   d'affichage ni du niveau de zoom, et le rapport PDF (étape 10) la reportera sur l'image.
   Les bords exacts (0 et 1) sont acceptés ; en dehors, le placement est refusé.
-- `number` vaut le plus grand numéro de `(visite, plan)` plus un, attribué dans une transaction
-  sous verrou (`pg_advisory_xact_lock`) : deux RT qui placent un repère en même temps obtiennent
-  deux numéros distincts. **Un numéro n'est jamais réattribué** après une suppression ; les trous
-  sont normaux. Les libellés, les légendes et le rapport s'y réfèrent : renuméroter ferait
+- `number` est attribué par le trigger `plan_markers_before_insert` à partir du compteur
+  `plan_marker_counters (visit_id, plan_id, last_number)` (migration 17), incrémenté par
+  `insert … on conflict do update … returning` : le verrou de ligne de l'upsert sérialise deux RT
+  qui placent un repère en même temps. **Un numéro n'est jamais réattribué**, même celui du
+  dernier repère supprimé (avant la migration 17, « plus grand numéro + 1 » le rendait) ; les
+  trous sont normaux, et le numéro d'un repère ne change jamais. Les libellés, les légendes et le rapport s'y réfèrent : renuméroter ferait
   mentir des documents déjà diffusés.
 - La base vérifie (trigger `plan_markers_check`) que la page existe, que la photo liée est de
   la même visite, que le plan est celui du site de la visite, prêt, et non archivé pour un

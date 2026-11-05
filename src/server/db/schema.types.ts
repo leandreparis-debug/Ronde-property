@@ -103,6 +103,12 @@ export interface Photos {
   zone_key: string | null;
 }
 
+export interface PlanMarkerCounters {
+  last_number: number;
+  plan_id: string;
+  visit_id: string;
+}
+
 export interface PlanMarkers {
   created_at: Generated<Timestamp>;
   created_by: string | null;
@@ -111,7 +117,7 @@ export interface PlanMarkers {
   /**
    * Numéro affiché, unique par visite et par plan.
    */
-  number: number;
+  number: Generated<number>;
   page: Generated<number>;
   photo_id: string | null;
   plan_id: string;
@@ -146,15 +152,35 @@ export interface Profiles {
 }
 
 export interface Reports {
+  /**
+   * Nom du fichier téléchargé : RONDE_{code site}_{date de visite}_{n}.pdf.
+   */
+  file_name: string;
   generated_at: Generated<Timestamp>;
   generated_by: string | null;
   id: Generated<string>;
   /**
+   * Vrai si la visite était en cours au moment de la génération (bandeau BROUILLON).
+   */
+  is_draft: Generated<boolean>;
+  /**
+   * Rang du rapport dans la visite (1, 2, …), attribué par trigger, jamais réutilisé.
+   */
+  number: number;
+  /**
    * Options de génération : rubriques, photo de garde, photos par page, qualité.
    */
   options: Generated<Json>;
+  /**
+   * Nombre de pages du PDF, déclaré à la confirmation.
+   */
+  page_count: number | null;
   size_bytes: Int8 | null;
   storage_path: string;
+  /**
+   * pending : ligne créée avant l'envoi (preuve d'autorisation) ; ready : fichier vérifié. Seuls les ready sont listés.
+   */
+  upload_status: Generated<string>;
   visit_id: string;
 }
 
@@ -424,6 +450,7 @@ export interface VisitSummaries {
   filled_zones_count: number | null;
   id: string | null;
   last_report_at: Timestamp | null;
+  last_report_id: string | null;
   open_reserves_count: number | null;
   overdue_reserves_count: number | null;
   photos_count: number | null;
@@ -465,6 +492,7 @@ export interface VisitZoneNotes {
 export interface DB {
   audit_log: AuditLog;
   photos: Photos;
+  plan_marker_counters: PlanMarkerCounters;
   plan_markers: PlanMarkers;
   profiles: Profiles;
   reports: Reports;

@@ -429,8 +429,10 @@ test) ; le JPEG ne sert qu'aux plans scannés ou très hachurés.
 
 ## 2026-11-04 — Numéros de repères stables
 
-**Décision.** Le numéro d'un repère est le plus grand numéro de `(visite, plan)` plus un, pris
-sous verrou ; il n'est jamais réattribué après une suppression.
+**Décision.** Le numéro d'un repère vient d'un compteur par `(visite, plan)`
+(`plan_marker_counters`, migration 17) ; il n'est jamais réattribué après une suppression, même
+celle du dernier repère. (Jusqu'à la migration 17, « plus grand numéro + 1 » rendait le numéro du
+dernier repère supprimé : corrigé à l'étape 10.)
 
 **Motivation.** Les libellés, les légendes et le rapport citent « repère 3 » : renuméroter après
 une suppression ferait pointer ces références vers un autre endroit. Les trous sont un moindre

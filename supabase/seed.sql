@@ -179,6 +179,10 @@ insert into public.reports (id, visit_id, storage_path, size_bytes, options, gen
    '{"sections":["information","notes","reserves","photos"],"coverPhotoId":null,"photosPerPage":2,"quality":"standard"}',
    '00000000-0000-4000-8000-000000000002', now() - interval '17 days')
 on conflict (id) do nothing;
+-- Confirmé comme le ferait l'application (migration 17 : pending → ready).
+update public.reports
+set upload_status = 'ready', size_bytes = 240000, page_count = 6
+where id = '90000000-0000-4000-8000-000000000001' and upload_status = 'pending';
 
 -- Import VIGIE simulé par l'admin.
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-000000000004","role":"authenticated"}', true);

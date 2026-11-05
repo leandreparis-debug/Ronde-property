@@ -230,6 +230,12 @@ describe("audit coverage", () => {
         "insert into public.reports (visit_id, storage_path, generated_by) values ($1, $2, $3) returning id",
         [VISITS.v2Completed, `${VISITS.v2Completed}/audit.pdf`, USERS.claire],
       );
+      // The pending row is only a reservation: the audit comes with the confirmation.
+      expect(await auditActions(client, report.rows[0]!.id)).toEqual([]);
+      await client.query(
+        "update public.reports set upload_status = 'ready', size_bytes = 1000, page_count = 2 where id = $1",
+        [report.rows[0]!.id],
+      );
       expect(await auditActions(client, report.rows[0]!.id)).toEqual(["report.generated"]);
 
       await actAs(client, ACTORS.alice);

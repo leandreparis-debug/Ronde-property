@@ -375,16 +375,7 @@ export function createReserveRepository(user: UserRef): ReserveRepository {
     reserve: ReserveRecord,
     placement: PlacementInput,
   ): Promise<ReserveMarkerRef> {
-    // Same numbering rule as the other markers (stable numbers, per-plan lock).
-    await sql`select pg_advisory_xact_lock(hashtextextended(${`${reserve.visitId}:${placement.planId}`}, 0))`.execute(
-      trx,
-    );
-    const max = await trx
-      .selectFrom("plan_markers")
-      .select((eb) => eb.fn.max("number").as("max"))
-      .where("visit_id", "=", reserve.visitId)
-      .where("plan_id", "=", placement.planId)
-      .executeTakeFirst();
+    // Same numbering as the other markers: the counter trigger assigns it (migration 17).
     const inserted = await trx
       .insertInto("plan_markers")
       .values({
@@ -393,7 +384,6 @@ export function createReserveRepository(user: UserRef): ReserveRepository {
         page: placement.page,
         x: roundCoordinate(placement.x),
         y: roundCoordinate(placement.y),
-        number: (max?.max ?? 0) + 1,
         label: null,
         photo_id: null,
         reserve_id: reserve.id,

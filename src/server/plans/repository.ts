@@ -460,9 +460,10 @@ async function markerById(trx: Trx, markerId: string): Promise<MarkerRecord> {
 
 /**
  * Markers of a visit on the plans of its site (through `withUser`: readable with the visit,
- * writable when `can_edit_visit`). Numbers are **stable**: `number` is the highest number of
- * `(visit, plan)` plus one, taken under a per-plan lock, and never reused after a removal
- * (gaps are expected: captions and the report refer to them).
+ * writable when `can_edit_visit`). Numbers are **stable**: the trigger
+ * `plan_markers_before_insert` takes the next value of the `(visit, plan)` counter
+ * (`plan_marker_counters`, migration 17), so a number is never given again, even after the
+ * removal of the last marker (gaps are expected: captions and the report refer to them).
  *
  * Extension point (step 9): a reserve will be linkable to a marker (`reserve_id` column or a
  * join table); keep `create`/`update` as the single entry points so the sheet can set it.
@@ -545,17 +546,7 @@ export function createMarkerRepository(user: UserRef): MarkerRepository {
 
     create(visitId, input) {
       return withUser(user, async (trx) => {
-        // Serialises the numbering of one (visit, plan) pair across connections.
-        await sql`select pg_advisory_xact_lock(hashtextextended(${`${visitId}:${input.planId}`}, 0))`.execute(
-          trx,
-        );
-        const max = await trx
-          .selectFrom("plan_markers")
-          .select((eb) => eb.fn.max("number").as("max"))
-          .where("visit_id", "=", visitId)
-          .where("plan_id", "=", input.planId)
-          .executeTakeFirst();
-        const number = (max?.max ?? 0) + 1;
+        // The number comes from plan_marker_counters (trigger): never reused, even for the last one.
         const inserted = await trx
           .insertInto("plan_markers")
           .values({
@@ -564,7 +555,6 @@ export function createMarkerRepository(user: UserRef): MarkerRepository {
             page: input.page,
             x: roundCoordinate(input.x),
             y: roundCoordinate(input.y),
-            number,
             label: input.label?.trim() || null,
             photo_id: input.photoId ?? null,
             created_by: user.id,

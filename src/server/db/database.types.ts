@@ -137,6 +137,47 @@ export type Database = {
           },
         ];
       };
+      plan_marker_counters: {
+        Row: {
+          last_number: number;
+          plan_id: string;
+          visit_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          last_number: number;
+          plan_id: string;
+          visit_id: string;
+        };
+        Update: {
+          last_number?: number;
+          plan_id?: string;
+          visit_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "plan_marker_counters_plan_id_fkey";
+            columns: ["plan_id"];
+            isOneToOne: false;
+            referencedRelation: "site_plans";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "plan_marker_counters_visit_id_fkey";
+            columns: ["visit_id"];
+            isOneToOne: false;
+            referencedRelation: "visit_summaries";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "plan_marker_counters_visit_id_fkey";
+            columns: ["visit_id"];
+            isOneToOne: false;
+            referencedRelation: "visits";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       plan_markers: {
         Row: {
           created_at: string;
@@ -159,7 +200,7 @@ export type Database = {
           created_by?: string | null;
           id?: string;
           label?: string | null;
-          number: number;
+          number?: number;
           page?: number;
           photo_id?: string | null;
           plan_id: string;
@@ -272,31 +313,46 @@ export type Database = {
       };
       reports: {
         Row: {
+          file_name: string;
           generated_at: string;
           generated_by: string | null;
           id: string;
+          is_draft: boolean;
+          number: number;
           options: NonNullable<Json>;
+          page_count: number | null;
           size_bytes: number | null;
           storage_path: string;
+          upload_status: string;
           visit_id: string;
         };
         ComputedFields: never;
         Insert: {
+          file_name: string;
           generated_at?: string;
           generated_by?: string | null;
           id?: string;
+          is_draft?: boolean;
+          number: number;
           options?: NonNullable<Json>;
+          page_count?: number | null;
           size_bytes?: number | null;
           storage_path: string;
+          upload_status?: string;
           visit_id: string;
         };
         Update: {
+          file_name?: string;
           generated_at?: string;
           generated_by?: string | null;
           id?: string;
+          is_draft?: boolean;
+          number?: number;
           options?: NonNullable<Json>;
+          page_count?: number | null;
           size_bytes?: number | null;
           storage_path?: string;
+          upload_status?: string;
           visit_id?: string;
         };
         Relationships: [
@@ -1133,6 +1189,7 @@ export type Database = {
           filled_zones_count: number | null;
           id: string;
           last_report_at: string | null;
+          last_report_id: string | null;
           open_reserves_count: number | null;
           overdue_reserves_count: number | null;
           photos_count: number | null;
