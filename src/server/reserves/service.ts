@@ -132,6 +132,10 @@ export function describeChanges(
     } else if (field === "description") {
       result.push({ field, label, from: "", to: "modifiée" });
       continue;
+    } else if (field === "responsible_email") {
+      // The history never holds the address (masked by the database since migration 19).
+      result.push({ field, label, from: "", to: "modifié" });
+      continue;
     }
     result.push({ field, label, from: from ?? NONE, to: to ?? NONE });
   }

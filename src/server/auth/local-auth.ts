@@ -170,6 +170,14 @@ export function createLocalAuthService(deps: LocalAuthDeps): AuthService {
 /** Account administration for the `local` provider. */
 export function createLocalAccountAdminService(): AccountAdminService {
   return {
+    async anonymizeIdentity(userId, placeholderEmail) {
+      await withSystem("accounts.local.anonymize_identity", async (trx) => {
+        await sql`update auth.users set email = ${placeholderEmail}, encrypted_password = null, updated_at = now() where id = ${userId}::uuid`.execute(
+          trx,
+        );
+      });
+    },
+
     async revokeSessions(userId) {
       // Stateless signed tokens: the revocation date is checked on every request.
       await revokeSessionsInDatabase(userId, "accounts.local.revoke_sessions");

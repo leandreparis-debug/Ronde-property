@@ -73,6 +73,11 @@ export interface AccountAdminService {
    * request (`profiles.sessions_revoked_at`). Audit `profile.sessions_revoked` (trigger).
    */
   revokeSessions(userId: string): Promise<void>;
+  /**
+   * GDPR: replaces the sign-in identity of a deactivated account by `placeholderEmail` and makes
+   * any password unusable. Called by the anonymisation, after the profile itself.
+   */
+  anonymizeIdentity(userId: string, placeholderEmail: string): Promise<void>;
 }
 
 /** The current user as read from `profiles` on every request. */

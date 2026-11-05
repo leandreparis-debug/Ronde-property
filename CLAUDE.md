@@ -60,6 +60,8 @@ docs/deploy.md             environnements (local, preview, production), migratio
 docs/design-system.md      règles de la direction artistique
 docs/pwa.md                application installable (manifeste, icônes, hors connexion)
 docs/security.md           en-têtes et CSP, sessions et révocation, audit RLS, dépendances, secrets, journaux
+docs/cron.md               tâches planifiées (purge nocturne, CRON_SECRET)
+docs/rgpd.md               données personnelles, durées, export, anonymisation, effacement des e-mails externes
 e2e/                       tests Playwright
 src/app/                   App Router (layout, globals.css, icon.svg, (app)/, design/, not-found)
 src/components/brand/      Galet, Logo, Trail
@@ -92,6 +94,7 @@ supabase/seed.sql          données fictives pour la base locale / de test uniqu
 supabase/tests/            bootstrap.sql (émulation Supabase pour ronde_test) et tests de la base
 scripts/db/                reset.mjs, gen-types.mjs
 scripts/brand/             generate-icons.mjs (icônes PWA, écrans de démarrage iOS)
+scripts/ops/               scripts d'exploitation pour Léandre (garde de cible, simulation par défaut, confirmation saisie)
 tests/                     tests Vitest (miroir de src/)
 ```
 
@@ -145,7 +148,8 @@ tests/                     tests Vitest (miroir de src/)
     Le mot de passe provisoire est affiché une seule fois et jamais stocké en clair.
 21. `AUTH_PROVIDER=local` est réservé aux tests et au développement (localhost, jamais Vercel).
 22. **Un compte ne se supprime jamais** : il se désactive (trigger `profiles_never_deleted`,
-    clés `restrict`). Anonymisation RGPD prévue à l'étape 11.
+    clés `restrict`), puis s'anonymise sur demande (`private.anonymize_profile`, irréversible,
+    double confirmation avec le nom saisi, `docs/rgpd.md`).
 23. **Sites** : jamais modifiés à la main ni supprimés ; le référentiel ne change que par import
     CSV (simulation puis application, `withSystem('site_import…')`). Les alias de colonnes sont
     dans `src/server/sites/import/format.ts`.
@@ -191,3 +195,7 @@ tests/                     tests Vitest (miroir de src/)
     `securitypolicyviolation`). Journaux uniquement par `log` (`src/server/log.ts`, masquage) ;
     toute nouvelle table respecte `supabase/tests/rls-audit.test.ts`. Une session ouverte avant
     `profiles.sessions_revoked_at` est refusée (`docs/security.md`).
+33. **Scripts d'exploitation** (`scripts/ops/`) : jamais lancés par Claude Code sur une base
+    distante ; chacun passe par `scripts/ops/lib/target.mjs` (`--project-ref` vérifié contre
+    `DATABASE_URL`, ou `--local` pour `ronde_test`), simule par défaut et n'écrit qu'après une
+    confirmation saisie ; pas à pas Windows dans la doc correspondante.

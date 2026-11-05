@@ -22,6 +22,8 @@ export interface Account {
   isActive: boolean;
   mustChangePassword: boolean;
   createdAt: Date;
+  /** GDPR anonymisation date (name and e-mail replaced, irreversible). */
+  anonymizedAt: Date | null;
 }
 
 export const createAccountSchema = z.object({
@@ -45,6 +47,7 @@ function toAccount(row: {
   is_active: boolean;
   must_change_password: boolean;
   created_at: Date;
+  anonymized_at: Date | null;
 }): Account {
   return {
     id: row.id,
@@ -54,6 +57,7 @@ function toAccount(row: {
     isActive: row.is_active,
     mustChangePassword: row.must_change_password,
     createdAt: row.created_at,
+    anonymizedAt: row.anonymized_at,
   };
 }
 
@@ -65,6 +69,7 @@ const ACCOUNT_COLUMNS = [
   "is_active",
   "must_change_password",
   "created_at",
+  "anonymized_at",
 ] as const;
 
 /*
@@ -86,7 +91,8 @@ export async function listAccounts(): Promise<Account[]> {
   return rows.map(toAccount);
 }
 
-async function findAccount(id: string): Promise<Account> {
+/** One account by id, or `NotFoundError`. No role check: callers check it first. */
+export async function findAccount(id: string): Promise<Account> {
   const row = await withSystem("accounts.find", (trx) =>
     trx.selectFrom("profiles").select(ACCOUNT_COLUMNS).where("id", "=", id).executeTakeFirst(),
   );

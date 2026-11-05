@@ -179,6 +179,23 @@ export function createSupabaseAuthService(deps: { cookies: CookieStore }): AuthS
 /** Account administration for the `supabase` provider (service role, server only). */
 export function createSupabaseAccountAdminService(): AccountAdminService {
   return {
+    async anonymizeIdentity(userId, placeholderEmail) {
+      const admin = createAdminSupabaseClient();
+      // New address (never e-mailed: `.invalid`), random password nobody knows, metadata
+      // emptied, and a ban of 100 years: the identity can no longer sign in.
+      const { error } = await admin.auth.admin.updateUserById(userId, {
+        email: placeholderEmail,
+        email_confirm: true,
+        password: `${generateTemporaryPassword()}${generateTemporaryPassword()}`,
+        user_metadata: {},
+        ban_duration: "876000h",
+      });
+      if (error) {
+        log.error("accounts.supabase.anonymize_identity_failed", { status: error.status });
+        throw new UnexpectedError();
+      }
+    },
+
     async revokeSessions(userId) {
       // The admin API cannot sign another user out without their token: the revocation date
       // is checked on every request against the `amr` time of the session (getVerifiedSession),

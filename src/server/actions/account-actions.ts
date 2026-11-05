@@ -11,6 +11,7 @@ import {
   setActive,
   updateAccount,
 } from "@/server/services/accounts";
+import { anonymizeAccount } from "@/server/services/account-privacy";
 import { updateOwnName } from "@/server/services/profile";
 
 import type { ActionState } from "./state";
@@ -113,6 +114,22 @@ export async function revokeSessionsAction(
   if (!id.success) return { ok: false, error: "Compte introuvable." };
   try {
     await revokeSessions(id.data);
+  } catch (error) {
+    return failure(error);
+  }
+  revalidatePath(ACCOUNTS_PATH);
+  return { ok: true, tick: Date.now() };
+}
+
+/** Admin: anonymises a deactivated account; `typedName` is the second confirmation. */
+export async function anonymizeAccountAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const id = idSchema.safeParse(formData.get("id"));
+  if (!id.success) return { ok: false, error: "Compte introuvable." };
+  try {
+    await anonymizeAccount(id.data, String(formData.get("typedName") ?? ""));
   } catch (error) {
     return failure(error);
   }

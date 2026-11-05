@@ -14,7 +14,8 @@ export type AuthAuditAction =
   | "account.password_reset"
   | "photo.uploaded"
   | "photo.deleted"
-  | "system.purge";
+  | "system.purge"
+  | "account.exported";
 
 /**
  * Writes an audit entry through `private.audit` (the only allowed writer of audit_log).

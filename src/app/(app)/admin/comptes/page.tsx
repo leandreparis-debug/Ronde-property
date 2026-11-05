@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   title: "Comptes",
 };
 
-/** Account administration: list, create, edit, activate, reset. */
+/** Account administration: list, create, edit, activate, reset, sessions, GDPR. */
 export default async function AccountsPage() {
   await requireRole(["admin"]);
   const accounts = await listAccounts();
@@ -22,6 +22,7 @@ export default async function AccountsPage() {
           fullName: account.fullName,
           role: account.role,
           isActive: account.isActive,
+          anonymized: account.anonymizedAt !== null,
           createdAt: account.createdAt.toISOString(),
         }))}
       />

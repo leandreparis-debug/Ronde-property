@@ -132,6 +132,10 @@ export interface PlanMarkers {
 }
 
 export interface Profiles {
+  /**
+   * Date d'anonymisation RGPD (nom et e-mail remplacés, irréversible). Réservée au service.
+   */
+  anonymized_at: Timestamp | null;
   created_at: Generated<Timestamp>;
   email: string;
   full_name: string;

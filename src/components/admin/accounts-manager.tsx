@@ -1,6 +1,15 @@
 "use client";
 
-import { KeyRound, LogOut, Pencil, Plus, UserRoundCheck, UserRoundX } from "lucide-react";
+import {
+  EyeOff,
+  FileDown,
+  KeyRound,
+  LogOut,
+  Pencil,
+  Plus,
+  UserRoundCheck,
+  UserRoundX,
+} from "lucide-react";
 import { useActionState, useEffect, useState } from "react";
 
 import { ErrorNotice } from "@/components/auth/error-notice";
@@ -28,6 +37,7 @@ import {
   createAccountAction,
   resetPasswordAction,
   revokeSessionsAction,
+  anonymizeAccountAction,
   setActiveAction,
   updateAccountAction,
 } from "@/server/actions/account-actions";
@@ -44,6 +54,8 @@ export interface AccountRow {
   fullName: string;
   role: UserRole;
   isActive: boolean;
+  /** GDPR: anonymised, irreversible; only the export stays available. */
+  anonymized: boolean;
   createdAt: string;
 }
 
@@ -53,6 +65,7 @@ type DialogState =
   | { kind: "toggle"; account: AccountRow }
   | { kind: "reset"; account: AccountRow }
   | { kind: "revoke"; account: AccountRow }
+  | { kind: "anonymize"; account: AccountRow }
   | null;
 
 interface RevealedPassword {
@@ -80,7 +93,19 @@ function RoleSelect({ id, defaultValue }: { id: string; defaultValue?: UserRole 
 }
 
 function AccountStatus({ account }: { account: AccountRow }) {
+  if (account.anonymized) return <Badge>Anonymisé</Badge>;
   return account.isActive ? <Badge variant="brand">Actif</Badge> : <Badge>Désactivé</Badge>;
+}
+
+function ExportLink({ account }: { account: AccountRow }) {
+  return (
+    <Button asChild variant="ghost">
+      <a href={`/admin/comptes/${account.id}/export`} download data-testid="account-export">
+        <FileDown className="size-4" aria-hidden="true" />
+        Exporter les données
+      </a>
+    </Button>
+  );
 }
 
 function RowActions({
@@ -90,6 +115,13 @@ function RowActions({
   account: AccountRow;
   onAction: (state: DialogState) => void;
 }) {
+  if (account.anonymized) {
+    return (
+      <div className="flex flex-wrap gap-2">
+        <ExportLink account={account} />
+      </div>
+    );
+  }
   return (
     <div className="flex flex-wrap gap-2">
       <Button variant="secondary" onClick={() => onAction({ kind: "edit", account })}>
@@ -113,7 +145,13 @@ function RowActions({
           <LogOut className="size-4" aria-hidden="true" />
           Déconnecter toutes les sessions
         </Button>
-      ) : null}
+      ) : (
+        <Button variant="ghost" onClick={() => onAction({ kind: "anonymize", account })}>
+          <EyeOff className="size-4" aria-hidden="true" />
+          Anonymiser
+        </Button>
+      )}
+      <ExportLink account={account} />
     </div>
   );
 }
@@ -317,6 +355,76 @@ function RevokeDialog({ account, onClose }: { account: AccountRow; onClose: () =
   );
 }
 
+function AnonymizeDialog({ account, onClose }: { account: AccountRow; onClose: () => void }) {
+  const [state, action] = useActionState(anonymizeAccountAction, initialActionState);
+  const [step, setStep] = useState<1 | 2>(1);
+  const [typed, setTyped] = useState("");
+  const { toast } = useToast();
+  const matches =
+    typed.trim().replace(/\s+/g, " ") === account.fullName.trim().replace(/\s+/g, " ");
+
+  useEffect(() => {
+    if (state.ok) {
+      toast({ variant: "success", title: "Compte anonymisé" });
+      onClose();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- react to each new result only
+  }, [state.tick]);
+
+  return (
+    <Dialog open onOpenChange={(next) => (next ? undefined : onClose())}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Anonymiser ce compte ?</DialogTitle>
+          <DialogDescription>
+            {step === 1
+              ? `Le nom et l'adresse e-mail de ${account.fullName} seront remplacés partout dans RONDE (compte, participations, historique affiché). Les visites, réserves et photos restent, attribuées à « Compte anonymisé ». C'est définitif : le compte ne pourra plus être réactivé.`
+              : "Deuxième confirmation : saisissez le nom complet du compte, exactement comme affiché."}
+          </DialogDescription>
+        </DialogHeader>
+        {step === 1 ? (
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="secondary">
+                Annuler
+              </Button>
+            </DialogClose>
+            <Button type="button" variant="danger" onClick={() => setStep(2)}>
+              Continuer
+            </Button>
+          </DialogFooter>
+        ) : (
+          <form action={action} className="flex flex-col gap-4">
+            <input type="hidden" name="id" value={account.id} />
+            <Field id="anonymize-name" label={`Nom du compte : ${account.fullName}`} required>
+              {(control) => (
+                <Input
+                  {...control}
+                  name="typedName"
+                  autoComplete="off"
+                  value={typed}
+                  onChange={(event) => setTyped(event.target.value)}
+                />
+              )}
+            </Field>
+            {state.error ? <ErrorNotice message={state.error} /> : null}
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" variant="secondary">
+                  Annuler
+                </Button>
+              </DialogClose>
+              <SubmitButton variant="danger" disabled={!matches}>
+                Anonymiser définitivement
+              </SubmitButton>
+            </DialogFooter>
+          </form>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function ResetDialog({
   account,
   onClose,
@@ -474,6 +582,9 @@ export function AccountsManager({ accounts }: { accounts: AccountRow[] }) {
       ) : null}
       {dialog?.kind === "toggle" ? (
         <ToggleDialog account={dialog.account} onClose={() => setDialog(null)} />
+      ) : null}
+      {dialog?.kind === "anonymize" ? (
+        <AnonymizeDialog account={dialog.account} onClose={() => setDialog(null)} />
       ) : null}
       {dialog?.kind === "revoke" ? (
         <RevokeDialog account={dialog.account} onClose={() => setDialog(null)} />
