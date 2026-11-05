@@ -110,8 +110,7 @@ for (const [role, width] of [
       await expect(
         page.getByRole("heading", { name: "Aucun site ne correspond à « zzzz-introuvable »" }),
       ).toBeVisible();
-      // A hidden streamed copy of the empty state may sit next to the visible one.
-      await expect(page.locator('svg[data-mood="asleep"]').first()).toBeVisible();
+      await expect(page.locator('svg[data-mood="asleep"]')).toBeVisible();
     });
   });
 }

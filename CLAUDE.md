@@ -118,7 +118,8 @@ tests/                     tests Vitest (miroir de src/)
    dans la CI.
 10. Confirmations par `Dialog`, jamais `window.confirm`. Thème clair uniquement en V1.
 11. JSDoc sur chaque composant et fonction exportés.
-12. Polices auto-hébergées par `next/font` : aucun CDN de polices à l'exécution.
+12. Polices locales par `next/font/local` (`public/fonts/web/`) : aucun appel à Google ni à un
+    CDN, ni au build ni à l’exécution.
 13. **Base de données** : ne jamais réinitialiser autre chose que `ronde_test` sur localhost ;
     `seed.sql` et `supabase/tests/bootstrap.sql` ne s'exécutent jamais sur un vrai projet
     Supabase ; aucune clé ni URL réelle dans le dépôt.

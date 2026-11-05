@@ -545,3 +545,14 @@ d'insertion), et non plus du plus grand numéro + 1.
 
 **Motivation.** « Plus grand + 1 » rendait le numéro du dernier repère supprimé, alors que les
 légendes et les rapports déjà diffusés citent ces numéros.
+
+## 2026-11-05 — `next/font/local` pour l'interface (étape 11)
+
+**Décision.** Les polices de l'interface passent de `next/font/google` à `next/font/local` :
+`public/fonts/web/` contient Bricolage Grotesque 700, Instrument Sans variable (400 à 700) et
+Caveat 700 en woff2 (latin et latin étendu), avec leurs licences OFL.
+
+**Motivation.** `next/font/google` téléchargeait les polices au build : le futur serveur interne,
+sans accès à Internet, ne pourrait pas construire l'application. Les fichiers reprennent les
+mêmes instances que celles servies par Google : les captures avant et après sont identiques au
+pixel près (`/design`, une visite, `/connexion`).

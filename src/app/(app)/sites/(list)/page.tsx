@@ -47,9 +47,10 @@ export default async function SitesPage({ searchParams }: { searchParams: Promis
     <>
       <PageHeader eyebrow="Référentiel VIGIE" title="Sites" />
       <div className="flex flex-col gap-6">
-        {/* No Suspense boundary: the page is dynamic (searchParams), and a streamed boundary
-            leaves a hidden server copy of the form behind for a moment, which made the e2e
-            locators resolve twice on slow CI runners (same cause as on the visit page). */}
+        {/* No Suspense boundary and no loading.tsx: the page is dynamic (searchParams), and a
+            streamed boundary sends the content in a hidden segment (`<div hidden id="S:0">`)
+            that React reveals later; meanwhile the empty state existed twice in the DOM (step
+            11 fix, same cause as on the visit page). */}
         <SiteSearchForm
           q={q}
           category={category}

@@ -55,7 +55,7 @@ flottants (dialogues, toasts). Les cartes n'ont pas d'ombre.
 
 ## Typographie
 
-Polices chargées par `next/font/google` et auto-hébergées au build (aucun CDN à l'exécution).
+Polices locales chargées par `next/font/local` (`public/fonts/web/`, woff2, licence OFL) : ni le build ni le navigateur ne contactent Google ou un CDN (étape 11).
 
 | Variable         | Police              | Graisse      | Usage                                                                    |
 | ---------------- | ------------------- | ------------ | ------------------------------------------------------------------------ |
