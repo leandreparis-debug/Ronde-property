@@ -148,8 +148,10 @@ export function denied(result: Attempt): boolean {
 /** Reads the audit log as postgres (bypasses RLS) within the current transaction. */
 export async function auditActions(client: Client, entityId: string): Promise<string[]> {
   await client.query("reset role");
+  // Only the entries written by the current transaction: audit_log accumulates in ronde_test
+  // (other suites, e2e runs), and tests never count rows they did not create.
   const { rows } = await client.query<{ action: string }>(
-    "select action from public.audit_log where entity_id = $1 order by id",
+    "select action from public.audit_log where entity_id = $1 and occurred_at >= now() order by id",
     [entityId],
   );
   return rows.map((row) => row.action);
