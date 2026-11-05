@@ -18,6 +18,10 @@ const OPTIONS = { fullReferential: false, emptyClearsValue: false };
 async function resetSites() {
   // Restore the seed state of the sites touched by the sample (test only, as postgres).
   await withSystem("test.reset_sites", async (trx) => {
+    // Visits created on these sites by other suites (acceptance C1) would block the delete.
+    await sql`delete from public.visits where site_id in (select id from public.sites where warehouse_code >= 'TEST-013')`.execute(
+      trx,
+    );
     await sql`delete from public.sites where warehouse_code >= 'TEST-013'`.execute(trx);
     await sql`update public.sites set surface_m2 = 42000.00, imported_at = now() where warehouse_code = 'TEST-001'`.execute(
       trx,

@@ -27,6 +27,8 @@ export const E2E_ENV = {
 
 export default defineConfig({
   testDir: "./e2e",
+  // The acceptance criteria run with `pnpm test:acceptance` (playwright.acceptance.config.ts).
+  testIgnore: /acceptance\//,
   globalSetup: "./e2e/global-setup.ts",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,

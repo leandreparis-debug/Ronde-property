@@ -47,6 +47,7 @@ déploiement.
 | `pnpm typecheck`          | `tsc --noEmit`                                                                     |
 | `pnpm test`               | tests unitaires Vitest                                                             |
 | `pnpm test:e2e`           | tests Playwright sur un build de production (Chromium)                             |
+| `pnpm test:acceptance`    | recette phase 1 (critères C1 à C6, `e2e/acceptance/`), rapport HTML                |
 | `pnpm verify`             | lint → format:check → typecheck → test → build                                     |
 | `pnpm db:migrations:list` | migrations du dépôt avec leur empreinte, à comparer avec `supabase migration list` |
 

@@ -48,15 +48,20 @@ describe("reserve numbering", () => {
       expect(b.number).toBe(next + 1);
       expect(a.site_id).toBe(SITES.lyon);
 
-      // Another site starts its own sequence.
+      // Another site has its own sequence (other suites may already have reserves there).
       await client.query("reset role");
+      const marseilleMax = await client.query<{ max: number }>(
+        "select max(number) from public.reserves where site_id = $1",
+        [SITES.marseille],
+      );
+      const marseilleNext = Number(marseilleMax.rows[0]?.max ?? 0) + 1;
       const { rows } = await client.query<{ id: string }>(
         "insert into public.visits (site_id, title, visit_date, created_by) values ($1, 'Visite Marseille', current_date, $2) returning id",
         [SITES.marseille, USERS.alice],
       );
       await actAs(client, ACTORS.alice);
       const c = await insertReserve(client, rows[0]!.id, "Réserve Marseille");
-      expect(c.number).toBe(1);
+      expect(c.number).toBe(marseilleNext);
       expect(c.site_id).toBe(SITES.marseille);
     });
   });

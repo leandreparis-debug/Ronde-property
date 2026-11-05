@@ -31,7 +31,7 @@ jobs:
   e2e:
     name: End-to-end (Chromium)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     services:
       postgres:
         image: postgres:16
@@ -80,6 +80,22 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 14
+
+      # Acceptance of phase 1 (specification § 14): criteria C1 to C6, on a fresh database.
+      - run: pnpm db:reset
+        if: success()
+
+      - run: pnpm test:acceptance
+        if: success()
+        env:
+          CI: "true"
+
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: playwright-report-acceptance
+          path: playwright-report-acceptance/
+          retention-days: 30
 
   db:
     name: Database (migrations, RLS, triggers)

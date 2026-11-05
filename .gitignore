@@ -31,3 +31,4 @@ e2e/fixtures/plans/
 .DS_Store
 *.tsbuildinfo
 .vercel
+playwright-report-acceptance/
