@@ -1,16 +1,10 @@
 import { cn } from "@/lib/cn";
+import { PIN_PATH, RESERVE_PATH } from "@/lib/plans/pins";
 
 /** On-screen size of a marker drawing, in CSS pixels, at every zoom level. */
 export const MARKER_SIZE = 36;
 /** Size of the tap area around a marker (touch-first: at least 44 px). */
 export const MARKER_HIT = 44;
-
-/**
- * Body of the mini pebble: the mascot outline ending in a point at the bottom centre, which
- * designates the exact position of the marker.
- */
-const PIN_PATH =
-  "M18 35 L13 29 C 5 28, 2 21, 4 14 C 6 6, 12 2, 19 2 C 27 2, 33 8, 33 16 C 33 23, 29 28, 23 29 Z";
 
 /**
  * A marker drawn as a mini « Galet »: brand body with white eyes when a photo is linked,
@@ -74,10 +68,6 @@ export function MarkerPin({
     </span>
   );
 }
-
-/** Square body of a reserve marker, ending in a point at the bottom centre (its position). */
-const RESERVE_PATH =
-  "M18 35 L13 28 H7 a4 4 0 0 1 -4 -4 V6 a4 4 0 0 1 4 -4 H29 a4 4 0 0 1 4 4 V24 a4 4 0 0 1 -4 4 H23 Z";
 
 /** Status of the reserve drawn by {@link ReservePin}. */
 export interface ReservePinState {

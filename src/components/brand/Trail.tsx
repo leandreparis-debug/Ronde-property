@@ -11,7 +11,7 @@ export interface TrailProps {
 }
 
 /** Freehand loop that leaves from the left, goes round and comes back near its start. */
-const TRAIL_PATH =
+export const TRAIL_PATH =
   "M22 118 C 40 70, 96 42, 150 52 C 206 62, 262 44, 300 74 C 336 104, 310 160, 250 166 C 190 172, 140 150, 96 160 C 60 168, 38 150, 34 128";
 
 const WAYPOINTS: ReadonlyArray<readonly [number, number]> = [
