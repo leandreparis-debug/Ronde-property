@@ -1,4 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
+
+import { test } from "./helpers/csp";
 
 import { anonymousState, E2E_BASE_URL, loginAs, storageStatePath } from "./helpers/auth";
 
@@ -75,6 +77,74 @@ test.describe("administration", () => {
     const entries = page.locator("[data-testid=audit-entry]");
     await expect(entries.getByText("Compte créé").first()).toBeVisible();
     await expect(entries.getByText("Connexion", { exact: true }).first()).toBeVisible();
+  });
+
+  test("« Déconnecter toutes les sessions » signs the account out on every device", async ({
+    page,
+    browser,
+  }) => {
+    const email = `e2e.sessions.${Date.now()}@example.test`;
+    await page.goto("/admin/comptes");
+    await page.getByRole("button", { name: "Nouveau compte" }).click();
+    const dialog = page.getByRole("dialog", { name: "Nouveau compte" });
+    await dialog.getByLabel(/^Nom/).fill("Compte Sessions E2E");
+    await dialog.getByLabel(/^Email/).fill(email);
+    await dialog.getByRole("button", { name: "Créer le compte" }).click();
+    const revealed = page.getByRole("dialog", { name: "Compte créé" });
+    const temporaryPassword =
+      (await revealed.getByTestId("temporary-password").textContent())?.trim() ?? "";
+    await revealed.getByRole("button", { name: "J'ai noté le mot de passe" }).click();
+
+    const newPassword = "Sessions-multiples-2026";
+    const devices = [];
+    for (const viewport of [
+      { width: 768, height: 1024 },
+      { width: 1280, height: 800 },
+    ]) {
+      const context = await browser.newContext({
+        baseURL: E2E_BASE_URL,
+        storageState: anonymousState,
+        viewport,
+      });
+      const device = await context.newPage();
+      if (devices.length === 0) {
+        await loginAs(device, email, temporaryPassword);
+        await device.getByLabel("Mot de passe provisoire").fill(temporaryPassword);
+        await device.getByLabel("Nouveau mot de passe").fill(newPassword);
+        await device.getByLabel("Confirmation").fill(newPassword);
+        await device.getByRole("button", { name: "Enregistrer le nouveau mot de passe" }).click();
+      } else {
+        await loginAs(device, email, newPassword);
+      }
+      await expect(device).toHaveURL(/\/$/);
+      devices.push(device);
+    }
+
+    // The revocation date is truncated to the second: leave the second of the sign-ins.
+    await page.waitForTimeout(1_100);
+    await page.reload();
+    await page
+      .getByTestId(`account-${email}`)
+      .getByRole("button", { name: "Déconnecter toutes les sessions" })
+      .click();
+    const confirm = page.getByRole("dialog", { name: "Déconnecter toutes les sessions ?" });
+    await expect(confirm).toContainText("sur tous ses appareils");
+    await confirm.getByRole("button", { name: "Déconnecter" }).click();
+    await expect(confirm).toBeHidden();
+
+    for (const device of devices) {
+      await device.goto("/reserves");
+      await expect(device).toHaveURL(/\/connexion/);
+    }
+    // A new sign-in works.
+    await loginAs(devices[0]!, email, newPassword);
+    await expect(devices[0]!).toHaveURL(/\/$/);
+    for (const device of devices) await device.context().close();
+
+    await page.goto("/admin/journal");
+    await expect(
+      page.locator("[data-testid=audit-entry]").getByText("Sessions déconnectées").first(),
+    ).toBeVisible();
   });
 
   test("refuses a duplicate email and self-deactivation in clear text", async ({ page }) => {

@@ -1,4 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
+
+import { test } from "./helpers/csp";
 
 test.describe("Visites", () => {
   test("shows the title, the creation action and the seeded visit", async ({ page }) => {
@@ -79,10 +81,34 @@ test.describe("security headers", () => {
   test("are sent on every page", async ({ request }) => {
     const response = await request.get("/");
     const headers = response.headers();
+    expect(headers["strict-transport-security"]).toBe("max-age=63072000; includeSubDomains");
     expect(headers["x-content-type-options"]).toBe("nosniff");
     expect(headers["referrer-policy"]).toBe("strict-origin-when-cross-origin");
     expect(headers["x-frame-options"]).toBe("DENY");
-    expect(headers["permissions-policy"]).toBe("camera=(self), microphone=(), geolocation=()");
+    const permissions = headers["permissions-policy"]!.split(", ");
+    expect(permissions[0]).toBe("camera=(self)");
+    expect(permissions.slice(1).every((rule) => rule.endsWith("=()"))).toBe(true);
     expect(headers["x-powered-by"]).toBeUndefined();
+  });
+
+  test("CSP: a fresh nonce per request, carried by every script of the page", async ({
+    page,
+    request,
+  }) => {
+    const nonceOf = (csp: string | undefined) => /'nonce-([^']+)'/.exec(csp ?? "")?.[1];
+    const first = nonceOf((await request.get("/")).headers()["content-security-policy"]);
+    const response = await page.goto("/");
+    const csp = response!.headers()["content-security-policy"]!;
+    const nonce = nonceOf(csp);
+    expect(nonce).toBeTruthy();
+    expect(nonce).not.toBe(first);
+    expect(csp).toContain("frame-ancestors 'none'");
+    expect(csp).toContain("object-src 'none'");
+    expect(csp).not.toMatch(/script-src[^;]*'unsafe-(inline|eval)'/);
+    const scripts = await page
+      .locator("script")
+      .evaluateAll((elements) => elements.map((element) => (element as HTMLScriptElement).nonce));
+    expect(scripts.length).toBeGreaterThan(0);
+    expect(scripts.every((value) => value === nonce)).toBe(true);
   });
 });

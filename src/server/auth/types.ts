@@ -38,10 +38,22 @@ export interface AuthService {
   /** Verified identity (signature or Supabase `getUser()`), or null. */
   getVerifiedUserId(): Promise<string | null>;
   /**
+   * Verified identity with the time of the sign-in that opened the session (kept across token
+   * refreshes), compared with `profiles.sessions_revoked_at` on every request.
+   */
+  getVerifiedSession(): Promise<VerifiedSession | null>;
+  /**
    * Replaces the current user's password. The current password is required so that the
    * new one is proven different from the temporary one without ever storing it in clear.
    */
   changePassword(currentPassword: string, newPassword: string): Promise<void>;
+}
+
+/** A session whose token was verified. */
+export interface VerifiedSession {
+  userId: string;
+  /** Time of the sign-in (password) that opened the session. */
+  authenticatedAt: Date;
 }
 
 export interface CreateAccountInput {
@@ -56,6 +68,11 @@ export interface AccountAdminService {
   createAccount(input: CreateAccountInput): Promise<{ userId: string; temporaryPassword: string }>;
   /** Sets a new temporary password; the user must change it at next sign-in. */
   resetPassword(userId: string): Promise<{ temporaryPassword: string }>;
+  /**
+   * Signs the user out of every device: sessions opened before now are refused at their next
+   * request (`profiles.sessions_revoked_at`). Audit `profile.sessions_revoked` (trigger).
+   */
+  revokeSessions(userId: string): Promise<void>;
 }
 
 /** The current user as read from `profiles` on every request. */

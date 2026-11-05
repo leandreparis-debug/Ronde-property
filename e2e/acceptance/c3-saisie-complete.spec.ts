@@ -3,7 +3,7 @@
  * « Il saisit des notes, des photos, des repères sur plan et des réserves, comme dans
  * CR Visites. »
  */
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../helpers/csp";
 
 import {
   addPhotos,

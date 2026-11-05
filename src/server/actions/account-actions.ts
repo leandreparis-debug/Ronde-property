@@ -4,7 +4,13 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { userMessage } from "@/server/errors";
-import { createAccount, resetPassword, setActive, updateAccount } from "@/server/services/accounts";
+import {
+  createAccount,
+  resetPassword,
+  revokeSessions,
+  setActive,
+  updateAccount,
+} from "@/server/services/accounts";
 import { updateOwnName } from "@/server/services/profile";
 
 import type { ActionState } from "./state";
@@ -91,6 +97,22 @@ export async function setActiveAction(
   if (!id.success) return { ok: false, error: "Compte introuvable." };
   try {
     await setActive(id.data, formData.get("isActive") === "true");
+  } catch (error) {
+    return failure(error);
+  }
+  revalidatePath(ACCOUNTS_PATH);
+  return { ok: true, tick: Date.now() };
+}
+
+/** Admin: signs an account out of every device. */
+export async function revokeSessionsAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const id = idSchema.safeParse(formData.get("id"));
+  if (!id.success) return { ok: false, error: "Compte introuvable." };
+  try {
+    await revokeSessions(id.data);
   } catch (error) {
     return failure(error);
   }

@@ -10,6 +10,7 @@ import { ForbiddenError, UnauthenticatedError } from "@/server/errors";
 
 import { PATHNAME_HEADER } from "./constants";
 import { getAuthService } from "./provider";
+import { isSessionRevoked } from "./revocation";
 import type { CurrentUser } from "./types";
 
 export { PATHNAME_HEADER } from "./constants";
@@ -37,22 +38,33 @@ export function hasRole(user: CurrentUser | null, roles: readonly UserRole[]): u
 /**
  * The current user, verified for this request: identity from the auth provider
  * (signature or Supabase `getUser()`), then the profile re-read from `profiles`.
- * Returns null when signed out, without profile, or **inactive**: a deactivated user is
- * signed out at their next request. Memoised per request.
+ * Returns null when signed out, without profile, **inactive**, or when the session was opened
+ * before `sessions_revoked_at` (« Déconnecter toutes les sessions », deactivation): such a user
+ * is signed out at their next request. Memoised per request.
  */
 export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const auth = await getAuthService();
-  const userId = await auth.getVerifiedUserId();
-  if (!userId) return null;
+  const session = await auth.getVerifiedSession();
+  if (!session) return null;
+  const { userId } = session;
 
   const profile = await withSystem("session", (trx) =>
     trx
       .selectFrom("profiles")
-      .select(["id", "email", "full_name", "role", "is_active", "must_change_password"])
+      .select([
+        "id",
+        "email",
+        "full_name",
+        "role",
+        "is_active",
+        "must_change_password",
+        "sessions_revoked_at",
+      ])
       .where("id", "=", userId)
       .executeTakeFirst(),
   );
   if (!profile || !profile.is_active) return null;
+  if (isSessionRevoked(session.authenticatedAt, profile.sessions_revoked_at)) return null;
 
   return {
     id: profile.id,

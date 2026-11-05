@@ -28,6 +28,25 @@ jobs:
 
       - run: pnpm verify
 
+      # Known vulnerabilities of the production dependencies (registry advisories).
+      - run: pnpm audit --prod
+
+  secrets:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # The whole history: a secret removed by a later commit is still a leak.
+          fetch-depth: 0
+
+      - name: gitleaks (whole history, findings redacted)
+        run: >-
+          docker run --rm -v "$PWD:/repo" --entrypoint sh ghcr.io/gitleaks/gitleaks:v8.28.0 -c
+          "git config --global --add safe.directory /repo &&
+          gitleaks git /repo --config /repo/.gitleaks.toml --redact --verbose --exit-code 1"
+
   e2e:
     name: End-to-end (Chromium)
     runs-on: ubuntu-latest

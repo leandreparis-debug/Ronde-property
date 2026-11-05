@@ -2,7 +2,7 @@
  * Critère 2 (cahier des charges, § 14) :
  * « Il la commence sur son ordinateur et la poursuit sur la tablette, sans rien perdre. »
  */
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../helpers/csp";
 
 import {
   addPhotos,

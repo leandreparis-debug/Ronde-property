@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import { connection } from "next/server";
 import type { ReactNode } from "react";
 
+import { ZodJitless } from "@/components/zod-jitless";
 import { BRAND_COLORS } from "@/lib/brand-colors";
 import { env } from "@/lib/env";
 import { startupImages } from "@/lib/pwa";
@@ -65,12 +67,17 @@ export const viewport: Viewport = {
 
 /**
  * Root layout: French document language, self-hosted fonts exposed as CSS variables,
- * global styles.
+ * global styles. Every page is rendered per request (`connection()`), so that Next.js can put
+ * the CSP nonce of the request on its scripts (see src/middleware.ts).
  */
-export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+  await connection();
   return (
     <html lang="fr" className={`${sansFont.variable} ${displayFont.variable} ${handFont.variable}`}>
-      <body>{children}</body>
+      <body>
+        <ZodJitless />
+        {children}
+      </body>
     </html>
   );
 }

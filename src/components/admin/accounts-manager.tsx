@@ -1,6 +1,6 @@
 "use client";
 
-import { KeyRound, Pencil, Plus, UserRoundCheck, UserRoundX } from "lucide-react";
+import { KeyRound, LogOut, Pencil, Plus, UserRoundCheck, UserRoundX } from "lucide-react";
 import { useActionState, useEffect, useState } from "react";
 
 import { ErrorNotice } from "@/components/auth/error-notice";
@@ -27,6 +27,7 @@ import {
   type AccountActionState,
   createAccountAction,
   resetPasswordAction,
+  revokeSessionsAction,
   setActiveAction,
   updateAccountAction,
 } from "@/server/actions/account-actions";
@@ -51,6 +52,7 @@ type DialogState =
   | { kind: "edit"; account: AccountRow }
   | { kind: "toggle"; account: AccountRow }
   | { kind: "reset"; account: AccountRow }
+  | { kind: "revoke"; account: AccountRow }
   | null;
 
 interface RevealedPassword {
@@ -106,6 +108,12 @@ function RowActions({
         <KeyRound className="size-4" aria-hidden="true" />
         Réinitialiser le mot de passe
       </Button>
+      {account.isActive ? (
+        <Button variant="ghost" onClick={() => onAction({ kind: "revoke", account })}>
+          <LogOut className="size-4" aria-hidden="true" />
+          Déconnecter toutes les sessions
+        </Button>
+      ) : null}
     </div>
   );
 }
@@ -269,6 +277,46 @@ function ToggleDialog({ account, onClose }: { account: AccountRow; onClose: () =
   );
 }
 
+function RevokeDialog({ account, onClose }: { account: AccountRow; onClose: () => void }) {
+  const [state, action] = useActionState(revokeSessionsAction, initialActionState);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (state.ok) {
+      toast({ variant: "success", title: "Sessions déconnectées" });
+      onClose();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- react to each new result only
+  }, [state.tick]);
+
+  return (
+    <Dialog open onOpenChange={(next) => (next ? undefined : onClose())}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Déconnecter toutes les sessions ?</DialogTitle>
+          <DialogDescription>
+            {account.fullName} sera déconnecté·e sur tous ses appareils (tablette, ordinateur) à sa
+            prochaine action et devra se reconnecter avec son mot de passe. Une saisie en cours non
+            enregistrée sera perdue.
+          </DialogDescription>
+        </DialogHeader>
+        <form action={action} className="flex flex-col gap-4">
+          <input type="hidden" name="id" value={account.id} />
+          {state.error ? <ErrorNotice message={state.error} /> : null}
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="secondary">
+                Annuler
+              </Button>
+            </DialogClose>
+            <SubmitButton variant="danger">Déconnecter</SubmitButton>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function ResetDialog({
   account,
   onClose,
@@ -298,7 +346,7 @@ function ResetDialog({
           <DialogTitle>Réinitialiser le mot de passe ?</DialogTitle>
           <DialogDescription>
             Un nouveau mot de passe provisoire sera généré pour {account.fullName}. L&apos;ancien
-            cessera de fonctionner immédiatement.
+            cessera de fonctionner immédiatement et toutes ses sessions seront déconnectées.
           </DialogDescription>
         </DialogHeader>
         <form action={action} className="flex flex-col gap-4">
@@ -426,6 +474,9 @@ export function AccountsManager({ accounts }: { accounts: AccountRow[] }) {
       ) : null}
       {dialog?.kind === "toggle" ? (
         <ToggleDialog account={dialog.account} onClose={() => setDialog(null)} />
+      ) : null}
+      {dialog?.kind === "revoke" ? (
+        <RevokeDialog account={dialog.account} onClose={() => setDialog(null)} />
       ) : null}
       {dialog?.kind === "reset" ? (
         <ResetDialog account={dialog.account} onClose={() => setDialog(null)} onRevealed={reveal} />

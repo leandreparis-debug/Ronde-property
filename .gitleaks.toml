@@ -1,0 +1,23 @@
+# gitleaks (CI, job « Secret scan ») : règles par défaut, plus les exceptions ci-dessous.
+# Seuls des secrets FICTIFS de test sont tolérés, et seulement là où ils sont attendus.
+title = "RONDE"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Données fictives de test (jamais de vrai secret dans le dépôt)"
+paths = [
+  # Empreinte bcrypt du mot de passe de test public des comptes fictifs (seed local).
+  '''^supabase/seed\.sql$''',
+  # Tests : secrets HMAC fictifs de 32 caractères, clés « fake-… ».
+  '''^tests/''',
+  '''^supabase/tests/''',
+  '''^e2e/''',
+  # Variables de la CI : secrets locaux fictifs (AUTH_PROVIDER=local, STORAGE_PROVIDER=local).
+  '''^\.github/workflows/ci\.yml$''',
+  '''^pnpm-lock\.yaml$''',
+]
+regexes = [
+  '''(e2e|ci)-local(-storage)?-secret-ronde-0123456789abcdef''',
+]

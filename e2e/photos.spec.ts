@@ -2,7 +2,9 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 import AxeBuilder from "@axe-core/playwright";
-import { expect as baseExpect, type Page, test } from "@playwright/test";
+import { expect as baseExpect, type Page } from "@playwright/test";
+
+import { test } from "./helpers/csp";
 import exifr from "exifr";
 
 import { E2E_ENV } from "../playwright.config";

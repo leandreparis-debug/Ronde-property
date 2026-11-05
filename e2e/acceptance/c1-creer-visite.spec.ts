@@ -4,7 +4,7 @@
  */
 import path from "node:path";
 
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../helpers/csp";
 
 import { storageStatePath } from "../helpers/auth";
 

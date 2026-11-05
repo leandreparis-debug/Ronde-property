@@ -1,4 +1,6 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
+
+import { test } from "./helpers/csp";
 
 import { anonymousState, storageStatePath } from "./helpers/auth";
 

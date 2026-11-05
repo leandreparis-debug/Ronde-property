@@ -79,10 +79,16 @@
     "pg": "8.23.1",
     "prettier": "3.9.10",
     "prettier-plugin-tailwindcss": "0.8.1",
-    "sharp": "0.34.5",
+    "sharp": "0.35.5",
     "supabase": "2.122.0",
     "tailwindcss": "4.3.3",
     "typescript": "5.9.3",
     "vitest": "4.1.12"
+  },
+  "pnpm": {
+    "overrides": {
+      "postcss": "8.5.29",
+      "sharp": "0.35.5"
+    }
   }
 }

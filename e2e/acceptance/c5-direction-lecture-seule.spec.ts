@@ -2,7 +2,9 @@
  * Critère 5 (cahier des charges, § 14) :
  * « La direction consulte la visite et son rapport sans pouvoir les modifier. »
  */
-import { expect, type Page, test } from "@playwright/test";
+import { type Page } from "@playwright/test";
+
+import { expect, test } from "../helpers/csp";
 
 import { E2E_BASE_URL, storageStatePath } from "../helpers/auth";
 import { generateReport } from "./helpers";

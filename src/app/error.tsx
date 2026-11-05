@@ -27,9 +27,12 @@ export default function ErrorPage({
         title="Une erreur s'est produite"
         description="Le service est momentanément indisponible. Réessayez dans un instant."
         action={
-          <Button size="lg" onClick={reset}>
-            Réessayer
-          </Button>
+          <div className="flex flex-col items-center gap-3">
+            <Button size="lg" onClick={reset}>
+              Réessayer
+            </Button>
+            {error.digest ? <p className="text-ui text-ink-2">Référence : {error.digest}</p> : null}
+          </div>
         }
       />
     </div>

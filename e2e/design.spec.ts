@@ -1,4 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
+
+import { test } from "./helpers/csp";
 
 const MOODS = ["neutral", "attentive", "worried", "happy", "asleep"] as const;
 

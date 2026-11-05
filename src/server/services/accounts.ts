@@ -174,13 +174,29 @@ export async function setActive(id: string, isActive: boolean): Promise<Account>
   return findAccount(id);
 }
 
-/** Resets the password to a new temporary one, shown once. Audit: `account.password_reset`. */
+/**
+ * Signs the account out of every device (« Déconnecter toutes les sessions »): sessions opened
+ * before now are refused at their next request. Audit `profile.sessions_revoked` (trigger).
+ */
+export async function revokeSessions(id: string): Promise<Account> {
+  await requireRoleForAction(["admin"]);
+  const target = await findAccount(id);
+  await getAccountAdminService().revokeSessions(target.id);
+  return findAccount(target.id);
+}
+
+/**
+ * Resets the password to a new temporary one, shown once, and signs the account out of every
+ * device. Audit: `account.password_reset`, `profile.sessions_revoked`.
+ */
 export async function resetPassword(
   id: string,
 ): Promise<{ account: Account; temporaryPassword: string }> {
   const admin = await requireRoleForAction(["admin"]);
   const target = await findAccount(id);
-  const { temporaryPassword } = await getAccountAdminService().resetPassword(target.id);
+  const service = getAccountAdminService();
+  const { temporaryPassword } = await service.resetPassword(target.id);
+  await service.revokeSessions(target.id);
   await withSystem("audit.account.password_reset", (trx) =>
     recordAuditInTrx(trx, "account.password_reset", "profile", target.id, {}, admin.id),
   );

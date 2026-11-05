@@ -1,7 +1,9 @@
 import path from "node:path";
 
 import AxeBuilder from "@axe-core/playwright";
-import { expect as baseExpect, type Locator, type Page, test } from "@playwright/test";
+import { expect as baseExpect, type Locator, type Page } from "@playwright/test";
+
+import { test } from "./helpers/csp";
 
 import { FIXTURE_IMAGES_DIR, FIXTURE_PLANS_DIR } from "./global-setup";
 import { storageStatePath } from "./helpers/auth";

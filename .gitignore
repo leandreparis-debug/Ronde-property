@@ -21,10 +21,9 @@ blob-report/
 e2e/fixtures/images/
 e2e/fixtures/plans/
 
-# environment (never commit secrets)
-.env
-.env.local
-.env.*.local
+# environment (never commit secrets): every .env file except the documented example
+.env*
+!.env.example
 
 # misc
 *.log

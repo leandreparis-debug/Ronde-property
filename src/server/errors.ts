@@ -1,3 +1,5 @@
+import { log } from "./log";
+
 /**
  * Business errors raised by the data and service layers. Pages and actions translate
  * them into French messages; the raw database detail never reaches the browser.
@@ -92,9 +94,7 @@ export function translateError(error: unknown): AppError {
     const factory = PG_CODE_MAP[error.code];
     if (factory) return factory(error);
   }
-  if (process.env.NODE_ENV !== "test") {
-    console.error("[ronde] unexpected error", error);
-  }
+  log.error("unexpected_error", { error });
   return new UnexpectedError(undefined, { cause: error });
 }
 

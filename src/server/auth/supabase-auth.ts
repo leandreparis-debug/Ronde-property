@@ -23,6 +23,7 @@ import {
   normalizeEmail,
 } from "./passwords";
 import { hasActiveProfile } from "./profile-check";
+import { revokeSessionsInDatabase } from "./revocation";
 import type { AccountAdminService, AuthService, CookieStore, CreateAccountInput } from "./types";
 
 /**
@@ -125,6 +126,24 @@ export function createSupabaseAuthService(deps: { cookies: CookieStore }): AuthS
       return data.user.id;
     },
 
+    async getVerifiedSession() {
+      const supabase = client();
+      // getUser(): the Auth server checks the token and that its session still exists.
+      const { data, error } = await supabase.auth.getUser();
+      if (error || !data.user) return null;
+      // getClaims(): verified claims of the same token; `amr` keeps the time of the password
+      // sign-in across refreshes (seconds).
+      const claims = await supabase.auth.getClaims();
+      const payload = claims.data?.claims;
+      if (claims.error || !payload || payload.sub !== data.user.id) return null;
+      const times = (Array.isArray(payload.amr) ? payload.amr : [])
+        .map((entry) => (typeof entry === "object" && entry ? entry.timestamp : undefined))
+        .filter((value): value is number => typeof value === "number");
+      const seconds = times.length > 0 ? Math.max(...times) : payload.iat;
+      if (typeof seconds !== "number") return null;
+      return { userId: data.user.id, authenticatedAt: new Date(seconds * 1000) };
+    },
+
     async changePassword(currentPassword, newPassword) {
       const supabase = client();
       const { data } = await supabase.auth.getUser();
@@ -160,6 +179,13 @@ export function createSupabaseAuthService(deps: { cookies: CookieStore }): AuthS
 /** Account administration for the `supabase` provider (service role, server only). */
 export function createSupabaseAccountAdminService(): AccountAdminService {
   return {
+    async revokeSessions(userId) {
+      // The admin API cannot sign another user out without their token: the revocation date
+      // is checked on every request against the `amr` time of the session (getVerifiedSession),
+      // which a refresh does not change. Refresh tokens become useless.
+      await revokeSessionsInDatabase(userId, "accounts.supabase.revoke_sessions");
+    },
+
     async createAccount(input: CreateAccountInput) {
       const admin = createAdminSupabaseClient();
       const temporaryPassword = generateTemporaryPassword();

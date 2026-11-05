@@ -1,16 +1,20 @@
 import type { NextConfig } from "next";
 
 /**
- * Security headers applied to every route.
- * The camera is allowed for the same origin only: photos are taken from the tablet (step 7).
+ * Security headers applied to every route (the Content-Security-Policy, which carries a nonce
+ * per request, is set by src/middleware.ts). The camera is the only device feature allowed,
+ * for the same origin: photos are taken from the tablet (step 7). HSTS is ignored by browsers
+ * over plain HTTP (local and e2e servers).
  */
 const securityHeaders = [
+  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "X-Frame-Options", value: "DENY" },
   {
     key: "Permissions-Policy",
-    value: "camera=(self), microphone=(), geolocation=()",
+    value:
+      "camera=(self), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=(), hid=(), display-capture=(), interest-cohort=()",
   },
 ];
 

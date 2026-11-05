@@ -199,7 +199,12 @@ describe("profiles", () => {
       const actions = (await auditActions(client, USERS.emma)).filter((action) =>
         action.startsWith("profile."),
       );
-      expect(actions).toEqual(["profile.role_changed", "profile.deactivated"]);
+      // Deactivation also revokes the sessions (migration 18).
+      expect(actions).toEqual([
+        "profile.role_changed",
+        "profile.deactivated",
+        "profile.sessions_revoked",
+      ]);
       await actAs(client, ACTORS.emma);
       const result = await attempt(client, "select id from public.visits");
       expect(result.ok && result.rowCount).toBe(0);

@@ -1,0 +1,33 @@
+# Weekly dependency updates, reviewed by hand: no auto-merge (no workflow merges these PRs).
+# Versions stay exact (no ^): Dependabot keeps the pinning style of package.json.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Paris
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+    labels: [dependencies]
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      # Patch and minor updates of development tools in one PR; the rest one PR each.
+      dev-tools:
+        dependency-type: development
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Paris
+    labels: [dependencies]
+    commit-message:
+      prefix: ci

@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { buildCsp, createNonce } from "@/lib/security/csp";
 import { PATHNAME_HEADER } from "@/server/auth/constants";
 import { hasLocalSession, hasSupabaseSession } from "@/server/auth/edge-session";
 
@@ -24,9 +25,18 @@ function redirectToSignIn(request: NextRequest): NextResponse {
 }
 
 export async function middleware(request: NextRequest) {
+  // A fresh nonce per request: Next.js reads it from the request CSP header and puts it on
+  // the scripts it renders (pages are rendered dynamically, see src/app/layout.tsx).
+  const csp = buildCsp({
+    nonce: createNonce(),
+    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    dev: process.env.NODE_ENV === "development",
+  });
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set(PATHNAME_HEADER, request.nextUrl.pathname);
+  requestHeaders.set("Content-Security-Policy", csp);
   const response = NextResponse.next({ request: { headers: requestHeaders } });
+  response.headers.set("Content-Security-Policy", csp);
 
   const signedIn =
     process.env.AUTH_PROVIDER === "local"

@@ -148,6 +148,10 @@ export interface Profiles {
    * rt, direction ou admin. Modifiable uniquement par le service.
    */
   role: Generated<UserRole>;
+  /**
+   * Sessions ouvertes avant cette date refusées (déconnexion de toutes les sessions, désactivation). Réservée au service.
+   */
+  sessions_revoked_at: Timestamp | null;
   updated_at: Generated<Timestamp>;
 }
 

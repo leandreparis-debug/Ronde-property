@@ -59,6 +59,7 @@ docs/decisions.md          journal des décisions d'architecture
 docs/deploy.md             environnements (local, preview, production), migrations distantes appliquées par Léandre
 docs/design-system.md      règles de la direction artistique
 docs/pwa.md                application installable (manifeste, icônes, hors connexion)
+docs/security.md           en-têtes et CSP, sessions et révocation, audit RLS, dépendances, secrets, journaux
 e2e/                       tests Playwright
 src/app/                   App Router (layout, globals.css, icon.svg, (app)/, design/, not-found)
 src/components/brand/      Galet, Logo, Trail
@@ -184,3 +185,9 @@ tests/                     tests Vitest (miroir de src/)
     polices locales (`public/fonts/report/`), jamais de CDN ; **aucun e-mail dans le rapport** ;
     un rapport n'est jamais modifié ni supprimé (`pending` → `ready` par son auteur, puis figé) ;
     au-delà de 50 Mo, téléchargé mais pas conservé.
+32. **Sécurité** : CSP à nonce (`src/middleware.ts`, `src/lib/security/csp.ts`), jamais
+    `unsafe-inline` ni `unsafe-eval` pour les scripts ; toute nouvelle origine passe par
+    `buildCsp` ; tout test Playwright importe `test` de `e2e/helpers/csp.ts` (échec au moindre
+    `securitypolicyviolation`). Journaux uniquement par `log` (`src/server/log.ts`, masquage) ;
+    toute nouvelle table respecte `supabase/tests/rls-audit.test.ts`. Une session ouverte avant
+    `profiles.sessions_revoked_at` est refusée (`docs/security.md`).

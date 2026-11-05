@@ -12,6 +12,7 @@ import {
   LOCAL_SESSION_MAX_AGE_SECONDS,
   signLocalSession,
   verifyLocalSession,
+  verifyLocalSessionClaims,
 } from "./local-session";
 import {
   generateTemporaryPassword,
@@ -21,6 +22,7 @@ import {
 } from "./passwords";
 import { hasActiveProfile } from "./profile-check";
 import { clearFailures, isRateLimited, recordFailure } from "./rate-limit";
+import { revokeSessionsInDatabase } from "./revocation";
 import type { AccountAdminService, AuthService, CookieStore, CreateAccountInput } from "./types";
 
 const BCRYPT_ROUNDS = 10;
@@ -129,6 +131,10 @@ export function createLocalAuthService(deps: LocalAuthDeps): AuthService {
       return verifyLocalSession(currentToken(), deps.secret);
     },
 
+    async getVerifiedSession() {
+      return verifyLocalSessionClaims(currentToken(), deps.secret);
+    },
+
     async changePassword(currentPassword, newPassword) {
       const userId = await verifyLocalSession(currentToken(), deps.secret);
       if (!userId) throw new UnauthenticatedError();
@@ -164,6 +170,11 @@ export function createLocalAuthService(deps: LocalAuthDeps): AuthService {
 /** Account administration for the `local` provider. */
 export function createLocalAccountAdminService(): AccountAdminService {
   return {
+    async revokeSessions(userId) {
+      // Stateless signed tokens: the revocation date is checked on every request.
+      await revokeSessionsInDatabase(userId, "accounts.local.revoke_sessions");
+    },
+
     async createAccount(input: CreateAccountInput) {
       const temporaryPassword = generateTemporaryPassword();
       const hash = await bcrypt.hash(temporaryPassword, BCRYPT_ROUNDS);

@@ -29,6 +29,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "profile.role_changed": "Rôle modifié",
   "profile.activated": "Compte réactivé",
   "profile.deactivated": "Compte désactivé",
+  "profile.sessions_revoked": "Sessions déconnectées",
   "account.created": "Compte créé",
   "account.password_reset": "Mot de passe réinitialisé",
   "auth.signed_in": "Connexion",

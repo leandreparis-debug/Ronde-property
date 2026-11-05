@@ -3,7 +3,7 @@
  * « Il génère un rapport conservé dans RONDE. » Le Word du cahier des charges est remplacé
  * par un PDF, sur décision de Léandre (docs/decisions.md).
  */
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../helpers/csp";
 
 import { generateReport, pdfText, sha256 } from "./helpers";
 

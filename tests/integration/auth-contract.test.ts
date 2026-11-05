@@ -8,6 +8,7 @@ import type {
   CookieRecord,
   CookieStore,
 } from "@/server/auth/types";
+import { isSessionRevoked } from "@/server/auth/revocation";
 import { withSystem } from "@/server/db/context";
 import { closePool } from "@/server/db/pool";
 import { ForbiddenError, ValidationError } from "@/server/errors";
@@ -187,6 +188,48 @@ for (const impl of implementations) {
           .executeTakeFirstOrThrow(),
       );
       expect(mustChange.must_change_password).toBe(true);
+    });
+
+    it("revokes every session of an account: older sessions refused, a new sign-in accepted", async () => {
+      const admin = impl.admin();
+      const email = `sessions.${Date.now()}@example.test`;
+      const { userId, temporaryPassword } = await admin.createAccount({
+        email,
+        fullName: "Compte Sessions",
+        role: "rt",
+      });
+      const revokedAt = () =>
+        withSystem("test.revoked_at", (trx) =>
+          trx
+            .selectFrom("profiles")
+            .select("sessions_revoked_at")
+            .where("id", "=", userId)
+            .executeTakeFirstOrThrow(),
+        ).then((row) => row.sessions_revoked_at);
+
+      const tablet = impl.auth();
+      const computer = impl.auth();
+      await tablet.signIn(email, temporaryPassword);
+      await computer.signIn(email, temporaryPassword);
+      const before = await tablet.getVerifiedSession();
+      expect(before?.userId).toBe(userId);
+      expect(before!.authenticatedAt.getTime()).toBeLessThanOrEqual(Date.now());
+      expect(isSessionRevoked(before!.authenticatedAt, await revokedAt())).toBe(false);
+
+      // The revocation date is truncated to the second: leave the second of the sign-ins.
+      await new Promise((resolve) => setTimeout(resolve, 1_100));
+      const audits = await lastAuditActions(userId, "profile.sessions_revoked");
+      await admin.revokeSessions(userId);
+      expect(await lastAuditActions(userId, "profile.sessions_revoked")).toBe(audits + 1);
+      for (const device of [tablet, computer]) {
+        const session = await device.getVerifiedSession();
+        expect(isSessionRevoked(session!.authenticatedAt, await revokedAt())).toBe(true);
+      }
+
+      const again = impl.auth();
+      await again.signIn(email, temporaryPassword);
+      const fresh = await again.getVerifiedSession();
+      expect(isSessionRevoked(fresh!.authenticatedAt, await revokedAt())).toBe(false);
     });
 
     it("rejects a duplicate email, whatever its case", async () => {

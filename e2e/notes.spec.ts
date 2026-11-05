@@ -1,4 +1,6 @@
-import { expect as baseExpect, type Page, test } from "@playwright/test";
+import { expect as baseExpect, type Page } from "@playwright/test";
+
+import { test } from "./helpers/csp";
 
 import { E2E_BASE_URL, storageStatePath } from "./helpers/auth";
 

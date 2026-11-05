@@ -1,13 +1,9 @@
 import { readFile } from "node:fs/promises";
 
 import AxeBuilder from "@axe-core/playwright";
-import {
-  expect as baseExpect,
-  type Download,
-  type Locator,
-  type Page,
-  test,
-} from "@playwright/test";
+import { expect as baseExpect, type Download, type Locator, type Page } from "@playwright/test";
+
+import { test } from "./helpers/csp";
 
 import { storageStatePath } from "./helpers/auth";
 

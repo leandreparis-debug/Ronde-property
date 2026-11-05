@@ -3,6 +3,7 @@ import "server-only";
 import pg from "pg";
 
 import { env, requireDatabaseUrl } from "@/lib/env";
+import { log } from "@/server/log";
 
 /*
  * Connection pool, created lazily on first use so that the application builds and renders
@@ -34,7 +35,7 @@ export function getPool(): pg.Pool {
       allowExitOnIdle: true,
     });
     pool.on("error", (error) => {
-      console.error("[ronde] idle database client error", error.message);
+      log.error("db.idle_client_error", { error });
     });
   }
   return pool;
