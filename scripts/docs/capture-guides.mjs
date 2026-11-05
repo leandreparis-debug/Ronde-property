@@ -83,7 +83,9 @@ try {
   await rt.getByLabel("Ce qui marche").fill("Les notes à puces sur la tablette, le plan au doigt.");
   await rt.getByLabel("Ce qui bloque").fill("Je cherche le bouton pour terminer la visite.");
   await shot(rt, "donner-mon-avis");
-  await rt.keyboard.press("Escape");
+  // Sent, so that the admin screenshot of /admin/avis is not empty (fictitious feedback).
+  await rt.getByTestId("feedback-submit").filter({ visible: true }).click();
+  await rt.getByTestId("feedback-dialog").filter({ visible: true }).waitFor({ state: "hidden" });
 
   await rt.context().setOffline(true);
   await rt.getByTestId("offline-banner").waitFor();

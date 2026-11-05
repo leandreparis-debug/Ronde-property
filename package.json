@@ -1,6 +1,6 @@
 {
   "name": "ronde",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "RONDE — application des visites de site des Responsables Techniques de Carrefour Property",
   "engines": {
