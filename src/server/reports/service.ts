@@ -23,7 +23,8 @@ import {
   type ReportRepository,
 } from "./repository";
 
-const REPORTS_BUCKET = "reports";
+/** Bucket of the reports (scheduled purge). */
+export const REPORTS_BUCKET = "reports";
 const PHOTOS_BUCKET = "visit-photos";
 const PLANS_BUCKET = "site-plans";
 /** Size limit of the `reports` bucket. */

@@ -23,6 +23,8 @@ export const E2E_ENV = {
   LOCAL_STORAGE_SECRET:
     process.env.LOCAL_STORAGE_SECRET ?? "e2e-local-storage-secret-ronde-0123456789abcdef",
   LOCAL_STORAGE_DIR: process.env.LOCAL_STORAGE_DIR ?? ".storage/e2e",
+  // Fictitious secret of the scheduled tasks (e2e/cron.spec.ts).
+  CRON_SECRET: process.env.CRON_SECRET ?? "e2e-cron-secret-ronde-0123456789abcdef",
 };
 
 export default defineConfig({

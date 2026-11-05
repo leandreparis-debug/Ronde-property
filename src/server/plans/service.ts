@@ -33,6 +33,8 @@ import type {
 } from "./types";
 
 const BUCKET = "site-plans";
+/** Bucket of the plans (scheduled purge). */
+export const PLAN_BUCKET = BUCKET;
 const PHOTOS_BUCKET = "visit-photos";
 const MISSING_OBJECT_MESSAGE = "Fichier manquant : l'envoi n'a pas abouti.";
 const SIZE_MISMATCH_MESSAGE = "Fichier incomplet : l'envoi n'a pas abouti.";

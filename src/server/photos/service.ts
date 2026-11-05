@@ -27,6 +27,8 @@ import type {
 } from "./types";
 
 const BUCKET = "visit-photos";
+/** Bucket of the photos (scheduled purge). */
+export const PHOTO_BUCKET = BUCKET;
 const MISSING_OBJECT_MESSAGE = "Fichier manquant : l'envoi n'a pas abouti.";
 const SIZE_MISMATCH_MESSAGE = "Fichier incomplet : l'envoi n'a pas abouti.";
 const WRONG_TYPE_MESSAGE = "Le fichier envoyé n'est pas un JPEG.";

@@ -81,6 +81,11 @@ export const envSchema = z
       .union([z.literal(""), z.string().trim().min(1)])
       .optional()
       .transform((value) => (value ? value : DEFAULT_LOCAL_STORAGE_DIR)),
+    /**
+     * Secret of the scheduled tasks (`Authorization: Bearer …`, sent by Vercel Cron). Without
+     * it, `/api/cron/*` answers 401 to everyone.
+     */
+    CRON_SECRET: optionalLongSecret,
     /** Set by Vercel on every deployment. Local auth and local storage are forbidden there. */
     VERCEL: z.string().optional(),
   })
@@ -194,6 +199,7 @@ export const env: Env = parseEnv({
   ALLOW_LOCAL_STORAGE: process.env.ALLOW_LOCAL_STORAGE,
   LOCAL_STORAGE_SECRET: process.env.LOCAL_STORAGE_SECRET,
   LOCAL_STORAGE_DIR: process.env.LOCAL_STORAGE_DIR,
+  CRON_SECRET: process.env.CRON_SECRET,
   VERCEL: process.env.VERCEL,
 });
 

@@ -416,20 +416,28 @@ export function createPhotoRepository(user: UserRef): PhotoRepository {
  * that the service removes the objects. `service_role` only (SECURITY DEFINER function).
  */
 export function purgeStalePendingRows(maxAge = "24 hours"): Promise<PhotoPaths[]> {
-  return withSystem("photos.purge_stale_pending", async (trx) => {
-    const { rows } = await sql<{
-      id: string;
-      storage_path: string;
-      thumb_path: string | null;
-    }>`select id, storage_path, thumb_path from private.purge_stale_pending_photos(${maxAge}::interval)`.execute(
-      trx,
-    );
-    return rows.map((row) => ({
-      id: row.id,
-      storagePath: row.storage_path,
-      thumbPath: row.thumb_path,
-    }));
-  });
+  return withSystem("photos.purge_stale_pending", (trx) =>
+    purgeStalePendingPhotoRowsInTrx(trx, maxAge),
+  );
+}
+
+/** Same as {@link purgeStalePendingRows}, inside a system transaction (scheduled purge). */
+export async function purgeStalePendingPhotoRowsInTrx(
+  trx: Trx,
+  maxAge = "24 hours",
+): Promise<PhotoPaths[]> {
+  const { rows } = await sql<{
+    id: string;
+    storage_path: string;
+    thumb_path: string | null;
+  }>`select id, storage_path, thumb_path from private.purge_stale_pending_photos(${maxAge}::interval)`.execute(
+    trx,
+  );
+  return rows.map((row) => ({
+    id: row.id,
+    storagePath: row.storage_path,
+    thumbPath: row.thumb_path,
+  }));
 }
 
 /** Number of ready photos linked to a zone (guard before removing the zone). */

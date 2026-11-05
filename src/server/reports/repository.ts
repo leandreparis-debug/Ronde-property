@@ -559,10 +559,16 @@ export function createReportRepository(user: UserRef): ReportRepository {
  * their storage paths, so that the service removes any uploaded object.
  */
 export function purgeStalePendingReportRows(maxAge = "24 hours"): Promise<string[]> {
-  return withSystem("report_purge", async (trx) => {
-    const { rows } = await sql<{ id: string; storage_path: string }>`
-      select id, storage_path from private.purge_stale_pending_reports(${maxAge}::interval)
-    `.execute(trx);
-    return rows.map((row) => row.storage_path);
-  });
+  return withSystem("report_purge", (trx) => purgeStalePendingReportRowsInTrx(trx, maxAge));
+}
+
+/** Same as {@link purgeStalePendingReportRows}, inside a system transaction (scheduled purge). */
+export async function purgeStalePendingReportRowsInTrx(
+  trx: Trx,
+  maxAge = "24 hours",
+): Promise<string[]> {
+  const { rows } = await sql<{ id: string; storage_path: string }>`
+    select id, storage_path from private.purge_stale_pending_reports(${maxAge}::interval)
+  `.execute(trx);
+  return rows.map((row) => row.storage_path);
 }

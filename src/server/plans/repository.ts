@@ -353,20 +353,28 @@ export function createPlanRepository(user: UserRef): PlanRepository {
  * that the service removes the objects. `service_role` only (SECURITY DEFINER function).
  */
 export function purgeStalePendingPlanRows(maxAge = "24 hours"): Promise<PlanPaths[]> {
-  return withSystem("plans.purge_stale_pending", async (trx) => {
-    const { rows } = await sql<{
-      id: string;
-      storage_path: string;
-      page_paths: string[];
-    }>`select id, storage_path, page_paths from private.purge_stale_pending_plans(${maxAge}::interval)`.execute(
-      trx,
-    );
-    return rows.map((row) => ({
-      id: row.id,
-      storagePath: row.storage_path,
-      pagePaths: row.page_paths ?? [],
-    }));
-  });
+  return withSystem("plans.purge_stale_pending", (trx) =>
+    purgeStalePendingPlanRowsInTrx(trx, maxAge),
+  );
+}
+
+/** Same as {@link purgeStalePendingPlanRows}, inside a system transaction (scheduled purge). */
+export async function purgeStalePendingPlanRowsInTrx(
+  trx: Trx,
+  maxAge = "24 hours",
+): Promise<PlanPaths[]> {
+  const { rows } = await sql<{
+    id: string;
+    storage_path: string;
+    page_paths: string[];
+  }>`select id, storage_path, page_paths from private.purge_stale_pending_plans(${maxAge}::interval)`.execute(
+    trx,
+  );
+  return rows.map((row) => ({
+    id: row.id,
+    storagePath: row.storage_path,
+    pagePaths: row.page_paths ?? [],
+  }));
 }
 
 /**

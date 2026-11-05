@@ -32,6 +32,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "profile.sessions_revoked": "Sessions déconnectées",
   "account.created": "Compte créé",
   "account.password_reset": "Mot de passe réinitialisé",
+  "system.purge": "Purge planifiée",
   "auth.signed_in": "Connexion",
   "auth.sign_in_failed": "Connexion refusée",
   "auth.signed_out": "Déconnexion",

@@ -10,7 +10,8 @@ import { hasLocalSession, hasSupabaseSession } from "@/server/auth/edge-session"
  * only barrier.
  */
 
-const PUBLIC_PATHS = ["/connexion", "/design", "/hors-ligne"];
+// `/api/cron` authenticates its caller itself (CRON_SECRET), without a user session.
+const PUBLIC_PATHS = ["/connexion", "/design", "/hors-ligne", "/api/cron"];
 
 function isPublic(pathname: string): boolean {
   return PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
