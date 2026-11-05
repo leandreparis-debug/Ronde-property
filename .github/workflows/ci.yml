@@ -19,7 +19,7 @@ jobs:
       - uses: pnpm/action-setup@v5
         # The pnpm version is read from the `packageManager` field of package.json.
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -78,7 +78,7 @@ jobs:
 
       - uses: pnpm/action-setup@v5
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -141,7 +141,7 @@ jobs:
 
       - uses: pnpm/action-setup@v5
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
