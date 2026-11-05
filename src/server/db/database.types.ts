@@ -48,6 +48,51 @@ export type Database = {
           },
         ];
       };
+      feedback: {
+        Row: {
+          app_version: string;
+          author_id: string;
+          blocks: string | null;
+          created_at: string;
+          id: string;
+          page_path: string;
+          rating: number;
+          viewport: string | null;
+          works: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          app_version: string;
+          author_id?: string;
+          blocks?: string | null;
+          created_at?: string;
+          id?: string;
+          page_path: string;
+          rating: number;
+          viewport?: string | null;
+          works?: string | null;
+        };
+        Update: {
+          app_version?: string;
+          author_id?: string;
+          blocks?: string | null;
+          created_at?: string;
+          id?: string;
+          page_path?: string;
+          rating?: number;
+          viewport?: string | null;
+          works?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "feedback_author_id_fkey";
+            columns: ["author_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       photos: {
         Row: {
           caption: string | null;

@@ -62,6 +62,8 @@ docs/pwa.md                application installable (manifeste, icônes, hors con
 docs/security.md           en-têtes et CSP, sessions et révocation, audit RLS, dépendances, secrets, journaux
 docs/cron.md               tâches planifiées (purge nocturne, CRON_SECRET)
 docs/rgpd.md               données personnelles, durées, export, anonymisation, effacement des e-mails externes
+docs/guide-rt.md           guide des RT pilotes (servi sur /aide, captures dans public/aide-images/)
+docs/guide-admin.md        guide de l'administrateur (servi sur /aide/admin)
 e2e/                       tests Playwright
 src/app/                   App Router (layout, globals.css, icon.svg, (app)/, design/, not-found)
 src/components/brand/      Galet, Logo, Trail
@@ -85,6 +87,8 @@ src/components/reserves/   onglet Réserves, carte, feuille (react-hook-form), d
 src/lib/report/            rapport PDF : DTO, modèle pur, options, géométrie, thème (tokens), document react-pdf, worker, génération
 src/server/reports/        dépôt (réservation pending, lecture figée, confirmation, historique), service (URL signées, stat)
 src/components/report/     onglet Rapport (options, progression, historique)
+src/lib/feedback/          avis du pilote : schéma, filtres d'URL, CSV ; src/server/services/feedback.ts
+src/lib/help/              Markdown minimal des guides (/aide), src/components/help/
 public/fonts/report/       polices TTF du rapport (OFL)
 scripts/fixtures/          génération des images de test synthétiques (jamais de vraie photo)
 docs/samples/              échantillons fictifs (export VIGIE)
@@ -94,6 +98,7 @@ supabase/seed.sql          données fictives pour la base locale / de test uniqu
 supabase/tests/            bootstrap.sql (émulation Supabase pour ronde_test) et tests de la base
 scripts/db/                reset.mjs, gen-types.mjs
 scripts/brand/             generate-icons.mjs (icônes PWA, écrans de démarrage iOS)
+scripts/docs/              capture-guides.mjs (captures des guides, données fictives)
 scripts/ops/               scripts d'exploitation pour Léandre (garde de cible, simulation par défaut, confirmation saisie)
 tests/                     tests Vitest (miroir de src/)
 ```

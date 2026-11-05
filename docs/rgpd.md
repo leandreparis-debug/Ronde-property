@@ -23,6 +23,23 @@ L'adresse e-mail d'un responsable externe n'apparaît que dans le détail de la 
 dans une liste, une URL, un rapport, un journal ni l'historique des réserves (masquée
 `[masqué]` par la base depuis la migration 19).
 
+## Qui y a accès
+
+| Rôle      | Accès                                                                                        |
+| --------- | -------------------------------------------------------------------------------------------- |
+| RT        | visites dont il est l'auteur, le rédacteur ou un participant ; réserves de ses sites         |
+| Direction | lecture seule de toutes les visites, réserves et rapports                                    |
+| Admin     | comptes (e-mails compris), imports, journal d'audit, avis du pilote, export et anonymisation |
+| Léandre   | base et stockage (exploitation), uniquement pour la maintenance et les demandes RGPD         |
+
+Les règles sont appliquées par la base (RLS) : `docs/security.md`.
+
+## Consigne aux RT pour les photos
+
+Éviter les **visages** et les **plaques d'immatriculation** : cadrer sur l'installation. Une
+photo où une personne est reconnaissable se supprime dans l'onglet Photos tant que la visite
+est modifiable (rappel dans `docs/guide-rt.md`).
+
 ## Finalités, bases légales et durées
 
 | Données                                      | Finalité                           | Base légale (à valider)               | Conservation                                                                                                                                                               |

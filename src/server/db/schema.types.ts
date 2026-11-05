@@ -69,6 +69,24 @@ export interface AuditLog {
   occurred_at: Generated<Timestamp>;
 }
 
+export interface Feedback {
+  app_version: string;
+  author_id: Generated<string>;
+  blocks: string | null;
+  created_at: Generated<Timestamp>;
+  id: Generated<string>;
+  /**
+   * Chemin de la page d'où l'avis est donné, sans paramètres de requête.
+   */
+  page_path: string;
+  rating: number;
+  /**
+   * Taille de l'écran (largeur x hauteur en px CSS) : distingue tablette et PC.
+   */
+  viewport: string | null;
+  works: string | null;
+}
+
 export interface Photos {
   caption: string | null;
   category: string | null;
@@ -499,6 +517,7 @@ export interface VisitZoneNotes {
 
 export interface DB {
   audit_log: AuditLog;
+  feedback: Feedback;
   photos: Photos;
   plan_marker_counters: PlanMarkerCounters;
   plan_markers: PlanMarkers;

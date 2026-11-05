@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+import packageJson from "./package.json" with { type: "json" };
+
 /**
  * Security headers applied to every route (the Content-Security-Policy, which carries a nonce
  * per request, is set by src/middleware.ts). The camera is the only device feature allowed,
@@ -20,6 +22,10 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // Shown in the account menu and on /aide (src/lib/version.ts).
+  env: { NEXT_PUBLIC_APP_VERSION: packageJson.version },
+  // /aide reads the guides from docs/ at request time: ship them with the function.
+  outputFileTracingIncludes: { "/aide/[guide]": ["./docs/guide-*.md"] },
   poweredByHeader: false,
   experimental: {
     // `forbidden()` renders src/app/forbidden.tsx with a 403 status (requireRole).
