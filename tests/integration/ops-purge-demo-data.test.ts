@@ -45,8 +45,17 @@ async function admin(sql: string) {
 beforeAll(async () => {
   await admin("drop database if exists ronde_test_purge");
   await admin("create database ronde_test_purge");
-  const dump = execFileSync("pg_dump", ["--no-owner", SOURCE], { maxBuffer: 256 * 1024 * 1024 });
-  execFileSync("psql", ["-q", "-v", "ON_ERROR_STOP=1", COPY], { input: dump });
+  const dump = execFileSync("pg_dump", ["--no-owner", SOURCE], {
+    maxBuffer: 256 * 1024 * 1024,
+    encoding: "utf8",
+  })
+    // A newer pg_dump (CI runner) emits settings PostgreSQL 16 does not know.
+    .replace(/^SET transaction_timeout = .*$/m, "");
+  const restore = spawnSync("psql", ["-q", "-v", "ON_ERROR_STOP=1", COPY], {
+    input: dump,
+    encoding: "utf8",
+  });
+  if (restore.status !== 0) throw new Error(`Copie de ronde_test impossible : ${restore.stderr}`);
 }, 60_000);
 
 afterAll(async () => {
