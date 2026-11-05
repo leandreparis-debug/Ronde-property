@@ -110,7 +110,8 @@ for (const [role, width] of [
       await expect(
         page.getByRole("heading", { name: "Aucun site ne correspond à « zzzz-introuvable »" }),
       ).toBeVisible();
-      await expect(page.locator('svg[data-mood="asleep"]')).toBeVisible();
+      // A hidden streamed copy of the empty state may sit next to the visible one.
+      await expect(page.locator('svg[data-mood="asleep"]').first()).toBeVisible();
     });
   });
 }
@@ -125,7 +126,8 @@ test.describe("site page", () => {
     await expect(seeded).toHaveCount(1);
     await expect(seeded).toContainText("4 réserves ouvertes dont 1 en retard");
     await expect(seeded).toContainText("En cours");
-    await expect(seeded.getByRole("link")).toHaveAttribute(
+    // The first link opens the visit (a « Dernier rapport » link may follow it).
+    await expect(seeded.getByRole("link").first()).toHaveAttribute(
       "href",
       /\/visites\/20000000-0000-4000-8000-000000000001$/,
     );

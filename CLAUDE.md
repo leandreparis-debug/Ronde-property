@@ -17,7 +17,7 @@ Utilisateurs : **RT** (saisie sur tablette au doigt et sur PC), **Direction** (l
 
 Étapes : 1 fondations et design system (faite) · 2 modèle de données Supabase et RLS (faite) ·
 3 authentification, rôles, audit (faite) · 4 référentiel des sites (CSV VIGIE, faite) · 5 visites (faite) · 6 notes
-par zone (faite) · 7 photos (faite) · 8 plans AutoCAD et repères (faite) · 9 réserves (faite) · 10 rapport PDF · 11 recette et
+par zone (faite) · 7 photos (faite) · 8 plans AutoCAD et repères (faite) · 9 réserves (faite) · 10 rapport PDF (faite) · 11 recette et
 déploiement.
 
 ## Stack et versions (exactes, pas de `^`)
@@ -29,7 +29,7 @@ déploiement.
 - Node 22, pnpm 10 (`packageManager` dans `package.json`).
 - lucide-react, clsx + tailwind-merge (`cn`), class-variance-authority, Radix (dialog, tabs,
   slot, toast), zod, react-hook-form 7.90.0 + @hookform/resolvers 5.9.1 (formulaires de
-  réserve).
+  réserve), @react-pdf/renderer 4.9.0 (rapport, navigateur uniquement).
 - Qualité : ESLint 9 (config Next + TypeScript), Prettier 3, Vitest 4 + Testing Library + jsdom,
   Playwright 1.63 + @axe-core/playwright.
 - V1 hébergée sur Vercel + Supabase ; V2 sur serveur interne.
@@ -77,6 +77,10 @@ src/components/plans/      dialog d'import, visionneuse zoomable (Pointer Events
 src/server/reserves/       dépôt (vue reserves_with_state, version, plan, historique), service (miniatures signées, conflit)
 src/lib/reserves/          schéma zod partagé client/serveur, échéances, tri / filtres / URL, liens
 src/components/reserves/   onglet Réserves, carte, feuille (react-hook-form), détail avec historique, section du site
+src/lib/report/            rapport PDF : DTO, modèle pur, options, géométrie, thème (tokens), document react-pdf, worker, génération
+src/server/reports/        dépôt (réservation pending, lecture figée, confirmation, historique), service (URL signées, stat)
+src/components/report/     onglet Rapport (options, progression, historique)
+public/fonts/report/       polices TTF du rapport (OFL)
 scripts/fixtures/          génération des images de test synthétiques (jamais de vraie photo)
 docs/samples/              échantillons fictifs (export VIGIE)
 src/middleware.ts          protection des routes et rafraîchissement de session (aucune lecture en base)
@@ -170,3 +174,9 @@ tests/                     tests Vitest (miroir de src/)
     refusé jusqu'à l'étape 13 ; l'e-mail d'un responsable externe n'apparaît que dans le
     détail (jamais dans une liste, une URL ni un journal) ; formulaire `react-hook-form` +
     `reserveFormSchema` (`src/lib/reserves/schema.ts`), revalidé côté serveur.
+31. **Rapport PDF** : généré dans le navigateur (`@react-pdf/renderer`, mise en page dans un Web
+    Worker), jamais sur le serveur ; une seule lecture serveur (`getReportData` /
+    `startReport`) puis `buildReportModel` pur, les composants PDF n'affichent que le modèle ;
+    polices locales (`public/fonts/report/`), jamais de CDN ; **aucun e-mail dans le rapport** ;
+    un rapport n'est jamais modifié ni supprimé (`pending` → `ready` par son auteur, puis figé) ;
+    au-delà de 50 Mo, téléchargé mais pas conservé.

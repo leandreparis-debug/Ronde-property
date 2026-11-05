@@ -210,7 +210,7 @@ test.describe("Alice", () => {
     await expectNoBlockingViolation(page);
     await page.getByTestId("report-cancel").click();
     await expect(page.getByTestId("report-progress")).toHaveCount(0);
-    await expect(page.getByText("Génération annulée")).toBeVisible();
+    await expect(page.getByText("Génération annulée", { exact: true })).toBeVisible();
   });
 });
 

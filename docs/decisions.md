@@ -495,3 +495,53 @@ l'étape 13 ouvrira `proof` avec son parcours (levée avec photo de preuve).
 
 **Motivation.** Aucun écran ne produit encore de photo de preuve : l'accepter en base laisserait
 entrer des données sans règle d'affichage ni de droits.
+
+## 2026-11-05 — Rapport PDF généré dans le navigateur, mise en page dans un Web Worker
+
+**Décision.** Le PDF est produit dans le navigateur avec `@react-pdf/renderer` 4.9.0 ; la mise
+en page tourne dans un **Web Worker** (`report.worker.tsx`), le fil principal ne servant qu'en
+repli si le worker ne peut pas démarrer.
+
+**Motivation.** Aucun fichier de plus de 4 Mo ne peut transiter par le serveur et Vercel n'est
+pas fait pour du calcul long. Mesures sur la visite de démonstration (40 photos, 2 pages de
+plan) : sur le fil principal, la plus longue tâche bloque l'interface 0,54 s, et **2,6 s** avec
+un processeur ralenti ×4 (au-delà de la limite d'une seconde) ; avec le worker, la plus longue
+tâche du fil principal est de 0,08 s (0,36 s ralenti ×4), la progression et « Annuler » restent
+réactifs. La bibliothèque fonctionne telle quelle dans un worker de module (polices chargées par
+URL, aucune API du DOM).
+
+## 2026-11-05 — Polices du rapport en fichiers locaux
+
+**Décision.** Bricolage Grotesque (600, 700) et Instrument Sans (400, 600, italique 400) sont
+versionnées en TTF statiques dans `public/fonts/report/` avec leur licence OFL ; la césure est
+désactivée.
+
+**Motivation.** Aucune requête vers Google ou un CDN au moment de la génération (hors ligne
+possible, données non exposées), rendu identique d'une génération à l'autre, polices intégrées au
+PDF. Les mêmes fichiers serviront à `next/font/local` à l'étape 11. Pas de mot coupé en français.
+
+## 2026-11-05 — Modèle pur séparé du rendu
+
+**Décision.** Une lecture serveur (`getReportData`, DTO figé) ; une fonction pure
+`buildReportModel(dto, options, now)` calcule tout ce qui s'imprime (tri, figures, références,
+libellés, nom de fichier) ; les composants PDF n'affichent que ce modèle.
+
+**Motivation.** Tests unitaires rapides sur toute la logique ; deux rendus du même modèle à la
+même date donnent le même document ; une section s'ajoute sans toucher au rendu des autres.
+
+## 2026-11-05 — Pas d'e-mail dans le rapport
+
+**Décision.** Le DTO du rapport ne lit aucun e-mail (participants, responsables externes) ; un
+responsable figure par son nom et son entreprise.
+
+**Motivation.** Le rapport est diffusé aux exploitants et prestataires et sera publié vers
+VIGIE : il ne doit pas propager de données personnelles de contact. Un test vérifie qu'aucune
+adresse n'apparaît, ni dans le modèle ni dans le texte du PDF.
+
+## 2026-11-05 — Compteur des repères
+
+**Décision.** Le numéro d'un repère vient de `plan_marker_counters` (upsert dans le trigger
+d'insertion), et non plus du plus grand numéro + 1.
+
+**Motivation.** « Plus grand + 1 » rendait le numéro du dernier repère supprimé, alors que les
+légendes et les rapports déjà diffusés citent ces numéros.

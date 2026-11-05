@@ -120,8 +120,8 @@ const styles = StyleSheet.create({
   },
   muted: { color: C["ink-2"] },
   paragraph: { marginBottom: 6, lineHeight: 1.4 },
-  bulletRow: { flexDirection: "row", marginBottom: 3, paddingLeft: 4 },
-  bulletDot: { width: 10, color: C.brand },
+  bulletRow: { flexDirection: "row", marginBottom: 2, paddingLeft: 4 },
+  bulletDot: { width: 10, color: C.brand, lineHeight: 1.4 },
   bulletText: { flex: 1, lineHeight: 1.4 },
   table: { borderTopWidth: 0.8, borderTopColor: C.brand },
   th: {
@@ -153,11 +153,11 @@ const styles = StyleSheet.create({
 const RESERVE_COLUMNS = [
   { key: "code", label: "Code", width: "9%" },
   { key: "zone", label: "Zone", width: "13%" },
-  { key: "action", label: "Action", width: "31%" },
+  { key: "action", label: "Action", width: "29%" },
   { key: "priority", label: "Priorité", width: "10%" },
   { key: "responsible", label: "Responsable", width: "15%" },
   { key: "due", label: "Échéance", width: "10%" },
-  { key: "status", label: "Statut", width: "12%" },
+  { key: "status", label: "Statut", width: "14%" },
 ] as const;
 
 /** Mini « Galet » drawn in vector (logo, empty cover). */
@@ -640,7 +640,7 @@ function ReserveTableRow({ row }: { row: ReserveRow }) {
     >
       <Text style={[styles.td, { width: "9%", fontWeight: 600 }, dim]}>{row.code}</Text>
       <Text style={[styles.td, { width: "13%" }, dim]}>{row.zoneLabel}</Text>
-      <View style={[styles.td, { width: "31%" }]}>
+      <View style={[styles.td, { width: "29%" }]}>
         <Text style={dim}>{row.action}</Text>
         {refs ? (
           <Text style={{ fontSize: SIZES.caption, color: C["brand-deep"], marginTop: 2 }}>
@@ -659,7 +659,7 @@ function ReserveTableRow({ row }: { row: ReserveRow }) {
       </Text>
       <Text style={[styles.td, { width: "15%" }, dim]}>{row.responsible}</Text>
       <Text style={[styles.td, { width: "10%" }, dim]}>{row.dueLabel}</Text>
-      <View style={[styles.td, { width: "12%" }]}>
+      <View style={[styles.td, { width: "14%" }]}>
         <StatusPill row={row} />
         {row.overdueLabel ? (
           <Text
@@ -691,25 +691,37 @@ function PhotoPage({
   perPage: 2 | 4 | 6;
   images: ReportImages;
 }) {
-  const cell = photoCellSize(perPage, 18);
+  // Room for a section or zone title above the first page of photos.
+  const cell = photoCellSize(perPage, 44);
   const { columns } = photoGrid(perPage);
+  const rows: ReportFigure[][] = [];
+  for (let index = 0; index < figures.length; index += columns) {
+    rows.push(figures.slice(index, index + columns));
+  }
+  // One unbreakable row at a time: a photo is never cut, and the first row can follow the
+  // notes of the zone instead of leaving the rest of the page empty.
   return (
-    <View style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 8 }} wrap={false}>
-      {figures.map((figure, index) => (
-        <View
-          key={figure.photoId}
-          style={{
-            width: cell.width,
-            marginRight: (index + 1) % columns === 0 ? 0 : 12,
-            marginBottom: 12,
-          }}
-        >
-          <Picture image={figure.image} images={images} width={cell.width} height={cell.height} />
-          <Text style={[styles.figureCaption, { height: CAPTION_HEIGHT - 6 }]}>
-            <Text style={{ fontWeight: 600, color: C["brand-deep"] }}>{figure.label}</Text>
-            {"  "}
-            {figure.caption}
-          </Text>
+    <View style={{ marginTop: 8 }}>
+      {rows.map((row) => (
+        <View key={row[0]!.photoId} style={{ flexDirection: "row", marginBottom: 12 }} wrap={false}>
+          {row.map((figure, index) => (
+            <View
+              key={figure.photoId}
+              style={{ width: cell.width, marginRight: index + 1 === columns ? 0 : 12 }}
+            >
+              <Picture
+                image={figure.image}
+                images={images}
+                width={cell.width}
+                height={cell.height}
+              />
+              <Text style={[styles.figureCaption, { height: CAPTION_HEIGHT - 6 }]}>
+                <Text style={{ fontWeight: 600, color: C["brand-deep"] }}>{figure.label}</Text>
+                {"  "}
+                {figure.caption}
+              </Text>
+            </View>
+          ))}
         </View>
       ))}
     </View>
@@ -846,7 +858,8 @@ function PlanPage({
   const titleHeight = 26;
   const columns = orientation === "landscape" ? 3 : 2;
   const legendRows = Math.ceil(plan.legend.length / columns);
-  const legendHeight = Math.min(legendRows * 12 + 18, box.height * 0.3);
+  // Two lines per entry at most (8.5 pt): the legend stays on the page of its plan.
+  const legendHeight = Math.min(legendRows * 24 + 16, box.height * 0.35);
   const fitted = fitImage(
     { width, height },
     {

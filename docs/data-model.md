@@ -304,6 +304,25 @@ réordonnancement se font en une instruction et ne doivent compter qu'une fois.
 
 Voir `docs/reserves.md` pour les règles d'écran.
 
+## Compteur des repères et rapports envoyés au stockage (migration 17)
+
+- **`plan_marker_counters (visit_id, plan_id, last_number)`** : dernier numéro attribué. Le
+  trigger `plan_markers_before_insert` (`security definer`) prend le suivant par
+  `insert … on conflict do update … returning` (verrou de ligne : deux insertions simultanées ont
+  des numéros distincts) ; un numéro fourni explicitement relève seulement le compteur. Le
+  numéro d'un repère est ensuite immuable. Table sans aucun droit pour `authenticated`.
+- **`reports`** : `upload_status` (`pending` par défaut, `ready`), `number` (rang dans la
+  visite, unique, attribué par `reports_before_insert` sous verrou consultatif), `file_name`
+  (`private.report_file_name` : `RONDE_{code site}_{date}_{n}.pdf`), `is_draft` (visite non
+  terminée à l'insertion), `page_count`. Lecture : rapports `ready`, plus ses propres `pending`.
+  Mise à jour : par l'auteur seulement, de `pending` à `ready` avec la taille et le nombre de
+  pages (privilèges de colonnes + trigger `reports_before_update`) ; un rapport `ready` est figé.
+  Audit `report.generated` au passage à `ready`.
+- `private.purge_stale_pending_reports(interval)` (service_role) : supprime les rapports
+  `pending` de plus de 24 h et renvoie leurs chemins.
+- `visit_summaries` : `last_report_at` et la nouvelle colonne `last_report_id` ne lisent que les
+  rapports `ready`.
+
 ## Rôle de connexion et journal d'audit (migration 13)
 
 `private.audit` est exécutable par `service_role` : `withSystem` (session, comptes, import)
