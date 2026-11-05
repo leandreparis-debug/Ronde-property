@@ -245,24 +245,3 @@ export const planMarkerSchema = planMarkerInputSchema.extend({
   createdBy: uuid.nullable(),
 });
 export type PlanMarker = z.infer<typeof planMarkerSchema>;
-
-/** Options chosen when generating a PDF report. */
-export const reportOptionsSchema = z.object({
-  sections: z.array(z.string().min(1)).default([]),
-  coverPhotoId: uuid.nullable().default(null),
-  photosPerPage: z.number().int().min(1).max(6).default(2),
-  quality: z.enum(["standard", "high"]).default("standard"),
-});
-export type ReportOptions = z.infer<typeof reportOptionsSchema>;
-
-/** Generated report, never modified. */
-export const reportSchema = z.object({
-  id: uuid,
-  visitId: uuid,
-  storagePath: z.string().min(1),
-  sizeBytes: z.number().int().positive().nullable(),
-  options: reportOptionsSchema,
-  generatedBy: uuid.nullable(),
-  generatedAt: isoDateTime,
-});
-export type Report = z.infer<typeof reportSchema>;

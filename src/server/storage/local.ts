@@ -6,6 +6,8 @@ import { buildLocalUrl } from "./local-signing";
 import { assertSafeObjectPath } from "./object-path";
 import {
   type SignedUpload,
+  DOWNLOAD_NAME_PATTERN,
+  type SignedReadOptions,
   type SignedUploadOptions,
   type StorageBucket,
   StorageError,
@@ -72,10 +74,11 @@ export class LocalStorageService implements StorageService {
     bucket: StorageBucket,
     objectPath: string,
     expiresInSeconds: number,
+    options: SignedReadOptions = {},
   ): Promise<string> {
     assertSafeObjectPath(objectPath);
     const expires = Math.floor(this.now().getTime() / 1000) + expiresInSeconds;
-    return buildLocalUrl(this.secret, {
+    const url = buildLocalUrl(this.secret, {
       method: "GET",
       bucket,
       path: objectPath,
@@ -83,6 +86,10 @@ export class LocalStorageService implements StorageService {
       maxBytes: 0,
       contentType: "",
     });
+    // The download name only changes a response header: checked by pattern, not signed.
+    return options.downloadName && DOWNLOAD_NAME_PATTERN.test(options.downloadName)
+      ? `${url}&dl=${encodeURIComponent(options.downloadName)}`
+      : url;
   }
 
   async createSignedReads(

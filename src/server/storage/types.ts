@@ -33,6 +33,15 @@ export interface StorageObjectInfo {
   contentType: string;
 }
 
+/** Options of a signed read URL. */
+export interface SignedReadOptions {
+  /** File name proposed when saving (letters, digits, `_`, `-`, `.` only). */
+  downloadName?: string;
+}
+
+/** Pattern of a download name accepted by every backend. */
+export const DOWNLOAD_NAME_PATTERN = /^[A-Za-z0-9_.-]{1,120}$/;
+
 /**
  * File storage behind the private buckets, selected by `STORAGE_PROVIDER`.
  *
@@ -48,8 +57,16 @@ export interface StorageService {
     path: string,
     options: SignedUploadOptions,
   ): Promise<SignedUpload>;
-  /** Signed read URL valid for `expiresInSeconds`. */
-  createSignedRead(bucket: StorageBucket, path: string, expiresInSeconds: number): Promise<string>;
+  /**
+   * Signed read URL valid for `expiresInSeconds`. `downloadName` makes the browser save the
+   * object under that name (`Content-Disposition: attachment`).
+   */
+  createSignedRead(
+    bucket: StorageBucket,
+    path: string,
+    expiresInSeconds: number,
+    options?: SignedReadOptions,
+  ): Promise<string>;
   /** Signed read URLs in one call, keyed by path. Missing objects are left out. */
   createSignedReads(
     bucket: StorageBucket,

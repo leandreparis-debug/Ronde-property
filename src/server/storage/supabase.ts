@@ -8,6 +8,8 @@ import { createAdminSupabaseClient } from "@/server/supabase/admin";
 
 import { assertSafeObjectPath } from "./object-path";
 import {
+  DOWNLOAD_NAME_PATTERN,
+  type SignedReadOptions,
   type SignedUpload,
   type SignedUploadOptions,
   type StorageBucket,
@@ -55,11 +57,16 @@ export class SupabaseStorageService implements StorageService {
     bucket: StorageBucket,
     path: string,
     expiresInSeconds: number,
+    options: SignedReadOptions = {},
   ): Promise<string> {
     assertSafeObjectPath(path);
+    const download =
+      options.downloadName && DOWNLOAD_NAME_PATTERN.test(options.downloadName)
+        ? { download: options.downloadName }
+        : undefined;
     const { data, error } = await this.client.storage
       .from(bucket)
-      .createSignedUrl(path, expiresInSeconds);
+      .createSignedUrl(path, expiresInSeconds, download);
     if (error || !data) throw fail("storage.signed_read", error);
     return data.signedUrl;
   }

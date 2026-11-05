@@ -1,7 +1,7 @@
 import type { LocalStorageService } from "./local";
 import { type SignedMethod, verifyLocalUrl } from "./local-signing";
 import { isSafeObjectPath } from "./object-path";
-import { isStorageBucket, type StorageBucket } from "./types";
+import { DOWNLOAD_NAME_PATTERN, isStorageBucket, type StorageBucket } from "./types";
 
 /** Parsed target of a local storage request. */
 export interface LocalTarget {
@@ -68,14 +68,16 @@ export async function serveLocalStorage(
   if (method === "GET") {
     const object = await service.read(target.bucket, target.path);
     if (!object) return text(404, "Fichier introuvable.");
-    return new Response(object.body as BodyInit, {
-      status: 200,
-      headers: {
-        "Content-Type": object.contentType,
-        "Content-Length": String(object.body.byteLength),
-        "Cache-Control": "private, max-age=600",
-      },
-    });
+    const headers: Record<string, string> = {
+      "Content-Type": object.contentType,
+      "Content-Length": String(object.body.byteLength),
+      "Cache-Control": "private, max-age=600",
+    };
+    const downloadName = url.searchParams.get("dl");
+    if (downloadName && DOWNLOAD_NAME_PATTERN.test(downloadName)) {
+      headers["Content-Disposition"] = `attachment; filename="${downloadName}"`;
+    }
+    return new Response(object.body as BodyInit, { status: 200, headers });
   }
 
   if (mediaType(request.headers.get("content-type")) !== verdict.contentType) {
