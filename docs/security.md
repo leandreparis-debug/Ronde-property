@@ -94,9 +94,13 @@ La matrice des droits par rôle reste dans `supabase/tests/matrix.test.ts`.
   par Next.js 15.5.28, sont corrigées par `pnpm.overrides` (`package.json`) : à retirer quand
   une version de Next.js les embarque.
 - **Dependabot** (`.github/dependabot.yml`) : npm et GitHub Actions, chaque lundi, versions
-  exactes conservées, **aucune fusion automatique**.
+  exactes conservées, **aucune fusion automatique**. Son outil de mise à jour tourne sous
+  Node 24 : `engines.node` accepte donc `>=22 <25`, la CI et le poste de développement restant
+  en Node 22.
 - **gitleaks** (job _Secret scan_ de la CI) sur tout l'historique, résultats masqués ;
-  exceptions limitées aux secrets fictifs de test (`.gitleaks.toml`).
+  exceptions limitées aux secrets fictifs de test (`.gitleaks.toml`) et aux faux positifs
+  vérifiés un par un (`.gitleaksignore`, par empreinte : l'alphabet des mots de passe
+  provisoires).
 - **`.gitignore`** ignore tout `.env*` sauf `.env.example` ; `tests/repo/secrets-hygiene.test.ts`
   le vérifie, ainsi qu'aucun fichier `.env` suivi et aucune vraie clé dans l'exemple.
 
