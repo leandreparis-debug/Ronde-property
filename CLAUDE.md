@@ -58,6 +58,7 @@ déploiement.
 docs/decisions.md          journal des décisions d'architecture
 docs/deploy.md             environnements (local, preview, production), migrations distantes appliquées par Léandre
 docs/design-system.md      règles de la direction artistique
+docs/pwa.md                application installable (manifeste, icônes, hors connexion)
 e2e/                       tests Playwright
 src/app/                   App Router (layout, globals.css, icon.svg, (app)/, design/, not-found)
 src/components/brand/      Galet, Logo, Trail
@@ -89,6 +90,7 @@ supabase/migrations/       migrations SQL horodatées (jamais modifiées après 
 supabase/seed.sql          données fictives pour la base locale / de test uniquement
 supabase/tests/            bootstrap.sql (émulation Supabase pour ronde_test) et tests de la base
 scripts/db/                reset.mjs, gen-types.mjs
+scripts/brand/             generate-icons.mjs (icônes PWA, écrans de démarrage iOS)
 tests/                     tests Vitest (miroir de src/)
 ```
 

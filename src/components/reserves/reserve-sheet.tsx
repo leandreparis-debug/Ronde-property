@@ -23,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useUploadQueue } from "@/components/visits/photos/upload-queue-provider";
 import { cn } from "@/lib/cn";
 import { formatDate, todayInParis } from "@/lib/format";
+import { reachServer } from "@/lib/network";
 import { applyDueShortcut, DUE_SHORTCUTS, isPastDate } from "@/lib/reserves/dates";
 import {
   emptyReserveForm,
@@ -213,11 +214,9 @@ export function ReserveSheet({
   async function persist(values: ReserveFormValues, again: boolean, expectedVersion = version) {
     setServerError(null);
     if (editing) {
-      const result = await updateReserveAction({
-        reserveId: editing.id,
-        version: expectedVersion,
-        values,
-      });
+      const result = await reachServer(() =>
+        updateReserveAction({ reserveId: editing.id, version: expectedVersion, values }),
+      );
       if (result.ok) {
         setConflict(null);
         setVersion(result.reserve.version);
@@ -231,7 +230,7 @@ export function ReserveSheet({
       applyServerErrors(result);
       return;
     }
-    const result = await createReserveAction({ visitId, values });
+    const result = await reachServer(() => createReserveAction({ visitId, values }));
     if (!result.ok) {
       applyServerErrors(result);
       return;

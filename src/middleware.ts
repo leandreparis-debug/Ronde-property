@@ -9,7 +9,7 @@ import { hasLocalSession, hasSupabaseSession } from "@/server/auth/edge-session"
  * only barrier.
  */
 
-const PUBLIC_PATHS = ["/connexion", "/design"];
+const PUBLIC_PATHS = ["/connexion", "/design", "/hors-ligne"];
 
 function isPublic(pathname: string): boolean {
   return PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));

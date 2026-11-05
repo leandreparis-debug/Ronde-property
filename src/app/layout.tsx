@@ -2,7 +2,9 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import type { ReactNode } from "react";
 
+import { BRAND_COLORS } from "@/lib/brand-colors";
 import { env } from "@/lib/env";
+import { startupImages } from "@/lib/pwa";
 
 import "./globals.css";
 
@@ -44,13 +46,21 @@ export const metadata: Metadata = {
   },
   applicationName: env.NEXT_PUBLIC_APP_NAME,
   description: "Visites de site des Responsables Techniques de Carrefour Property.",
+  // Installed on an iPad home screen: full screen, light status bar, splash screens.
+  appleWebApp: {
+    capable: true,
+    title: env.NEXT_PUBLIC_APP_NAME,
+    statusBarStyle: "default",
+    startupImage: startupImages(),
+  },
+  formatDetection: { telephone: false },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#F6F6F4",
+  themeColor: BRAND_COLORS.craie,
 };
 
 /**

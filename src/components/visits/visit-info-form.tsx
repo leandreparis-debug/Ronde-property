@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDateTime } from "@/lib/format";
+import { reachServer } from "@/lib/network";
 import { saveVisitAction } from "@/server/actions/visit-actions";
 import { VISIT_TYPES, type VisitReason, type VisitType } from "@/server/domain/enums";
 import { VISIT_REASON_LABELS, VISIT_TYPE_LABELS } from "@/server/domain/labels";
@@ -86,21 +87,21 @@ export function VisitInfoForm({ visit, writers }: VisitInfoFormProps) {
       }
       inFlight.current = true;
       setStatus({ kind: "saving" });
-      const result = await saveVisitAction({ id: visit.id, version, patch });
+      const result = await reachServer(() => saveVisitAction({ id: visit.id, version, patch }));
       inFlight.current = false;
       if (result.ok && result.version) {
         lastSaved.current = serialized;
         advance(result.version);
         setFieldErrors({});
         setStatus({ kind: "saved", at: result.savedAt ?? new Date().toISOString() });
-      } else if (result.conflict) {
+      } else if ("conflict" in result && result.conflict) {
         setConflict(
           result.error ??
             "Cette visite a été modifiée entre-temps. Rechargez pour voir la dernière version.",
         );
         setStatus({ kind: "idle" });
       } else {
-        setFieldErrors(result.fields ?? {});
+        setFieldErrors(("fields" in result && result.fields) || {});
         setStatus({ kind: "error", message: result.error ?? "Erreur, réessayer" });
       }
       if (pending.current) {

@@ -5,6 +5,7 @@ import type { CurrentUser } from "@/server/auth/types";
 
 import { BottomNav } from "./bottom-nav";
 import { FlashToast } from "./flash-toast";
+import { OfflineBanner } from "./offline-banner";
 import { SideNav } from "./side-nav";
 import { TopBar } from "./top-bar";
 
@@ -22,6 +23,7 @@ export function AppShell({ user, children }: { user: CurrentUser; children: Reac
         <SideNav user={user} />
         <TopBar user={user} />
         <div className="lg:pl-sidenav">
+          <OfflineBanner />
           <main
             id="main"
             className="mx-auto w-full max-w-content px-4 pb-[calc(var(--spacing-bottomnav)+env(safe-area-inset-bottom,0px)+1.5rem)] md:px-6 lg:pb-10"
