@@ -9,6 +9,7 @@ import {
   parseReserveFilters,
   plural,
   reserveIncompleteCounts,
+  zoneReservesLabel,
   sortReserves,
   writeReserveFilters,
 } from "@/lib/reserves/list";
@@ -144,5 +145,15 @@ describe("reserveIncompleteCounts", () => {
       withoutDueDate: 1,
       urgentWithoutPhoto: 1,
     });
+  });
+});
+
+describe("zoneReservesLabel", () => {
+  it("counts the open reserves, or the done ones when all are done", () => {
+    expect(zoneReservesLabel({ open: 2, done: 1 })).toBe("2 réserves ouvertes");
+    expect(zoneReservesLabel({ open: 1, done: 0 })).toBe("1 réserve ouverte");
+    expect(zoneReservesLabel({ open: 0, done: 3 })).toBe("3 levées");
+    expect(zoneReservesLabel({ open: 0, done: 1 })).toBe("1 levée");
+    expect(zoneReservesLabel({ open: 0, done: 0 })).toBeNull();
   });
 });

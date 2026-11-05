@@ -47,8 +47,8 @@ export interface NotesTabProps {
   userId: string;
   /** Ready photos of the visit, for the per-zone counter and strip. */
   photos: PhotoView[];
-  /** Reserves (not deleted) per zone key, for « N réserves » and « + Réserve ». */
-  reservesByZone?: Record<string, number>;
+  /** Reserves (not deleted) per zone key, open and done, for the zone counter and « + Réserve ». */
+  reservesByZone?: Record<string, { open: number; done: number }>;
 }
 
 const IDLE: NoteSaveStatus = { kind: "idle" };
@@ -375,7 +375,7 @@ export function NotesTab({
             />
             <ZoneReserves
               zoneKey={selected.zoneKey}
-              count={reservesByZone[selected.zoneKey] ?? 0}
+              counts={reservesByZone[selected.zoneKey] ?? { open: 0, done: 0 }}
               canEdit={canEdit}
             />
           </div>

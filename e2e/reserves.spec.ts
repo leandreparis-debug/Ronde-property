@@ -386,7 +386,7 @@ test.describe("Alice", () => {
     await page.getByTestId("reserve-save").click();
     await expect(card(page, "Changer le joint du sas du quai 2")).toContainText("Quais");
     await page.goto(`${visitUrl}?onglet=notes&zone=docks`);
-    await expect(page.getByTestId("zone-reserves-link")).toHaveText("1 réserve");
+    await expect(page.getByTestId("zone-reserves-link")).toHaveText("1 réserve ouverte");
     await page.goto(visitUrl);
     await expect(page.getByTestId("incomplete-points")).toContainText("réserves sans responsable");
     await expect(page.getByTestId("incomplete-points")).toContainText("sans échéance");

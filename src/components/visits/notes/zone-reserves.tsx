@@ -1,23 +1,26 @@
 import { Plus, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 
+import { type ZoneReserveCounts, zoneReservesLabel } from "@/lib/reserves/list";
 import { newReserveHref } from "@/lib/reserves/links";
 import { Button } from "@/components/ui/button";
 
 /**
- * Reserves of one zone under the notes editor: « N réserves » (link to the Reserves tab
- * filtered on the zone, done reserves shown) and « + Réserve » (sheet with the zone prefilled).
+ * Reserves of one zone under the notes editor: « 2 réserves ouvertes » (or « 3 levées » when
+ * all are done), linked to the Reserves tab filtered on the zone with the default filters, and
+ * « + Réserve » (sheet with the zone prefilled).
  */
 export function ZoneReserves({
   zoneKey,
-  count,
+  counts,
   canEdit,
 }: {
   zoneKey: string;
-  count: number;
+  counts: ZoneReserveCounts;
   canEdit: boolean;
 }) {
-  const listHref = `?${new URLSearchParams({ onglet: "reserves", zone: zoneKey, levees: "afficher" }).toString()}`;
+  const label = zoneReservesLabel(counts);
+  const listHref = `?${new URLSearchParams({ onglet: "reserves", zone: zoneKey }).toString()}`;
   return (
     <section
       aria-label="Réserves de la zone"
@@ -26,14 +29,14 @@ export function ZoneReserves({
     >
       <p className="inline-flex min-h-11 items-center gap-2 text-ui font-semibold text-ink">
         <TriangleAlert className="size-5 text-ink-2" aria-hidden="true" />
-        {count > 0 ? (
+        {label ? (
           <Link
             href={listHref}
             scroll={false}
             className="inline-flex min-h-11 items-center text-brand-deep underline"
             data-testid="zone-reserves-link"
           >
-            {count} réserve{count > 1 ? "s" : ""}
+            {label}
           </Link>
         ) : (
           <span className="text-ink-2" data-testid="zone-reserves-link">

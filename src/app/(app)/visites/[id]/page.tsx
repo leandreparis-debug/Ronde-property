@@ -71,10 +71,12 @@ export default async function VisitPage({
     (marker) => !marker.reserve && (!marker.photoId || !readyPhotoIds.has(marker.photoId)),
   ).length;
   const reserveCounts = reserveIncompleteCounts(reserves);
-  const reservesByZone: Record<string, number> = {};
+  const reservesByZone: Record<string, { open: number; done: number }> = {};
   for (const reserve of reserves) {
-    if (reserve.zoneKey)
-      reservesByZone[reserve.zoneKey] = (reservesByZone[reserve.zoneKey] ?? 0) + 1;
+    if (!reserve.zoneKey) continue;
+    const counts = (reservesByZone[reserve.zoneKey] ??= { open: 0, done: 0 });
+    if (reserve.status === "done") counts.done += 1;
+    else counts.open += 1;
   }
   const reservesByPhoto = await reservesByPhotoIds(photos.map((photo) => photo.id));
   const planNames = new Map(plans.map((plan) => [plan.id, plan.name]));

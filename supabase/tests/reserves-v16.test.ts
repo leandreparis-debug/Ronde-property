@@ -293,7 +293,13 @@ describe("reserves_with_state (migration 16)", () => {
       const byId = new Map(rows.map((r) => [r.id, r]));
       const overdue = byId.get(RESERVES.r4Overdue)!;
       expect(overdue.is_overdue).toBe(true);
-      expect(overdue.days_overdue).toBe(15);
+      // The seed sets the due date 15 days before the reset day: compare with today in Paris.
+      const { rows: expected } = await client.query<{ days: number }>(
+        "select ((now() at time zone 'Europe/Paris')::date - due_date)::int as days from public.reserves where id = $1",
+        [RESERVES.r4Overdue],
+      );
+      expect(overdue.days_overdue).toBe(expected[0]!.days);
+      expect(overdue.days_overdue).toBeGreaterThanOrEqual(15);
       expect(overdue.responsible_display_name).toBe("Alice Fictive");
       expect(overdue.responsible_is_active).toBe(true);
       expect(overdue.marker_plan_id).toBe(PLAN_LYON);

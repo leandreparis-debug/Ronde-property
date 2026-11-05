@@ -212,6 +212,24 @@ export function reserveIncompleteCounts(
   };
 }
 
+/** Reserves of one zone, not deleted: not done and done. */
+export interface ZoneReserveCounts {
+  open: number;
+  done: number;
+}
+
+/**
+ * Label of the reserves of a zone in the Notes tab: « 2 réserves ouvertes » while some are not
+ * done, « 3 levées » when all are done, `null` when the zone has none.
+ */
+export function zoneReservesLabel(counts: ZoneReserveCounts): string | null {
+  if (counts.open > 0) {
+    return counts.open > 1 ? `${counts.open} réserves ouvertes` : "1 réserve ouverte";
+  }
+  if (counts.done > 0) return counts.done > 1 ? `${counts.done} levées` : "1 levée";
+  return null;
+}
+
 /** Plural helper for the counters (« 1 ouverte », « 3 ouvertes »). */
 export function plural(count: number, singular: string, pluralForm = `${singular}s`): string {
   return `${count} ${count > 1 ? pluralForm : singular}`;
