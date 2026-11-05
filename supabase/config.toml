@@ -65,8 +65,9 @@ enabled = true
 schema_paths = []
 
 [db.seed]
+# RONDE : la seed fictive ne sert qu'à ronde_test (pnpm db:reset) ; jamais par la CLI Supabase.
 # If enabled, seeds the database after migrations during a db reset.
-enabled = true
+enabled = false
 # Specifies an ordered list of seed files to load during db reset.
 # Supports glob patterns relative to supabase directory: "./seeds/*.sql"
 sql_paths = ["./seed.sql"]

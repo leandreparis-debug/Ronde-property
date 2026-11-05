@@ -49,6 +49,7 @@ déploiement.
 | `pnpm test:e2e`           | tests Playwright sur un build de production (Chromium)                             |
 | `pnpm test:acceptance`    | recette phase 1 (critères C1 à C6, `e2e/acceptance/`), rapport HTML                |
 | `pnpm verify`             | lint → format:check → typecheck → test → build                                     |
+| `pnpm test:contract`      | contrats `supabase` contre le projet de **test** (Léandre uniquement, gardes)      |
 | `pnpm db:migrations:list` | migrations du dépôt avec leur empreinte, à comparer avec `supabase migration list` |
 
 ## Arborescence
@@ -57,6 +58,9 @@ déploiement.
 .github/workflows/ci.yml   CI : verify puis test:e2e
 docs/decisions.md          journal des décisions d'architecture
 docs/deploy.md             environnements (local, preview, production), migrations distantes appliquées par Léandre
+docs/go-live.md            liste de contrôle de la mise en production (12 lignes, pour Léandre)
+docs/migration-serveur-interne.md  passage de Vercel + Supabase au serveur interne (V2)
+docs/reprise.md            reprise du projet par un autre développeur (architecture, règles expliquées)
 docs/design-system.md      règles de la direction artistique
 docs/pwa.md                application installable (manifeste, icônes, hors connexion)
 docs/security.md           en-têtes et CSP, sessions et révocation, audit RLS, dépendances, secrets, journaux
@@ -99,7 +103,7 @@ supabase/tests/            bootstrap.sql (émulation Supabase pour ronde_test) e
 scripts/db/                reset.mjs, gen-types.mjs
 scripts/brand/             generate-icons.mjs (icônes PWA, écrans de démarrage iOS)
 scripts/docs/              capture-guides.mjs (captures des guides, données fictives)
-scripts/ops/               scripts d'exploitation pour Léandre (garde de cible, simulation par défaut, confirmation saisie)
+scripts/ops/               scripts d'exploitation pour Léandre : purge-demo-data, clear-external-emails, test-contract, storage-estimate (garde de cible, simulation par défaut, confirmation saisie)
 tests/                     tests Vitest (miroir de src/)
 ```
 

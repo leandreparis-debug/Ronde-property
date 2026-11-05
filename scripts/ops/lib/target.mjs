@@ -5,7 +5,8 @@
  * on the command line:
  *   --project-ref <ref>  a Supabase project: DATABASE_URL must point to that project (host
  *                        `db.<ref>.supabase.co`, or the pooler with the user `postgres.<ref>`);
- *   --local              the local test database only (`ronde_test` on localhost).
+ *   --local              the local test database only (`ronde_test` on localhost, or one of its
+ *                        copies `ronde_test_<suffix>` made by the tests).
  * Writing (`--apply`) then requires the operator to type the confirmation phrase.
  */
 import { createInterface } from "node:readline/promises";
@@ -61,12 +62,12 @@ export function resolveTarget(args, databaseUrl) {
   }
   if (args.local) {
     const database = url.pathname.replace(/^\//, "");
-    if (!LOCAL_HOSTS.has(url.hostname) || database !== "ronde_test") {
+    if (!LOCAL_HOSTS.has(url.hostname) || !/^ronde_test(_[a-z0-9_]+)?$/.test(database)) {
       throw new Error(
         `--local n'accepte que la base ronde_test sur localhost (cible actuelle : ${url.hostname}/${database}).`,
       );
     }
-    return { kind: "local", label: "base locale ronde_test", confirmation: "ronde_test" };
+    return { kind: "local", label: `base locale ${database}`, confirmation: database };
   }
   const expected = args["project-ref"];
   if (typeof expected !== "string" || !/^[a-z0-9]{20}$/.test(expected)) {

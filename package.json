@@ -27,7 +27,8 @@
     "db:types": "node scripts/db/gen-types.mjs",
     "test:db": "vitest run --config vitest.db.config.mts",
     "db:codegen": "node scripts/db/codegen.mjs",
-    "test:acceptance": "playwright test --config playwright.acceptance.config.ts"
+    "test:acceptance": "playwright test --config playwright.acceptance.config.ts",
+    "test:contract": "node scripts/ops/test-contract.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "5.9.1",

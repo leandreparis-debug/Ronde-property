@@ -6,6 +6,17 @@
 
 begin;
 
+-- Garde : la seed ne s'applique qu'à la base locale ronde_test. Une base Supabase s'appelle
+-- « postgres » : même `supabase db push --include-seed` (à ne jamais utiliser) échouerait ici.
+do $$
+begin
+  if current_database() <> 'ronde_test' then
+    raise exception 'RONDE : la seed fictive ne s''applique qu''à la base locale ronde_test (base actuelle : %).',
+      current_database();
+  end if;
+end
+$$;
+
 -- ---------------------------------------------------------------------------
 -- Utilisateurs (auth.users + profiles). Emails en @example.test, UUID fixes.
 -- ---------------------------------------------------------------------------

@@ -46,15 +46,16 @@ migration pas encore appliquée.
 
 ## 2. Variables par environnement dans Vercel
 
-| Variable                        | Production                              | Preview                                  | Exposée au navigateur ? |
-| ------------------------------- | --------------------------------------- | ---------------------------------------- | ----------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`      | URL du projet de production             | URL du projet de **test**                | oui                     |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | clé anon / publishable de production    | clé anon / publishable du projet de test | oui                     |
-| `SUPABASE_SERVICE_ROLE_KEY`     | clé service_role de production          | clé service_role du projet de test       | **non**                 |
-| `DATABASE_URL`                  | pooler transaction (6543) du rôle dédié | pooler transaction du projet de test     | **non**                 |
-| `DATABASE_POOL_MAX`             | `5`                                     | `5`                                      | non                     |
-| `AUTH_PROVIDER`                 | `supabase` (ou absente)                 | `supabase` (ou absente)                  | non                     |
-| `STORAGE_PROVIDER`              | `supabase` (ou absente)                 | `supabase` (ou absente)                  | non                     |
+| Variable                        | Production                                | Preview                                                      | Exposée au navigateur ? |
+| ------------------------------- | ----------------------------------------- | ------------------------------------------------------------ | ----------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | URL du projet de production               | URL du projet de **test**                                    | oui                     |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | clé anon / publishable de production      | clé anon / publishable du projet de test                     | oui                     |
+| `SUPABASE_SERVICE_ROLE_KEY`     | clé service_role de production            | clé service_role du projet de test                           | **non**                 |
+| `DATABASE_URL`                  | pooler transaction (6543) du rôle dédié   | pooler transaction du projet de test                         | **non**                 |
+| `DATABASE_POOL_MAX`             | `5`                                       | `5`                                                          | non                     |
+| `AUTH_PROVIDER`                 | `supabase` (ou absente)                   | `supabase` (ou absente)                                      | non                     |
+| `STORAGE_PROVIDER`              | `supabase` (ou absente)                   | `supabase` (ou absente)                                      | non                     |
+| `CRON_SECRET`                   | 48 caractères aléatoires (`docs/cron.md`) | inutile (les tâches planifiées ne tournent qu'en production) | **non**                 |
 
 À ne **jamais** définir dans Vercel, quel que soit l'environnement : `ALLOW_LOCAL_AUTH`,
 `LOCAL_AUTH_SECRET`, `ALLOW_LOCAL_STORAGE`, `LOCAL_STORAGE_SECRET`, `LOCAL_STORAGE_DIR`. Les
@@ -102,13 +103,16 @@ Depuis le PC Windows, avec la CLI Supabase (`pnpm exec supabase --version`) :
    **Vercel → Deployments → Promote** sur le déploiement précédent remet le code d'avant ; les
    migrations, elles, ne se retirent pas : écrivez-en une nouvelle (règle 8 de `CLAUDE.md`).
 
-### Migrations à appliquer par Léandre (état au 04/11/2026)
+### Migrations à appliquer par Léandre (état au 05/11/2026)
 
-| Version          | Fichier                                                 | Contenu                                                                                                                                    | Test    | Production |
-| ---------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------- | ---------- |
-| `20261104090000` | `20261104090000_site_plan_pages_and_marker_checks.sql`  | migration 15 : pages de plans, statut d'envoi, contrôles des repères, purge                                                                | à faire | à faire    |
-| `20261105090000` | `20261105090000_marker_counters_and_report_uploads.sql` | migration 17 : compteur des repères, rapports `pending` → `ready` (numéro, nom, brouillon, pages), purge, `visit_summaries.last_report_id` | à faire | à faire    |
-| `20261104120000` | `20261104120000_reserves_version_markers_and_state.sql` | migration 16 : version des réserves, responsable facultatif, repère de réserve, contrôle des photos, vue enrichie, index                   | à faire | à faire    |
+| Version          | Fichier                                                     | Contenu                                                                                                                                    | Test    | Production |
+| ---------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------- | ---------- |
+| `20261104090000` | `20261104090000_site_plan_pages_and_marker_checks.sql`      | migration 15 : pages de plans, statut d'envoi, contrôles des repères, purge                                                                | à faire | à faire    |
+| `20261105090000` | `20261105090000_marker_counters_and_report_uploads.sql`     | migration 17 : compteur des repères, rapports `pending` → `ready` (numéro, nom, brouillon, pages), purge, `visit_summaries.last_report_id` | à faire | à faire    |
+| `20261104120000` | `20261104120000_reserves_version_markers_and_state.sql`     | migration 16 : version des réserves, responsable facultatif, repère de réserve, contrôle des photos, vue enrichie, index                   | à faire | à faire    |
+| `20261105150000` | `20261105150000_profile_sessions_revoked_at.sql`            | migration 18 : `profiles.sessions_revoked_at` (déconnexion de toutes les sessions, désactivation), vues en lecture seule, rien pour `anon` | à faire | à faire    |
+| `20261105160000` | `20261105160000_rgpd_anonymization_and_external_emails.sql` | migration 19 : e-mail externe jamais dans l'historique, `anonymize_profile`, `clear_external_responsible_emails`                           | à faire | à faire    |
+| `20261105170000` | `20261105170000_feedback.sql`                               | migration 20 : table `feedback` (« Donner mon avis »), RLS insertion par l'auteur actif, lecture admin                                     | à faire | à faire    |
 
 Vérifiez les versions exactes avec `pnpm db:migrations:list` avant `db push`. La migration 16
 recrée la vue `reserves_with_state` (mêmes colonnes qu'avant plus les nouvelles) et ajoute
@@ -136,28 +140,34 @@ placer un nouveau : le numéro n'est pas réutilisé.
       version manquante.
 - [ ] Variables Vercel de production complètes (tableau ci-dessus), aucune variable `LOCAL_*`.
 - [ ] Fusion dans `main`, déploiement « Ready », vérification manuelle.
-- [ ] Aucune donnée fictive importée en production (sites de test, comptes `example.test`).
+- [ ] Aucune donnée fictive en production (sites `TEST-…`, comptes `example.test`) :
+      `scripts/ops/purge-demo-data.mjs` (`docs/go-live.md`, ligne 6).
+- [ ] `CRON_SECRET` défini en production ; la tâche apparaît dans Vercel → Cron Jobs.
 
-## 5. Suite de contrat `supabase` (authentification et stockage)
+## 5. Suite de contrat `supabase` (`pnpm test:contract`)
 
-Les suites de contrat tournent en permanence sur les fournisseurs `local` et, **uniquement
-contre le projet de test**, sur les fournisseurs `supabase`. Jamais contre la production.
+Les suites de contrat tournent en permanence sur les fournisseurs `local` (`pnpm test:db`,
+`pnpm test`) et, **uniquement contre le projet de test**, sur les fournisseurs `supabase` avec
+`pnpm test:contract` (`scripts/ops/test-contract.mjs`). Pas à pas : `docs/go-live.md`, ligne 3.
 
-```bash
-SUPABASE_TEST_URL=https://<ref-test>.supabase.co \
-SUPABASE_TEST_ANON_KEY=<anon-du-projet-de-test> \
-SUPABASE_TEST_SERVICE_ROLE_KEY=<service-role-du-projet-de-test> \
-pnpm vitest run --config vitest.db.config.mts tests/integration/auth-contract.test.ts
+La commande **refuse** de s'exécuter :
 
-SUPABASE_TEST_URL=https://<ref-test>.supabase.co \
-SUPABASE_TEST_SERVICE_ROLE_KEY=<service-role-du-projet-de-test> \
-pnpm test tests/server/storage/contract.test.ts
-```
+- sans `RONDE_CONTRACT_TARGET=test` ;
+- s'il manque `SUPABASE_TEST_URL`, `SUPABASE_TEST_ANON_KEY`, `SUPABASE_TEST_SERVICE_ROLE_KEY`
+  ou `DATABASE_URL` ;
+- si `DATABASE_URL` et `SUPABASE_TEST_URL` visent deux projets différents ;
+- si le projet visé est `SUPABASE_PROD_PROJECT_REF` (à définir avec l'identifiant de la
+  production pour que la garde la reconnaisse).
 
-Sous PowerShell, définissez les variables avec `$env:SUPABASE_TEST_URL = "…"` avant la
-commande. La suite de stockage écrit puis efface un objet `contract-…/photo.jpg` dans le bucket
-`visit-photos` du projet de test ; la suite d'authentification crée des comptes fictifs et les
-désactive.
+Elle nettoie ce qu'elle crée : les comptes du contrat sont désactivés puis anonymisés (un
+profil ne se supprime jamais, règle 22), l'objet `contract-…/photo.jpg` du bucket
+`visit-photos` est supprimé.
+
+## 5 bis. Tâches planifiées
+
+`vercel.json` déclare la purge nocturne `/api/cron/purge` (2 h UTC, soit 3 h à Paris en hiver).
+Elle exige `CRON_SECRET` en production (`docs/cron.md`) ; sans lui, la route répond 401 et rien
+n'est purgé (les purges opportunistes des onglets continuent).
 
 ## 6. Accès de Claude Code
 

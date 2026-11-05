@@ -556,3 +556,69 @@ Caveat 700 en woff2 (latin et latin étendu), avec leurs licences OFL.
 sans accès à Internet, ne pourrait pas construire l'application. Les fichiers reprennent les
 mêmes instances que celles servies par Google : les captures avant et après sont identiques au
 pixel près (`/design`, une visite, `/connexion`).
+
+## 2026-11-05 — Installable, sans travail hors ligne (étape 11)
+
+**Décision.** RONDE est une application installable (manifeste, icônes, écrans de démarrage
+iOS) **sans service worker** : rien n'est mis en cache par l'application. Un bandeau dit ce qui se
+passe pendant une coupure, au plus près du comportement réel des files (notes réessayées sans
+limite, photos trois fois), et `/hors-ligne` l'explique.
+
+**Motivation.** Chrome n'exige plus de service worker pour proposer l'installation (vérifié par
+`Page.getInstallabilityErrors` en e2e). Un service worker de cache sans file persistante aurait
+donné l'illusion d'un mode hors ligne qui perd des saisies : le vrai hors ligne (IndexedDB,
+synchronisation) est l'objet de l'étape 12 (`docs/pwa.md`).
+
+## 2026-11-05 — CSP à nonce
+
+**Décision.** Le middleware pose une `Content-Security-Policy` avec un nonce neuf par requête
+(`'nonce-…' 'strict-dynamic'`, ni `unsafe-inline` ni `unsafe-eval` pour les scripts) ; chaque
+page est rendue à la requête (`connection()`) pour que Next.js pose le nonce. Les styles gardent
+`'unsafe-inline'`. Zod passe en mode `jitless` dans le navigateur.
+
+**Motivation.** Une liste blanche sans nonce aurait exigé `unsafe-inline` (les scripts d'amorçage
+de Next.js sont en ligne), ce qui annule la protection contre l'injection. Le coût (pas de page
+statique) est nul : toutes les pages dépendent de la session. Chaque test Playwright échoue au
+moindre `securitypolicyviolation`, ce qui a trouvé la sonde `Function("")` de zod.
+
+## 2026-11-05 — Déconnexion de toutes les sessions par date de révocation
+
+**Décision.** `profiles.sessions_revoked_at` (migration 18) ; une session ouverte avant cette date
+est refusée à la requête suivante. L'heure de connexion vient du claim `auth_time` (jeton local)
+ou `amr` (Supabase, conservé au rafraîchissement). La désactivation et la réinitialisation du mot
+de passe posent la date.
+
+**Motivation.** L'API d'administration de Supabase ne déconnecte pas un autre utilisateur sans
+son jeton ; un contrôle commun aux deux fournisseurs, dans la base, marche aussi pour la V2 (SSO).
+
+## 2026-11-05 — Purge planifiée des envois abandonnés
+
+**Décision.** `/api/cron/purge`, appelée chaque nuit par Vercel Cron avec `CRON_SECRET`, purge en
+une transaction `withSystem('cron.purge')` les photos, plans et rapports `pending` de plus de 24 h,
+puis leurs fichiers ; trace `system.purge`. Les purges opportunistes des onglets restent.
+
+**Motivation.** Sans visite des onglets, rien ne purgeait les envois abandonnés. La route
+protégée par un secret, plutôt qu'une fonction de la base (pg_cron), parce que les fichiers se
+suppriment par `StorageService` ; elle se rebranche telle quelle sur un `cron` du serveur
+interne.
+
+## 2026-11-05 — Anonymisation plutôt que suppression
+
+**Décision.** Un compte ne se supprime jamais ; une fois désactivé, il s'anonymise
+(`private.anonymize_profile`, irréversible, double confirmation avec le nom saisi). L'e-mail
+d'un responsable externe est effacé 24 mois après la levée de la réserve (script), et n'entre
+jamais dans l'historique en ajout seul.
+
+**Motivation.** Les visites, réserves et l'audit doivent rester attribués (traçabilité,
+`audit_log` et `reserve_events` en ajout seul) ; l'anonymisation répond au droit à l'effacement
+sans casser l'historique. Le masquage dans `reserve_events` corrige un défaut : l'adresse d'un
+responsable externe y était copiée à chaque modification.
+
+## 2026-11-05 — PDF à la place du Word pour le critère C4
+
+**Décision.** Le critère 4 du cahier des charges (« un rapport conservé dans RONDE ») est tenu par
+le rapport **PDF** de l'étape 10, et non par un document Word.
+
+**Motivation.** Décision de Léandre : un PDF est figé (preuve de l'état à une date), s'affiche à
+l'identique partout, se génère dans le navigateur sans serveur de rendu ni licence, et se
+retélécharge à l'identique (même empreinte, vérifié par la recette C4).

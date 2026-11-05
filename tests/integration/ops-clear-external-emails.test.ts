@@ -18,7 +18,7 @@ describe("scripts/ops/clear-external-emails.mjs", () => {
   it("simulates by default on the local database", () => {
     const { code, out } = run(["--local"]);
     expect(code).toBe(0);
-    expect(out).toContain("Cible : base locale ronde_test");
+    expect(out).toContain("Cible : base locale ronde_test (");
     expect(out).toMatch(/Adresses concernées : \d+\./);
     expect(out).toContain("SIMULATION");
     expect(out).not.toContain("postgres:postgres@");

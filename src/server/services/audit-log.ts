@@ -33,6 +33,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "account.created": "Compte créé",
   "account.password_reset": "Mot de passe réinitialisé",
   "system.purge": "Purge planifiée",
+  "system.demo_purged": "Données de démonstration supprimées",
   "profile.anonymized": "Compte anonymisé",
   "account.exported": "Données du compte exportées",
   "rgpd.external_emails_cleared": "E-mails externes effacés",
