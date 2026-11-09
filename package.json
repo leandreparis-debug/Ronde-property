@@ -74,7 +74,7 @@
     "eslint": "9.39.5",
     "eslint-config-next": "15.5.28",
     "eslint-config-prettier": "10.1.8",
-    "jsdom": "29.1.1",
+    "jsdom": "31.0.0",
     "kysely-codegen": "0.20.0",
     "pdf-lib": "1.17.1",
     "pg": "8.23.1",
