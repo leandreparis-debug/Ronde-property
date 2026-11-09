@@ -72,7 +72,7 @@
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "5.2.0",
     "eslint": "9.39.5",
-    "eslint-config-next": "15.5.28",
+    "eslint-config-next": "16.4.5",
     "eslint-config-prettier": "10.1.8",
     "jsdom": "29.1.1",
     "kysely-codegen": "0.20.0",
