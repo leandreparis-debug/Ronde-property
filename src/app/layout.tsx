@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import { connection } from "next/server";
 import type { ReactNode } from "react";
 
+import { ServiceWorkerRegistration } from "@/components/offline/service-worker";
 import { ZodJitless } from "@/components/zod-jitless";
 import { BRAND_COLORS } from "@/lib/brand-colors";
 import { env } from "@/lib/env";
@@ -76,6 +77,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     <html lang="fr" className={`${sansFont.variable} ${displayFont.variable} ${handFont.variable}`}>
       <body>
         <ZodJitless />
+        <ServiceWorkerRegistration />
         {children}
       </body>
     </html>

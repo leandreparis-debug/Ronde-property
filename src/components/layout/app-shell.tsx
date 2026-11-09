@@ -2,6 +2,7 @@ import { type ReactNode, Suspense } from "react";
 
 import { ArbitrationDialog } from "@/components/offline/arbitration-dialog";
 import { OfflineProvider } from "@/components/offline/offline-provider";
+import { AppUpdatePrompt } from "@/components/offline/service-worker";
 import { SyncPanel } from "@/components/offline/sync-panel";
 import { ToastProvider } from "@/components/ui/toast";
 import type { CurrentUser } from "@/server/auth/types";
@@ -35,6 +36,7 @@ export function AppShell({
           <SideNav user={user} />
           <TopBar user={user} />
           <div className="lg:pl-sidenav">
+            <AppUpdatePrompt />
             <OfflineBanner />
             <main
               id="main"

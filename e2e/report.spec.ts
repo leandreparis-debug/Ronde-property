@@ -5,7 +5,7 @@ import { expect as baseExpect, type Download, type Locator, type Page } from "@p
 
 import { test } from "./helpers/csp";
 
-import { storageStatePath } from "./helpers/auth";
+import { E2E_BASE_URL, storageStatePath } from "./helpers/auth";
 
 test.describe.configure({ mode: "serial" });
 
@@ -193,7 +193,16 @@ test.describe("Alice", () => {
     await expectNoHorizontalOverflow(page);
   });
 
-  test("shows the progress and can cancel before the storage", async ({ page }) => {
+  test("shows the progress and can cancel before the storage", async ({ browser }) => {
+    // Step 12: the service worker serves the fonts from its cache, out of reach of
+    // `page.route`; this test needs them slow, hence a context without service worker.
+    const context = await browser.newContext({
+      baseURL: E2E_BASE_URL,
+      storageState: storageStatePath("alice"),
+      viewport: { width: 1280, height: 800 },
+      serviceWorkers: "block",
+    });
+    const page = await context.newPage();
     await openTab(page, `/visites/${V1}`);
     // Slow down the fonts of the worker so that the progress stays on screen.
     await page.route("**/fonts/report/**", async (route) => {
@@ -207,6 +216,7 @@ test.describe("Alice", () => {
     await page.getByTestId("report-cancel").click();
     await expect(page.getByTestId("report-progress")).toHaveCount(0);
     await expect(page.getByText("Génération annulée", { exact: true })).toBeVisible();
+    await context.close();
   });
 });
 

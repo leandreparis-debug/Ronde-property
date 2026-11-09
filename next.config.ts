@@ -23,7 +23,14 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   // Shown in the account menu and on /aide (src/lib/version.ts).
-  env: { NEXT_PUBLIC_APP_VERSION: packageJson.version },
+  env: {
+    NEXT_PUBLIC_APP_VERSION: packageJson.version,
+    // Version of the service worker URL: a new deployment installs a new worker (docs/pwa.md).
+    NEXT_PUBLIC_BUILD_ID:
+      process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 12) ??
+      process.env.NEXT_PUBLIC_BUILD_ID ??
+      `${packageJson.version}-${Date.now().toString(36)}`,
+  },
   // /aide reads the guides from docs/ at request time: ship them with the function.
   outputFileTracingIncludes: { "/aide/[guide]": ["./docs/guide-*.md"] },
   poweredByHeader: false,
@@ -38,6 +45,14 @@ const nextConfig: NextConfig = {
       {
         source: "/:path*",
         headers: securityHeaders,
+      },
+      {
+        // The service worker is always checked against the server (no stale copy in a cache).
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-cache" },
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
       },
     ];
   },

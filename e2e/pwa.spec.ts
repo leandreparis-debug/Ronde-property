@@ -82,14 +82,14 @@ test.describe("installable application", () => {
     await context.setOffline(true);
     const banner = page.getByTestId("offline-banner");
     await expect(banner).toBeVisible();
-    await expect(banner).toContainText("Vos notes restent sur cette page");
+    await expect(banner).toContainText("Vos saisies sont gardées sur cet appareil");
     await expectNoBlockingViolation(page);
     await context.setOffline(false);
     await expect(banner).toHaveCount(0);
     await expect(page.getByTestId("online-banner")).toContainText("Connexion rétablie");
   });
 
-  test("keeps the input of the information and of a reserve when the network is down", async ({
+  test("keeps the information and a reserve on the device when the network is down", async ({
     page,
     context,
   }) => {
@@ -101,6 +101,8 @@ test.describe("installable application", () => {
     await expect(page.getByTestId("save-status")).toContainText("Hors connexion");
     await expect(page.locator("#visit-subject")).toHaveValue("Objet saisi hors connexion");
     await context.setOffline(false);
+    // Step 12: the change kept on the device leaves by itself when the network is back.
+    await expect(page.getByTestId("sync-indicator").first()).toHaveAttribute("data-pending", "0");
     await page.fill("#visit-subject", "Objet saisi hors connexion, renvoyé");
     await page.locator("#visit-subject").blur();
     await expect(page.getByTestId("save-status")).toContainText("Enregistré à");
@@ -111,15 +113,16 @@ test.describe("installable application", () => {
     await page.getByTestId("reserve-action").fill("Réserve saisie hors connexion");
     await context.setOffline(true);
     await page.getByTestId("reserve-save").click();
+    // Step 12: the reserve is saved on the device, « R-? » until the server numbers it.
     const sheet = page.getByTestId("reserve-sheet");
-    await expect(sheet).toContainText("Hors connexion");
-    await expect(page.getByTestId("reserve-action")).toHaveValue("Réserve saisie hors connexion");
-    await context.setOffline(false);
-    await page.getByTestId("reserve-save").click();
     await expect(sheet).toHaveCount(0);
-    await expect(
-      page.getByTestId("reserve-card").filter({ hasText: "Réserve saisie hors connexion" }),
-    ).toBeVisible();
+    const card = page
+      .getByTestId("reserve-card")
+      .filter({ hasText: "Réserve saisie hors connexion" });
+    await expect(card).toContainText("R-?");
+    await context.setOffline(false);
+    await expect(card).not.toContainText("R-?");
+    await expect(card).toContainText(/R-\d+/);
   });
 });
 
@@ -130,7 +133,7 @@ test.describe("/hors-ligne", () => {
     await page.goto("/hors-ligne");
     await expect(page).toHaveURL(/\/hors-ligne$/);
     await expect(page.getByRole("heading", { level: 1, name: "Hors connexion" })).toBeVisible();
-    await expect(page.getByText("puis toutes les 30 s")).toBeVisible();
+    await expect(page.getByText("jusqu'à toutes les 5 min")).toBeVisible();
     await expectNoBlockingViolation(page);
   });
 });
