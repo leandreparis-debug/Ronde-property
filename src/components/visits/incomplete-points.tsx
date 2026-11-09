@@ -1,5 +1,6 @@
 import { CircleAlert } from "lucide-react";
 
+import { QueryLink } from "@/components/offline/query-link";
 import type { IncompletePoint } from "@/server/domain/visits";
 
 /** « À compléter » box: each point links to the field concerned. Never blocking. */
@@ -17,12 +18,12 @@ export function IncompletePoints({ points }: { points: IncompletePoint[] }) {
       <ul className="mt-2 flex flex-col gap-1">
         {points.map((point) => (
           <li key={point.key}>
-            <a
+            <QueryLink
               href={point.href ?? `#${point.anchor}`}
               className="inline-flex min-h-11 items-center underline"
             >
               {point.label}
-            </a>
+            </QueryLink>
           </li>
         ))}
       </ul>

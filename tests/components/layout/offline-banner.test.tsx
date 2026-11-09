@@ -32,13 +32,13 @@ describe("OfflineBanner", () => {
     expect(screen.queryByTestId("online-banner")).toBeNull();
   });
 
-  it("explains what happens to notes and photos while offline, in a live region", () => {
+  it("explains that the changes stay on the device while offline, in a live region", () => {
     render(<OfflineBanner />);
     act(goOffline);
     const banner = screen.getByTestId("offline-banner");
-    expect(banner.textContent).toContain("Hors connexion.");
-    expect(banner.textContent).toContain("Vos notes restent sur cette page");
-    expect(banner.textContent).toContain("réessayées trois fois");
+    expect(banner.textContent).toContain("Hors réseau.");
+    expect(banner.textContent).toContain("Vos saisies sont gardées sur cet appareil");
+    expect(banner.textContent).toContain("au retour du réseau");
     expect(banner.closest("[role=status]")).not.toBeNull();
     expect(screen.getByRole("link", { name: "En savoir plus" }).getAttribute("href")).toBe(
       "/hors-ligne",

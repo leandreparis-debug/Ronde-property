@@ -1,4 +1,5 @@
 import { Logo } from "@/components/brand/Logo";
+import { SyncIndicator } from "@/components/offline/sync-indicator";
 import type { CurrentUser } from "@/server/auth/types";
 
 import { NavIcon } from "./nav-icon";
@@ -10,7 +11,7 @@ import { ReadOnlyBadge, UserBadge } from "./user-badge";
  * Fixed 240 px side navigation, shown from 1024 px (PC, tablet in landscape).
  * Contains the logo, the main links (plus Administration for the admin) and the user.
  */
-export function SideNav({ user }: { user: CurrentUser }) {
+export function SideNav({ user }: { user: Pick<CurrentUser, "fullName" | "role"> }) {
   return (
     <aside
       className="fixed inset-y-0 left-0 z-30 hidden w-sidenav flex-col border-r border-rule bg-paper lg:flex"
@@ -38,7 +39,8 @@ export function SideNav({ user }: { user: CurrentUser }) {
 
       <div className="flex-1" aria-hidden="true" />
 
-      <div className="border-t border-rule px-3 py-3">
+      <div className="flex flex-col gap-2 border-t border-rule px-3 py-3">
+        <SyncIndicator />
         <UserBadge user={user} />
       </div>
     </aside>

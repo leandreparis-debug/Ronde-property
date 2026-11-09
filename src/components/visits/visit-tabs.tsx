@@ -1,10 +1,11 @@
 "use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VISIT_TABS } from "@/lib/constants";
+import { replaceQuery } from "@/lib/offline/query";
 
 const TAB_VALUES = VISIT_TABS.map((tab) => tab.value);
 type TabValue = (typeof TAB_VALUES)[number];
@@ -32,8 +33,6 @@ export function VisitTabs({
   plans: ReactNode;
   report: ReactNode;
 }) {
-  const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const requested = searchParams.get("onglet");
   const current: TabValue = TAB_VALUES.includes(requested as TabValue)
@@ -54,8 +53,8 @@ export function VisitTabs({
     if (value !== "plans") {
       for (const key of ["plan", "page", "repere", "placer"]) params.delete(key);
     }
-    const query = params.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    // No server round trip: every tab reads the local store (works offline).
+    replaceQuery(params);
   }
 
   return (

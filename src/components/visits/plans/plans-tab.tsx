@@ -11,81 +11,82 @@ import {
   Minus,
   Plus,
 } from "lucide-react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { useOffline } from "@/components/offline/offline-provider";
+import { PendingDot } from "@/components/offline/pending-dot";
+import { useVisitMutations } from "@/components/offline/visit-mutations";
 import { MarkerPin, ReservePin } from "@/components/plans/marker-pin";
 import { MarkerSheet } from "@/components/plans/marker-sheet";
 import { ImportPlanDialog } from "@/components/plans/import-plan-dialog";
 import { PlanActionsMenu } from "@/components/plans/plan-actions-menu";
 import { PlanCard } from "@/components/plans/plan-card";
 import { type CanvasMode, PlanCanvas, type PlanCanvasHandle } from "@/components/plans/plan-canvas";
-import { useUploadQueue } from "@/components/visits/photos/upload-queue-provider";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
+import type { LocalMarker, LocalPlan } from "@/lib/offline/db";
+import { planPageKey } from "@/lib/offline/db";
+import { replaceQuery } from "@/lib/offline/query";
 import type { Point } from "@/lib/plans/geometry";
-import { mergeSnapshot } from "@/lib/plans/merge";
 import { newReserveHref, PLACE_RESERVE_PARAM, reserveHref } from "@/lib/reserves/links";
-import {
-  createMarkerAction,
-  moveMarkerAction,
-  removeMarkerAction,
-  renewPlanUrlsAction,
-  updateMarkerAction,
-} from "@/server/actions/plan-actions";
-import { placeReserveOnPlanAction } from "@/server/actions/reserve-actions";
+import { renewPlanUrlsAction } from "@/server/actions/plan-actions";
 import type { PhotoView } from "@/server/photos/types";
-import type { MarkerView, PlanDetailView, PlanView } from "@/server/plans/types";
+import type { PlanDetailView, PlanPageView } from "@/server/plans/types";
 
 export interface PlansTabProps {
   visitId: string;
   siteId: string;
-  initialPlans: PlanView[];
-  initialMarkers: MarkerView[];
-  /** Database time at which `initialMarkers` was read (client-side merge). */
-  markersSnapshotAt: string;
-  /** Plan opened from the URL, loaded by the page. */
-  initialDetail: PlanDetailView | null;
+  /** Plans offered in the visit, from the local store. */
+  plans: LocalPlan[];
+  /** Pages of each plan, with displayable URLs (local copy first). */
+  planPages: Record<string, PlanPageView[]>;
+  markers: LocalMarker[];
   photos: PhotoView[];
   zones: Array<{ key: string; label: string }>;
   canEdit: boolean;
   canImport: boolean;
   /** Reserves of the visit that can be placed (`?placer=<id>`, from the reserve detail). */
-  reserves?: Array<{ id: string; code: string }>;
+  reserves?: Array<{
+    id: string;
+    code: string;
+    action: string;
+    marker: { id: string; planId: string } | null;
+  }>;
+  /** Entities with an operation waiting (« en attente » marks). */
+  pendingIds?: Set<string>;
 }
 
 /**
  * « Plans » tab of a visit: plans of the site with the markers of this visit, then the viewer
  * of the chosen plan (`?onglet=plans&plan=…&page=…`): page selector, zoom buttons, « Placer un
  * repère » toggle, numbers on / off, original download, markers on the plan, the marker sheet
- * and the list of markers. Read-only when the visit is not editable.
+ * and the list of markers. Everything is read from the local store and written through the
+ * outbox: a marker placed offline shows « • » until the server gives its number. Importing a
+ * plan needs the network. Read-only when the visit is not editable.
  */
 export function PlansTab({
   visitId,
   siteId,
-  initialPlans,
-  initialMarkers,
-  markersSnapshotAt,
-  initialDetail,
+  plans,
+  planPages,
+  markers,
   photos,
   zones,
   canEdit,
   canImport,
   reserves = [],
+  pendingIds = new Set(),
 }: PlansTabProps) {
   const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const { uploaded } = useUploadQueue();
+  const { db, online, refreshVisit } = useOffline();
+  const mutations = useVisitMutations(visitId);
 
-  const [plans, setPlans] = useState(initialPlans);
-  const [markers, setMarkers] = useState(initialMarkers);
-  const [detail, setDetail] = useState<PlanDetailView | null>(initialDetail);
-  const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<CanvasMode>("view");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showNumbers, setShowNumbers] = useState(true);
@@ -95,22 +96,6 @@ export function PlansTab({
   const canvasRef = useRef<PlanCanvasHandle>(null);
 
   useEffect(() => setReady(true), []);
-  useEffect(() => setPlans(initialPlans), [initialPlans]);
-  // Server lists can arrive out of order (page change in flight while a marker is created):
-  // merge them, never replace the local list.
-  const removedRef = useRef(new Set<string>());
-  useEffect(
-    () =>
-      setMarkers((local) =>
-        mergeSnapshot(
-          local,
-          { items: initialMarkers, snapshotAt: markersSnapshotAt },
-          removedRef.current,
-        ),
-      ),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- a new snapshot comes with new markers
-    [initialMarkers],
-  );
 
   const planId = searchParams.get("plan");
   const pageNumber = Math.max(1, Number(searchParams.get("page") ?? "1") || 1);
@@ -120,36 +105,57 @@ export function PlansTab({
   // « Masquer les levées » is shared with the Reserves tab (on by default).
   const showDone = searchParams.get("levees") === "afficher";
 
-  const setParams = useCallback(
-    (patch: Record<string, string | null>) => {
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("onglet", "plans");
-      for (const [key, value] of Object.entries(patch)) {
-        if (value === null) params.delete(key);
-        else params.set(key, value);
-      }
-      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-    },
-    [pathname, router, searchParams],
-  );
+  const plan = plans.find((p) => p.id === planId) ?? null;
+  const detail: PlanDetailView | null = plan
+    ? { ...plan, pages: planPages[plan.id] ?? [], originalUrl: online ? plan.originalUrl : null }
+    : null;
+  const loading = Boolean(planId && plan && detail && detail.pages.length === 0 && online);
 
-  const loadDetail = useCallback(
-    async (id: string) => {
-      setLoading(true);
-      const result = await renewPlanUrlsAction({ planId: id, visitId });
-      setLoading(false);
-      if (result.ok) setDetail(result.plan);
-      else setError(result.error);
-    },
-    [visitId],
-  );
+  const setParams = useCallback((patch: Record<string, string | null>) => {
+    const params = new URLSearchParams(window.location.search);
+    params.set("onglet", "plans");
+    for (const [key, value] of Object.entries(patch)) {
+      if (value === null) params.delete(key);
+      else params.set(key, value);
+    }
+    replaceQuery(params);
+  }, []);
+
+  // A plan imported meanwhile has no pages in the store yet: read the visit again.
+  useEffect(() => {
+    if (planId && plan && (planPages[plan.id] ?? []).length === 0 && online) {
+      void refreshVisit(visitId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- on plan change only
+  }, [planId, plan?.id]);
+
+  // Signed page URLs expire after 10 minutes: fresh ones into the store (online only).
+  const renewing = useRef(false);
+  const renewPages = useCallback(async () => {
+    if (!plan || !db || !online || renewing.current) return;
+    renewing.current = true;
+    try {
+      const result = await renewPlanUrlsAction({ planId: plan.id, visitId });
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      for (const page of result.plan.pages) {
+        await db.planPages.update(planPageKey(plan.id, page.pageNumber), {
+          imageUrl: page.imageUrl,
+          thumbUrl: page.thumbUrl,
+          urlsExpireAt: page.urlsExpireAt,
+        });
+      }
+      await db.plans.update(plan.id, { originalUrl: result.plan.originalUrl });
+    } finally {
+      renewing.current = false;
+    }
+  }, [db, online, plan, visitId]);
 
   useEffect(() => {
-    if (planId && detail?.id !== planId) void loadDetail(planId);
-    if (!planId) setDetail(null);
     setMode("view");
     setSelectedId(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- on plan change only
   }, [planId]);
 
   const page = detail?.pages.find((p) => p.pageNumber === pageNumber) ?? detail?.pages[0] ?? null;
@@ -158,7 +164,11 @@ export function PlansTab({
       markers
         .filter((m) => m.planId === detail?.id)
         .filter((m) => showDone || m.reserve?.status !== "done")
-        .sort((a, b) => a.number - b.number),
+        .sort(
+          (a, b) =>
+            (a.number ?? Number.MAX_SAFE_INTEGER) - (b.number ?? Number.MAX_SAFE_INTEGER) ||
+            a.createdAt.localeCompare(b.createdAt),
+        ),
     [markers, detail?.id, showDone],
   );
   const hiddenDoneCount = markers.filter(
@@ -166,7 +176,7 @@ export function PlansTab({
   ).length;
   const pageMarkers = planMarkers.filter((m) => m.page === page?.pageNumber);
   const selected = markers.find((m) => m.id === selectedId) ?? null;
-  const nextNumber = planMarkers.reduce((max, m) => Math.max(max, m.number), 0) + 1;
+  const nextNumber = planMarkers.reduce((max, m) => Math.max(max, m.number ?? 0), 0) + 1;
   const archived = detail?.isArchived ?? false;
   const canPlace = canEdit && !archived;
 
@@ -192,25 +202,13 @@ export function PlansTab({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per marker and page
   }, [focusMarker, page?.pageNumber, detail?.id]);
 
-  // Photos confirmed in the queue join the choices of the marker sheet.
-  const allPhotos = useMemo(
-    () => [...photos, ...uploaded.filter((u) => !photos.some((p) => p.id === u.id))],
-    [photos, uploaded],
-  );
-
-  function replaceMarker(next: MarkerView) {
-    setMarkers((list) => {
-      const exists = list.some((m) => m.id === next.id);
-      return exists ? list.map((m) => (m.id === next.id ? next : m)) : [...list, next];
-    });
-  }
+  const allPhotos = photos;
 
   async function tapPlan(point: Point) {
     if (!detail || !page) return;
     setError(null);
     if (mode === "place" && placing) {
-      const result = await placeReserveOnPlanAction({
-        reserveId: placing.id,
+      const result = await mutations.placeReserve(placing, {
         planId: detail.id,
         page: page.pageNumber,
         x: point.x,
@@ -221,39 +219,41 @@ export function PlansTab({
         return;
       }
       setMode("view");
-      toast({ variant: "success", title: `${placing.code} placée sur le plan` });
+      toast({
+        variant: "success",
+        title: result.queued
+          ? `${placing.code} placée sur le plan (en attente de synchronisation)`
+          : `${placing.code} placée sur le plan`,
+      });
       router.push(reserveHref(visitId, placing.id));
       return;
     }
     if (mode === "place") {
-      const result = await createMarkerAction({
-        visitId,
+      const created = mutations.createMarker({
         planId: detail.id,
         page: page.pageNumber,
         x: point.x,
         y: point.y,
       });
+      setMode("view");
+      const result = await created;
       if (!result.ok) {
         setError(result.error);
         return;
       }
-      replaceMarker(result.marker);
-      setSelectedId(result.marker.id);
-      setMode("view");
+      setSelectedId(result.id ?? null);
       return;
     }
     if (mode === "move" && selected) {
-      const result = await moveMarkerAction({ markerId: selected.id, x: point.x, y: point.y });
-      if (!result.ok) setError(result.error);
-      else replaceMarker(result.marker);
       setMode("view");
+      const result = await mutations.moveMarker(selected.id, point.x, point.y, selected.number);
+      if (!result.ok) setError(result.error);
     }
   }
 
-  async function dragMarker(marker: MarkerView, point: Point) {
-    const result = await moveMarkerAction({ markerId: marker.id, x: point.x, y: point.y });
+  async function dragMarker(marker: LocalMarker, point: Point) {
+    const result = await mutations.moveMarker(marker.id, point.x, point.y, marker.number);
     if (!result.ok) setError(result.error);
-    else replaceMarker(result.marker);
   }
 
   if (!planId || (!detail && !loading)) {
@@ -272,6 +272,7 @@ export function PlansTab({
               type="button"
               variant="secondary"
               onClick={() => setImporting(true)}
+              disabled={!online}
               data-testid="open-plan-import"
             >
               <FileUp className="size-5" aria-hidden="true" />
@@ -279,6 +280,12 @@ export function PlansTab({
             </Button>
           ) : null}
         </div>
+        {canImport && !online ? (
+          <p className="text-ui text-ink-2" data-testid="offline-reason-plan-import">
+            Hors réseau : l&apos;import d&apos;un plan demande le réseau (le fichier est converti
+            puis envoyé au stockage).
+          </p>
+        ) : null}
         {placing ? (
           <p
             className="rounded-md bg-brand-soft px-3 py-2 text-ui font-semibold text-brand-deep"
@@ -319,23 +326,8 @@ export function PlansTab({
                   <span className="sr-only">Ouvrir le plan </span>
                   <PlanCard plan={plan} showMarkers />
                 </button>
-                {canImport ? (
-                  <PlanActionsMenu
-                    plan={plan}
-                    onChanged={(next) =>
-                      setPlans((list) =>
-                        list.map((p) =>
-                          p.id === next.id
-                            ? {
-                                ...next,
-                                markersCount: p.markersCount,
-                                thumbUrl: next.thumbUrl ?? p.thumbUrl,
-                              }
-                            : p,
-                        ),
-                      )
-                    }
-                  />
+                {canImport && online ? (
+                  <PlanActionsMenu plan={plan} onChanged={() => void refreshVisit(visitId)} />
                 ) : null}
               </li>
             ))}
@@ -346,10 +338,9 @@ export function PlansTab({
             siteId={siteId}
             open={importing}
             onOpenChange={setImporting}
-            onImported={(plan) => {
-              setPlans((list) => [...list, plan]);
-              toast({ variant: "success", title: `Plan « ${plan.name} » importé` });
-              router.refresh();
+            onImported={(imported) => {
+              toast({ variant: "success", title: `Plan « ${imported.name} » importé` });
+              void refreshVisit(visitId);
             }}
           />
         ) : null}
@@ -513,7 +504,7 @@ export function PlansTab({
           className="rounded-md bg-brand-soft px-3 py-2 text-ui font-semibold text-brand-deep"
           role="status"
         >
-          Touchez le plan pour déplacer le repère n° {selected.number}
+          Touchez le plan pour déplacer le repère n° {selected.number ?? "•"}
         </p>
       ) : canEdit && archived ? (
         <p className="rounded-md bg-craie px-3 py-2 text-ui text-ink-2" role="status">
@@ -553,7 +544,7 @@ export function PlansTab({
                 if (mode === "move") setMode("view");
               }}
               onDragMarker={(marker, point) => void dragMarker(marker, point)}
-              onImageError={() => detail && void loadDetail(detail.id)}
+              onImageError={() => void renewPages()}
             />
           ) : (
             <div className="flex h-[60dvh] items-center justify-center rounded-lg border border-rule bg-craie text-ui text-ink-2">
@@ -629,10 +620,13 @@ export function PlansTab({
                         <MarkerPin number={marker.number} hasPhoto={Boolean(marker.photoId)} />
                       )}
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-ui font-semibold text-ink">
-                          {marker.reserve
-                            ? `${marker.reserve.code} · ${marker.reserve.action}`
-                            : `n° ${marker.number}${marker.label ? ` · ${marker.label}` : ""}`}
+                        <span className="flex items-center gap-1.5 truncate text-ui font-semibold text-ink">
+                          <span className="truncate">
+                            {marker.reserve
+                              ? `${marker.reserve.code} · ${marker.reserve.action}`
+                              : `n° ${marker.number ?? "•"}${marker.label ? ` · ${marker.label}` : ""}`}
+                          </span>
+                          {pendingIds.has(marker.id) ? <PendingDot /> : null}
                         </span>
                         <span className="block text-label text-ink-2">
                           Page {marker.page}
@@ -678,18 +672,18 @@ export function PlansTab({
             }}
             onStartMove={() => setMode((m) => (m === "move" ? "view" : "move"))}
             onUpdate={async (patch) => {
-              const result = await updateMarkerAction({ markerId: selected.id, ...patch });
-              if (!result.ok) return result.error;
-              replaceMarker(result.marker);
-              return null;
+              const result = await mutations.updateMarker(selected.id, patch, selected.number);
+              return result.ok ? null : result.error;
             }}
             onDelete={async () => {
-              const result = await removeMarkerAction({ markerId: selected.id, visitId });
+              const number = selected.number;
+              const result = await mutations.deleteMarker(selected.id, number);
               if (!result.ok) return result.error;
-              removedRef.current.add(selected.id);
-              setMarkers((list) => list.filter((m) => m.id !== selected.id));
               setSelectedId(null);
-              toast({ variant: "success", title: `Repère n° ${selected.number} supprimé` });
+              toast({
+                variant: "success",
+                title: number ? `Repère n° ${number} supprimé` : "Repère supprimé",
+              });
               return null;
             }}
           />

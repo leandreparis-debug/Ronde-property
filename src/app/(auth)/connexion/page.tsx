@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { Galet } from "@/components/brand/Galet";
+import { SessionWipe } from "@/components/auth/session-wipe";
 import { SignInForm } from "@/components/auth/sign-in-form";
 import { Card } from "@/components/ui/card";
 import { getCurrentUser, safeNext } from "@/server/auth/session";
@@ -14,10 +15,11 @@ export const metadata: Metadata = {
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string | string[] }>;
+  searchParams: Promise<{ next?: string | string[]; session?: string | string[] }>;
 }) {
   const params = await searchParams;
   const next = safeNext(Array.isArray(params.next) ? params.next[0] : params.next);
+  const session = Array.isArray(params.session) ? params.session[0] : params.session;
 
   const user = await getCurrentUser();
   if (user) redirect(next);
@@ -33,6 +35,7 @@ export default async function SignInPage({
           </p>
         </div>
       </div>
+      {session === "revoquee" || session === "desactive" ? <SessionWipe reason={session} /> : null}
       <SignInForm next={next} />
     </Card>
   );

@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 
 import { useUploadQueue } from "./upload-queue-provider";
 
-/** Header pill « 3 envois en cours » while the upload queue has active items. */
+/** Header pill « 3 envois en cours » while photos are being prepared or sent. */
 export function UploadQueuePill() {
   const { items } = useUploadQueue();
   const active = items.filter(

@@ -117,11 +117,17 @@ async function currentPathname(): Promise<string> {
  * }
  */
 export async function requireUser(): Promise<CurrentUser> {
-  const user = await getCurrentUser();
+  const status = await getSessionStatus();
+  const user = status.kind === "ok" ? status.user : null;
   const pathname = await currentPathname();
   if (!user) {
-    const next = pathname === "/" ? "" : `?next=${encodeURIComponent(pathname)}`;
-    redirect(`/connexion${next}`);
+    const params = new URLSearchParams();
+    if (pathname !== "/") params.set("next", pathname);
+    // Revoked sessions or deactivated account: the sign-in page erases the device copy.
+    if (status.kind === "revoked") params.set("session", "revoquee");
+    if (status.kind === "inactive") params.set("session", "desactive");
+    const query = params.toString();
+    redirect(`/connexion${query ? `?${query}` : ""}`);
   }
   if (user.mustChangePassword && !PASSWORD_CHANGE_ALLOWED.has(pathname)) {
     redirect("/changer-mot-de-passe");

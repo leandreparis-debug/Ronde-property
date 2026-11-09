@@ -1,11 +1,11 @@
 import { Info } from "lucide-react";
 
 import { formatDateTime } from "@/lib/format";
-import type { CurrentUser } from "@/server/auth/types";
-import type { VisitDetail } from "@/server/repositories/visit-repository";
+import type { VisitView } from "@/lib/offline/snapshot";
+import type { UserRole } from "@/server/domain/enums";
 
 /** Read-only banner above the tabs, with the real reason. */
-export function VisitBanner({ visit, user }: { visit: VisitDetail; user: CurrentUser }) {
+export function VisitBanner({ visit, user }: { visit: VisitView; user: { role: UserRole } }) {
   let message: string | null = null;
   if (visit.deletedAt) {
     message = `Visite supprimée le ${formatDateTime(visit.deletedAt)} par ${visit.deletedByName ?? "—"}.`;

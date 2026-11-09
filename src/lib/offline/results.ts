@@ -277,6 +277,18 @@ export async function applySyncResult(
   result: SyncResult,
   context: ApplyContext,
 ): Promise<OperationOutcome> {
+  // One transaction: the version, the outbox and the rebasing change together.
+  return db.transaction("rw", db.tables, () =>
+    applyResultInTransaction(db, entry, result, context),
+  );
+}
+
+async function applyResultInTransaction(
+  db: RondeLocalDb,
+  entry: OutboxEntry,
+  result: SyncResult,
+  context: ApplyContext,
+): Promise<OperationOutcome> {
   switch (result.status) {
     case "applied":
       return applied(db, entry, result.data, context);

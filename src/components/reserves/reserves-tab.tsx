@@ -1,16 +1,18 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useId, useMemo, useState } from "react";
 
+import { QueryLink } from "@/components/offline/query-link";
+import { useVisitMutations } from "@/components/offline/visit-mutations";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
 import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
+import { replaceQuery } from "@/lib/offline/query";
 import {
   countReserves,
   DEFAULT_RESERVE_FILTERS,
@@ -32,9 +34,8 @@ import {
   type ReservePriority,
   type ReserveStatus,
 } from "@/server/domain/enums";
-import { attachReserveMarkerAction } from "@/server/actions/reserve-actions";
 import type { PhotoView } from "@/server/photos/types";
-import type { ReserveDetail, ReserveListItem } from "@/server/reserves/types";
+import type { ReserveListItem } from "@/server/reserves/types";
 
 import {
   NEW_RESERVE_MARKER_PARAM,
@@ -44,12 +45,15 @@ import {
 } from "@/lib/reserves/links";
 
 import { ReserveCard } from "./reserve-card";
-import { ReserveSheet, type ReserveSheetTarget } from "./reserve-sheet";
+import { ReserveSheet, type ReserveSheetTarget, type SavedReserve } from "./reserve-sheet";
 
 export interface ReservesTabProps {
   visitId: string;
   siteId: string;
-  initialReserves: ReserveListItem[];
+  /** Reserves of the visit from the local store (« R-? » until the server numbers them). */
+  reserves: ReserveListItem[];
+  /** Entities with an operation waiting (« en attente » marks). */
+  pendingIds?: Set<string>;
   zones: Array<{ key: string; label: string }>;
   photos: PhotoView[];
   canEdit: boolean;
@@ -64,24 +68,21 @@ export interface ReservesTabProps {
 export function ReservesTab({
   visitId,
   siteId,
-  initialReserves,
+  reserves,
+  pendingIds = new Set(),
   zones,
   photos,
   canEdit,
 }: ReservesTabProps) {
   const id = useId();
-  const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const [reserves, setReserves] = useState(initialReserves);
+  const mutations = useVisitMutations(visitId);
   const [sheet, setSheet] = useState<{
     target: ReserveSheetTarget;
     markerId: string | null;
   } | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
-
-  useEffect(() => setReserves(initialReserves), [initialReserves]);
 
   // Filters follow the URL; the local copy answers at once while the URL is being replaced.
   const urlFilters = useMemo(() => parseReserveFilters(searchParams), [searchParams]);
@@ -99,7 +100,7 @@ export function ReservesTab({
     for (const key of [NEW_RESERVE_PARAM, NEW_RESERVE_PHOTO_PARAM, NEW_RESERVE_MARKER_PARAM]) {
       params.delete(key);
     }
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    replaceQuery(params);
     if (!canEdit) return;
     setSheet({
       target: {
@@ -110,13 +111,13 @@ export function ReservesTab({
       markerId: marker,
     });
     setSheetOpen(true);
-  }, [searchParams, pathname, router, zones, photos, canEdit]);
+  }, [searchParams, zones, photos, canEdit]);
 
   function updateFilters(patch: Partial<ReserveListFilters>) {
     const next = { ...filters, ...patch };
     setFilters(next);
-    const params = writeReserveFilters(new URLSearchParams(searchParams.toString()), next);
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    const params = writeReserveFilters(new URLSearchParams(window.location.search), next);
+    replaceQuery(params);
   }
 
   function openCreate(zoneKey: string | null = filters.zone) {
@@ -124,20 +125,27 @@ export function ReservesTab({
     setSheetOpen(true);
   }
 
-  async function saved(reserve: ReserveDetail, options: { again: boolean }) {
-    setReserves((current) => [...current.filter((r) => r.id !== reserve.id), reserve]);
-    toast({ variant: "success", title: `${reserve.code} enregistrée` });
+  async function saved(reserve: SavedReserve, options: { again: boolean }) {
+    toast({
+      variant: "success",
+      title: reserve.queued
+        ? `${reserve.code} enregistrée sur la tablette`
+        : `${reserve.code} enregistrée`,
+      description: reserve.queued ? "Elle partira au retour du réseau." : undefined,
+    });
+    if (!options.again) setSheetOpen(false);
     if (sheet?.markerId) {
       // « Créer une réserve ici »: the marker of the plan becomes the reserve's marker.
-      const result = await attachReserveMarkerAction({
-        reserveId: reserve.id,
-        markerId: sheet.markerId,
-      });
-      if (!result.ok) toast({ variant: "error", title: result.error });
+      const markerId = sheet.markerId;
       setSheet((current) => (current ? { ...current, markerId: null } : current));
+      const result = await mutations.attachMarker(
+        reserve.id,
+        markerId,
+        reserve.code,
+        reserve.action,
+      );
+      if (!result.ok) toast({ variant: "error", title: result.error });
     }
-    if (!options.again) setSheetOpen(false);
-    router.refresh();
   }
 
   const counts = countReserves(reserves);
@@ -334,20 +342,23 @@ export function ReservesTab({
           <ul className="grid gap-3 xl:grid-cols-2" data-testid="reserves-list">
             {visible.map((reserve) => (
               <li key={reserve.id}>
-                <ReserveCard reserve={reserve} href={reserveHref(visitId, reserve.id)} />
+                <ReserveCard
+                  reserve={reserve}
+                  href={reserveHref(visitId, reserve.id)}
+                  pending={pendingIds.has(reserve.id)}
+                />
               </li>
             ))}
           </ul>
           {hiddenDone > 0 ? (
             <p className="text-ui text-ink-2">
               {plural(hiddenDone, "réserve levée masquée", "réserves levées masquées")}.{" "}
-              <Link
+              <QueryLink
                 href={`?${writeReserveFilters(new URLSearchParams(searchParams.toString()), { ...filters, showDone: true }).toString()}`}
-                scroll={false}
                 className="inline-flex min-h-11 items-center font-semibold text-brand-deep underline"
               >
                 Afficher les levées
-              </Link>
+              </QueryLink>
             </p>
           ) : null}
         </>

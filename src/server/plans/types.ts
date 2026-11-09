@@ -153,6 +153,12 @@ export interface MarkerView {
   updatedAt: string;
 }
 
+/**
+ * A marker as the screens display it: `number` is `null` while a marker placed offline waits
+ * for the number the server gives it (shown « • »).
+ */
+export type DisplayMarker = Omit<MarkerView, "number"> & { number: number | null };
+
 /** Outcome of the plan confirmation. */
 export type ConfirmPlanResult =
   { ok: true; plan: PlanView } | { ok: false; error: string; retryable: boolean };

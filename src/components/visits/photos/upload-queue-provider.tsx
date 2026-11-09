@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import {
   createContext,
   type ReactNode,
@@ -12,26 +11,37 @@ import {
   useState,
 } from "react";
 
-import { createPhotoProcessor } from "@/lib/photos/processor";
-import { putWithProgress } from "@/lib/photos/put";
-import { createUploadQueue, type UploadItem, type UploadQueue } from "@/lib/photos/queue";
+import { useOffline } from "@/components/offline/offline-provider";
+import { useVisit } from "@/components/offline/visit-data";
+import { Button } from "@/components/ui/button";
 import {
-  confirmPhotoUploadAction,
-  discardPendingPhotoAction,
-  preparePhotoUploadAction,
-  renewPhotoUploadAction,
-} from "@/server/actions/photo-actions";
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { uuidv7 } from "@/lib/offline/ids";
+import { formatBytes } from "@/lib/offline/storage";
+import { createPhotoProcessor, type PhotoProcessor } from "@/lib/photos/processor";
+import type { UploadItem } from "@/lib/photos/upload-items";
+import { discardPendingPhotoAction } from "@/server/actions/photo-actions";
 import type { PhotoView } from "@/server/photos/types";
 
 export interface UploadQueueContextValue {
   items: UploadItem[];
-  /** Photos confirmed since the page was loaded, in order. */
+  /**
+   * Photos added from this page since it was opened, in order, as soon as they are stored on
+   * the device (before the upload): a reserve or a marker can use them at once, offline too.
+   */
   uploaded: PhotoView[];
   enqueue: (files: File[], options?: { zoneKey?: string | null }) => void;
   retry: (localId: string) => void;
   remove: (localId: string) => void;
   clearDone: () => void;
-  /** True while an upload is being processed, prepared, sent or confirmed. */
+  /** True while a photo is being prepared or sent. */
   active: boolean;
 }
 
@@ -44,11 +54,20 @@ export function useUploadQueue(): UploadQueueContextValue {
   return context;
 }
 
+interface LocalItem {
+  localId: string;
+  name: string;
+  zoneKey: string | null;
+  status: "processing" | "rejected";
+  error: string | null;
+}
+
 /**
- * Owns the in-memory upload queue of one visit: browser processing, pending rows, direct
- * `PUT`s to the storage and confirmation. Shared by the Photos tab, the Notes tab and the
- * header pill. Warns before unload while an upload is in flight and refreshes the server
- * data once the queue goes idle.
+ * Photos of a visit, on top of the synchronisation engine (step 12): each picked file is
+ * compressed in the browser (worker), stored as two blobs in IndexedDB and queued
+ * (`photo.create`, signed `PUT`, `photo.confirm`). The upload resumes after a reload or a
+ * network loss; the blobs are dropped after the confirmation unless the visit is kept offline.
+ * Above 80 % of the storage quota, a new photo taken offline asks for a confirmation.
  */
 export function UploadQueueProvider({
   visitId,
@@ -57,86 +76,240 @@ export function UploadQueueProvider({
   visitId: string;
   children: ReactNode;
 }) {
-  const router = useRouter();
-  const [items, setItems] = useState<UploadItem[]>([]);
+  const { engine, status, online, usage, refreshUsage } = useOffline();
+  const data = useVisit();
+  const [local, setLocal] = useState<LocalItem[]>([]);
   const [uploaded, setUploaded] = useState<PhotoView[]>([]);
-  const [queue, setQueue] = useState<UploadQueue | null>(null);
-  const wasActive = useRef(false);
+  const [quotaFiles, setQuotaFiles] = useState<{
+    files: File[];
+    zoneKey: string | null;
+  } | null>(null);
+  const processor = useRef<PhotoProcessor | null>(null);
+  const chain = useRef<Promise<void>>(Promise.resolve());
 
-  // Created in an effect (not during render) so that React strict mode, which mounts twice in
-  // development, never leaves a disposed queue behind.
   useEffect(() => {
-    const processor = createPhotoProcessor({ concurrency: 2 });
-    const created = createUploadQueue({
-      process: (file, filename) => processor.process(file, filename),
-      prepare: async (prepared) => {
-        const result = await preparePhotoUploadAction({ visitId, items: prepared });
-        return result.ok ? result.uploads : { error: result.error };
-      },
-      renew: async (photoId) => {
-        const result = await renewPhotoUploadAction({ photoId });
-        return result.ok ? result.upload : { error: result.error };
-      },
-      put: putWithProgress,
-      confirm: async (photoId) => {
-        const result = await confirmPhotoUploadAction({ photoId });
-        if (result.ok) setUploaded((list) => [...list, result.photo]);
-        return result;
-      },
-      discard: async (photoId) => {
-        await discardPendingPhotoAction({ photoId });
-      },
-    });
-    const unsubscribe = created.onChange(setItems);
-    setQueue(created);
+    const created = createPhotoProcessor({ concurrency: 2 });
+    processor.current = created;
     return () => {
-      unsubscribe();
       created.dispose();
-      processor.dispose();
-      setItems([]);
+      processor.current = null;
     };
-  }, [visitId]);
+  }, []);
 
-  const active = items.some((item) => !["done", "rejected", "failed"].includes(item.status));
-
-  // Counters and lists rendered by the server (header, cards, incomplete points) are refreshed
-  // once the whole batch is through, not after every photo.
-  useEffect(() => {
-    if (wasActive.current && !active) router.refresh();
-    wasActive.current = active;
-  }, [active, router]);
-
-  useEffect(() => {
-    if (!active) return;
-    const beforeUnload = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-    };
-    window.addEventListener("beforeunload", beforeUnload);
-    return () => window.removeEventListener("beforeunload", beforeUnload);
-  }, [active]);
+  const start = useCallback(
+    (files: File[], zoneKey: string | null) => {
+      if (!engine || !processor.current) return;
+      const current = processor.current;
+      for (const file of files) {
+        const localId = `local-${uuidv7()}`;
+        setLocal((list) => [
+          ...list,
+          { localId, name: file.name, zoneKey, status: "processing", error: null },
+        ]);
+        const processed = current.process(file, file.name);
+        // Compression runs in parallel; the photos join the outbox in the order picked.
+        chain.current = chain.current.then(async () => {
+          try {
+            const photo = await processed;
+            const photoId = uuidv7();
+            await engine.enqueuePhoto({
+              visitId,
+              photoId,
+              name: file.name,
+              main: photo.main,
+              thumb: photo.thumb,
+              item: {
+                originalFilename: photo.originalFilename,
+                width: photo.width,
+                height: photo.height,
+                sizeBytes: photo.main.size,
+                thumbSizeBytes: photo.thumb.size,
+                takenAt: photo.takenAt,
+                zoneKey,
+              },
+            });
+            setLocal((list) => list.filter((item) => item.localId !== localId));
+            setUploaded((list) => [
+              ...list,
+              {
+                id: photoId,
+                visitId,
+                caption: null,
+                category: "general",
+                zoneKey,
+                zoneLabel: null,
+                takenAt: photo.takenAt,
+                width: photo.width,
+                height: photo.height,
+                sizeBytes: photo.main.size,
+                sortOrder: Number.MAX_SAFE_INTEGER,
+                isCover: false,
+                originalFilename: photo.originalFilename,
+                createdByName: null,
+                createdAt: new Date().toISOString(),
+                url: null,
+                thumbUrl: null,
+                urlsExpireAt: new Date().toISOString(),
+              },
+            ]);
+          } catch (error) {
+            setLocal((list) =>
+              list.map((item) =>
+                item.localId === localId
+                  ? {
+                      ...item,
+                      status: "rejected",
+                      error:
+                        error instanceof Error ? error.message : "Impossible de préparer l'image.",
+                    }
+                  : item,
+              ),
+            );
+          }
+        });
+      }
+      void chain.current.then(() => refreshUsage());
+    },
+    [engine, refreshUsage, visitId],
+  );
 
   const enqueue = useCallback(
     (files: File[], options?: { zoneKey?: string | null }) => {
-      queue?.enqueue(
-        files.map((file) => ({ file, name: file.name })),
-        options,
-      );
+      const zoneKey = options?.zoneKey ?? null;
+      if (!online && usage?.nearQuota) {
+        setQuotaFiles({ files, zoneKey });
+        return;
+      }
+      start(files, zoneKey);
     },
-    [queue],
+    [online, start, usage?.nearQuota],
   );
+
+  const photoById = useMemo(
+    () => new Map(data.photos.map((photo) => [photo.id, photo])),
+    [data.photos],
+  );
+
+  const items = useMemo<UploadItem[]>(() => {
+    const fromOutbox: UploadItem[] = data.outbox
+      .filter((entry) => entry.kind === "photo.create" && entry.photo)
+      .map((entry) => {
+        const stage = entry.photo!.stage;
+        const failed = entry.status === "rejected";
+        const waiting =
+          entry.lastError ??
+          (!online ? "Hors réseau : la photo partira au retour du réseau." : null);
+        return {
+          localId: entry.opId,
+          name: entry.photo!.name,
+          zoneKey: null,
+          status: failed
+            ? "failed"
+            : stage === "create"
+              ? "preparing"
+              : stage === "put"
+                ? "uploading"
+                : "confirming",
+          progress: entry.photo!.progress,
+          previewUrl: photoById.get(entry.entityId)?.thumbUrl ?? null,
+          error: failed ? (entry.rejection?.message ?? entry.lastError) : waiting,
+          photoId: entry.entityId,
+          attempts: entry.attempts,
+        } satisfies UploadItem;
+      });
+    const done: UploadItem[] = status.recent
+      .filter((recent) => photoById.get(recent.photoId)?.visitId === visitId)
+      .map((recent) => ({
+        localId: recent.opId,
+        name: recent.label.replace(/^Photo /, ""),
+        zoneKey: null,
+        status: "done",
+        progress: 100,
+        previewUrl: photoById.get(recent.photoId)?.thumbUrl ?? null,
+        error: null,
+        photoId: recent.photoId,
+        attempts: 0,
+      }));
+    const preparing: UploadItem[] = local.map((item) => ({
+      localId: item.localId,
+      name: item.name,
+      zoneKey: item.zoneKey,
+      status: item.status,
+      progress: 0,
+      previewUrl: null,
+      error: item.error,
+      photoId: null,
+      attempts: 0,
+    }));
+    return [...done, ...fromOutbox, ...preparing];
+  }, [data.outbox, local, online, photoById, status.recent, visitId]);
+
+  const active = items.some((item) => !["done", "rejected", "failed"].includes(item.status));
 
   const value = useMemo<UploadQueueContextValue>(
     () => ({
       items,
       uploaded,
       enqueue,
-      retry: (localId) => queue?.retry(localId),
-      remove: (localId) => queue?.remove(localId),
-      clearDone: () => queue?.clearDone(),
+      retry: (localId) => void engine?.retry(localId),
+      remove: (localId) => {
+        if (localId.startsWith("local-")) {
+          setLocal((list) => list.filter((item) => item.localId !== localId));
+          return;
+        }
+        const item = items.find((candidate) => candidate.localId === localId);
+        if (item?.status === "done") {
+          engine?.clearRecent();
+          return;
+        }
+        void engine?.remove(localId).then(() => {
+          // The server may hold a pending row already: drop it (the nightly purge would anyway).
+          if (item?.photoId && navigator.onLine) {
+            void discardPendingPhotoAction({ photoId: item.photoId }).catch(() => undefined);
+          }
+        });
+      },
+      clearDone: () => engine?.clearRecent(),
       active,
     }),
-    [items, uploaded, enqueue, queue, active],
+    [items, uploaded, enqueue, engine, active],
   );
 
-  return <UploadQueueContext.Provider value={value}>{children}</UploadQueueContext.Provider>;
+  return (
+    <UploadQueueContext.Provider value={value}>
+      {children}
+      <Dialog open={quotaFiles !== null} onOpenChange={(open) => !open && setQuotaFiles(null)}>
+        <DialogContent data-testid="quota-confirm">
+          <DialogHeader>
+            <DialogTitle>Stockage de la tablette presque plein</DialogTitle>
+            <DialogDescription>
+              {usage
+                ? `${formatBytes(usage.usageBytes)} utilisés${usage.quotaBytes ? ` sur ${formatBytes(usage.quotaBytes)}` : ""}.`
+                : ""}{" "}
+              Hors réseau, chaque photo reste sur la tablette jusqu&apos;au retour du réseau. Si
+              l&apos;espace manque, la tablette peut refuser d&apos;enregistrer. Ajouter quand même
+              ?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="secondary">
+                Annuler
+              </Button>
+            </DialogClose>
+            <Button
+              type="button"
+              onClick={() => {
+                if (quotaFiles) start(quotaFiles.files, quotaFiles.zoneKey);
+                setQuotaFiles(null);
+              }}
+              data-testid="quota-confirm-add"
+            >
+              Ajouter la photo
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </UploadQueueContext.Provider>
+  );
 }

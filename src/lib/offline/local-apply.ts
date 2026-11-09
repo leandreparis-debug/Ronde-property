@@ -1,6 +1,7 @@
 import type { ReserveFormValues } from "@/lib/reserves/schema";
 import type { Participant } from "@/server/domain";
 import type { PhotoView } from "@/server/photos/types";
+import { ZONE_TEMPLATES } from "@/server/domain/templates";
 
 import type { LocalMarker, LocalNote, LocalPhoto, LocalReserve, RondeLocalDb } from "./db";
 import { blobKeys } from "./db";
@@ -103,7 +104,10 @@ export async function applyLocally<K extends SyncKind>(
         id,
         visitId,
         zoneKey,
-        zoneLabel: zoneKey,
+        zoneLabel:
+          [...ZONE_TEMPLATES.technical.zones, ...ZONE_TEMPLATES.meeting.zones].find(
+            (zone) => zone.key === zoneKey,
+          )?.label ?? zoneKey,
         sortOrder: siblings.reduce((max, n) => Math.max(max, n.sortOrder), -1) + 1,
         content: "",
         version: 1,

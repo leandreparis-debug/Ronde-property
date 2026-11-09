@@ -75,6 +75,7 @@ describe("SyncEngine", () => {
     const queued = await engine.enqueue(noteOp("Hors réseau"));
     const outcome = await queued.wait();
     expect(outcome.status).toBe("applied");
+    await engine.flush();
     expect(transport.sent).toHaveLength(1);
     expect(await db.outbox.count()).toBe(0);
     expect(await db.notes.get(NOTE_ROOF)).toMatchObject({ content: "Hors réseau", version: 3 });
@@ -162,6 +163,7 @@ describe("SyncEngine", () => {
     // Arbitration « Garder la mienne »: a new operation on the server version.
     const resolved = await engine.resolveConflict(conflicts[0]!, noteOp("Mienne", NOTE_ROOF, 3));
     expect((await resolved!.wait()).status).toBe("applied");
+    await engine.flush();
     expect(await db.conflicts.count()).toBe(0);
     expect(await db.notes.get(NOTE_ROOF)).toMatchObject({ content: "Mienne", version: 4 });
     expect(engine.status().state).toBe("idle");
@@ -234,6 +236,7 @@ describe("SyncEngine", () => {
     const queued = await engine.enqueue(noteOp("Réessayée"));
     expect((await queued.wait()).status).toBe("queued");
     expect((await db.outbox.toArray())[0]).toMatchObject({ status: "pending", attempts: 1 });
+    await engine.flush();
     expect(engine.status().nextRetryAt).not.toBeNull();
     // The scheduled attempt (not an immediate re-send) applies it.
     expect(timers.length).toBeGreaterThan(0);

@@ -1,6 +1,14 @@
 "use client";
 
-import { Copy, Flag, MoreHorizontal, RotateCcw, Trash2 } from "lucide-react";
+import {
+  CloudDownload,
+  CloudOff,
+  Copy,
+  Flag,
+  MoreHorizontal,
+  RotateCcw,
+  Trash2,
+} from "lucide-react";
 import { useActionState, useEffect, useState } from "react";
 
 import { ErrorNotice } from "@/components/auth/error-notice";
@@ -23,19 +31,38 @@ import {
   duplicateVisitAction,
   reopenVisitAction,
 } from "@/server/actions/visit-actions";
+import { useOffline } from "@/components/offline/offline-provider";
+import { KeepOfflineDialog } from "@/components/offline/keep-offline-dialog";
+import type { VisitView } from "@/lib/offline/snapshot";
 import type { IncompletePoint } from "@/server/domain/visits";
-import type { VisitDetail } from "@/server/repositories/visit-repository";
 
 export interface VisitActionsProps {
-  visit: VisitDetail;
+  visit: VisitView;
   canCreate: boolean;
   incomplete: IncompletePoint[];
+  /** Operations of this visit waiting in the outbox, and conflicts to arbitrate. */
+  pendingCount?: number;
+  conflictsCount?: number;
+  /** The visit is kept offline on this device. */
+  kept?: boolean;
 }
 
-type Pending = "duplicate" | "complete" | "reopen" | "delete" | null;
+type Pending = "duplicate" | "complete" | "reopen" | "delete" | "keep" | null;
+
+/** Reason shown under the actions that need the server while offline. */
+export const OFFLINE_ACTIONS_REASON =
+  "Hors réseau : terminer, rouvrir, dupliquer et supprimer la visite demandent le réseau.";
 
 /** Duplicate, complete, reopen and delete, inline from 1024 px and in an « Actions » dialog below. */
-export function VisitActions({ visit, canCreate, incomplete }: VisitActionsProps) {
+export function VisitActions({
+  visit,
+  canCreate,
+  incomplete,
+  pendingCount = 0,
+  conflictsCount = 0,
+  kept = false,
+}: VisitActionsProps) {
+  const { online, setPanelOpen } = useOffline();
   const [pending, setPending] = useState<Pending>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const { toast } = useToast();
@@ -64,16 +91,33 @@ export function VisitActions({ visit, canCreate, incomplete }: VisitActionsProps
     label: string;
     icon: typeof Copy;
     variant?: "danger";
+    /** Needs the server: disabled offline. */
+    server: boolean;
   }> = [];
+  const editable = visit.permissions.canEdit && visit.status === "in_progress";
+  if (editable)
+    items.push({
+      key: "keep",
+      label: kept ? "Ne plus garder hors réseau" : "Garder hors réseau",
+      icon: kept ? CloudOff : CloudDownload,
+      server: !kept,
+    });
   if (canCreate && !visit.deletedAt)
-    items.push({ key: "duplicate", label: "Dupliquer", icon: Copy });
-  if (visit.permissions.canEdit && visit.status === "in_progress")
-    items.push({ key: "complete", label: "Terminer la visite", icon: Flag });
+    items.push({ key: "duplicate", label: "Dupliquer", icon: Copy, server: true });
+  if (editable)
+    items.push({ key: "complete", label: "Terminer la visite", icon: Flag, server: true });
   if (visit.permissions.canManage && visit.status === "completed")
-    items.push({ key: "reopen", label: "Rouvrir", icon: RotateCcw });
+    items.push({ key: "reopen", label: "Rouvrir", icon: RotateCcw, server: true });
   if (visit.permissions.canManage && !visit.deletedAt)
-    items.push({ key: "delete", label: "Supprimer", icon: Trash2, variant: "danger" });
+    items.push({
+      key: "delete",
+      label: "Supprimer",
+      icon: Trash2,
+      variant: "danger",
+      server: true,
+    });
   if (items.length === 0) return null;
+  const waiting = pendingCount + conflictsCount;
 
   function open(key: Exclude<Pending, null>) {
     setMenuOpen(false);
@@ -86,7 +130,9 @@ export function VisitActions({ visit, canCreate, incomplete }: VisitActionsProps
       type="button"
       variant={item.variant ?? "secondary"}
       onClick={() => open(item.key)}
+      disabled={item.server && !online}
       className="justify-start lg:justify-center"
+      data-testid={`visit-action-${item.key}`}
     >
       <item.icon className="size-5" aria-hidden="true" />
       {item.label}
@@ -95,8 +141,18 @@ export function VisitActions({ visit, canCreate, incomplete }: VisitActionsProps
 
   return (
     <>
-      <div className="hidden flex-wrap gap-2 lg:flex" data-testid="visit-actions">
-        {buttons}
+      <div className="hidden flex-col items-end gap-1 lg:flex">
+        <div className="flex flex-wrap justify-end gap-2" data-testid="visit-actions">
+          {buttons}
+        </div>
+        {!online ? (
+          <p
+            className="max-w-md text-right text-ui text-ink-2"
+            data-testid="offline-reason-actions"
+          >
+            {OFFLINE_ACTIONS_REASON}
+          </p>
+        ) : null}
       </div>
       <Button
         type="button"
@@ -114,6 +170,7 @@ export function VisitActions({ visit, canCreate, incomplete }: VisitActionsProps
             <DialogTitle>Actions</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-2">{buttons}</div>
+          {!online ? <p className="text-ui text-ink-2">{OFFLINE_ACTIONS_REASON}</p> : null}
         </DialogContent>
       </Dialog>
 
@@ -167,6 +224,31 @@ export function VisitActions({ visit, canCreate, incomplete }: VisitActionsProps
               </ul>
             </div>
           ) : null}
+          {waiting > 0 ? (
+            <div
+              role="alert"
+              className="flex flex-col gap-2 rounded-md border border-rule bg-brand-tint p-3 text-ui text-ink"
+              data-testid="complete-blocked"
+            >
+              <p>
+                {conflictsCount > 0
+                  ? `${conflictsCount} conflit${conflictsCount > 1 ? "s" : ""} à arbitrer et ${pendingCount} modification${pendingCount > 1 ? "s" : ""} en attente : `
+                  : `${pendingCount} modification${pendingCount > 1 ? "s" : ""} de cette visite ${pendingCount > 1 ? "attendent" : "attend"} d'être synchronisée${pendingCount > 1 ? "s" : ""} : `}
+                la visite ne peut être terminée qu&apos;une fois tout envoyé au serveur.
+              </p>
+              <Button
+                type="button"
+                variant="secondary"
+                className="self-start"
+                onClick={() => {
+                  setPending(null);
+                  setPanelOpen(true);
+                }}
+              >
+                Voir la synchronisation
+              </Button>
+            </div>
+          ) : null}
           <form action={complete} className="flex flex-col gap-3">
             <input type="hidden" name="id" value={visit.id} />
             {completeState.error ? <ErrorNotice message={completeState.error} /> : null}
@@ -176,11 +258,18 @@ export function VisitActions({ visit, canCreate, incomplete }: VisitActionsProps
                   Annuler
                 </Button>
               </DialogClose>
-              <SubmitButton>Terminer la visite</SubmitButton>
+              <SubmitButton disabled={waiting > 0 || !online}>Terminer la visite</SubmitButton>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
+
+      <KeepOfflineDialog
+        open={pending === "keep"}
+        onOpenChange={(o) => (o ? undefined : setPending(null))}
+        visitId={visit.id}
+        kept={kept}
+      />
 
       <Dialog open={pending === "reopen"} onOpenChange={(o) => (o ? undefined : setPending(null))}>
         <DialogContent>

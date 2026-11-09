@@ -47,6 +47,11 @@ export interface ReportTabProps {
   photos: PhotoView[];
   /** Points to complete (steps 5 to 9), recalled without blocking. */
   incomplete: IncompletePoint[];
+  /**
+   * Why the report cannot be generated now (offline, changes waiting for the synchronisation):
+   * the button is disabled and the reason shown.
+   */
+  blockedReason?: string | null;
 }
 
 /** « 2,4 Mo », « 830 Ko ». */
@@ -98,6 +103,7 @@ export function ReportTab({
   initialOptions,
   photos,
   incomplete,
+  blockedReason = null,
 }: ReportTabProps) {
   const id = useId();
   const router = useRouter();
@@ -211,7 +217,7 @@ export function ReportTab({
             <Button
               type="button"
               size="lg"
-              disabled={busy || !ready}
+              disabled={busy || !ready || Boolean(blockedReason)}
               onClick={() => void generate()}
               data-testid="report-generate"
             >
@@ -220,6 +226,15 @@ export function ReportTab({
             </Button>
           </div>
         </div>
+
+        {blockedReason && !busy ? (
+          <p
+            className="rounded-md bg-craie px-3 py-2 text-ui text-ink-2"
+            data-testid="report-blocked"
+          >
+            {blockedReason}
+          </p>
+        ) : null}
 
         {incomplete.length > 0 ? (
           <div data-testid="report-incomplete">

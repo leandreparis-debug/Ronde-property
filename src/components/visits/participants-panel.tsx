@@ -21,13 +21,9 @@ import { Select } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
-import {
-  addParticipantAction,
-  removeParticipantAction,
-  reorderParticipantsAction,
-  updateParticipantAction,
-  type VisitWriteResult,
-} from "@/server/actions/visit-actions";
+import { PendingDot } from "@/components/offline/pending-dot";
+import { type MutationResult, useVisitMutations } from "@/components/offline/visit-mutations";
+import { participantInputSchema } from "@/server/domain/schemas";
 import type { Participant } from "@/server/domain";
 import type { AssignableProfile } from "@/server/repositories/profile-repository";
 
@@ -35,59 +31,49 @@ import { useVisitVersion } from "./visit-version-context";
 
 export interface ParticipantsPanelProps {
   visitId: string;
-  initial: Participant[];
+  /** Participants from the local store, in order. */
+  participants: Participant[];
   colleagues: AssignableProfile[];
   canEdit: boolean;
+  /** Participants with an operation waiting (« en attente » marks). */
+  pendingIds?: Set<string>;
 }
 
 /** Ordered participants with presence toggle, reorder arrows, removal and the add dialog. */
 export function ParticipantsPanel({
   visitId,
-  initial,
+  participants,
   colleagues,
   canEdit,
+  pendingIds = new Set(),
 }: ParticipantsPanelProps) {
-  const { version, advance, conflict, setConflict } = useVisitVersion();
-  const [participants, setParticipants] = useState(initial);
+  const { conflict, setConflict } = useVisitVersion();
+  const mutations = useVisitMutations(visitId);
   const [adding, setAdding] = useState(false);
   const [removing, setRemoving] = useState<Participant | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
-  function handle(result: VisitWriteResult, onSuccess: () => void): boolean {
-    if (result.ok && result.version) {
-      advance(result.version);
+  function handle(result: MutationResult, onSuccess: () => void): boolean {
+    if (result.ok) {
       setError(null);
       onSuccess();
       return true;
     }
-    if (result.conflict) {
-      setConflict(
-        result.error ??
-          "Cette visite a été modifiée entre-temps. Rechargez pour voir la dernière version.",
-      );
-    } else {
-      setError(result.error ?? "Erreur, réessayer");
-    }
+    if (result.conflict) setConflict({ message: result.error, entry: result.conflict });
+    else setError(result.error);
     return false;
   }
 
   function togglePresence(participant: Participant) {
     startTransition(async () => {
-      const result = await updateParticipantAction({
-        visitId,
-        version,
-        id: participant.id,
-        patch: { isPresent: !participant.isPresent },
-      });
-      handle(result, () =>
-        setParticipants((list) =>
-          list.map((p) =>
-            p.id === participant.id ? { ...p, isPresent: !participant.isPresent } : p,
-          ),
-        ),
+      const result = await mutations.setParticipantPresence(
+        participant.id,
+        !participant.isPresent,
+        participant.fullName,
       );
+      handle(result, () => undefined);
     });
   }
 
@@ -98,20 +84,15 @@ export function ParticipantsPanel({
     const [item] = next.splice(index, 1);
     next.splice(target, 0, item!);
     startTransition(async () => {
-      const result = await reorderParticipantsAction({
-        visitId,
-        version,
-        orderedIds: next.map((p) => p.id),
-      });
-      handle(result, () => setParticipants(next.map((p, i) => ({ ...p, sortOrder: i }))));
+      const result = await mutations.reorderParticipants(next.map((p) => p.id));
+      handle(result, () => undefined);
     });
   }
 
   function remove(participant: Participant) {
     startTransition(async () => {
-      const result = await removeParticipantAction({ visitId, version, id: participant.id });
+      const result = await mutations.removeParticipant(participant.id, participant.fullName);
       handle(result, () => {
-        setParticipants((list) => list.filter((p) => p.id !== participant.id));
         setRemoving(null);
         toast({ variant: "success", title: "Participant retiré" });
       });
@@ -156,6 +137,7 @@ export function ParticipantsPanel({
                 <span className="flex flex-wrap items-center gap-2 text-body font-semibold text-ink">
                   {participant.fullName}
                   {participant.profileId ? <Badge variant="brand">Collègue</Badge> : null}
+                  {pendingIds.has(participant.id) ? <PendingDot /> : null}
                 </span>
                 <span className="text-ui text-ink-2">
                   {[participant.company, participant.jobTitle, participant.email]
@@ -228,8 +210,7 @@ export function ParticipantsPanel({
           visitId={visitId}
           colleagues={colleagues.filter((c) => !linkedIds.has(c.id))}
           onClose={() => setAdding(false)}
-          onAdded={(participant) => {
-            setParticipants((list) => [...list, participant]);
+          onAdded={() => {
             setAdding(false);
             toast({ variant: "success", title: "Participant ajouté" });
           }}
@@ -276,9 +257,10 @@ function AddParticipantDialog({
   visitId: string;
   colleagues: AssignableProfile[];
   onClose: () => void;
-  onAdded: (participant: Participant) => void;
+  onAdded: () => void;
 }) {
-  const { version, advance, setConflict } = useVisitVersion();
+  const { setConflict } = useVisitVersion();
+  const mutations = useVisitMutations(visitId);
   const [mode, setMode] = useState<"colleague" | "external">("colleague");
   const [profileId, setProfileId] = useState(colleagues[0]?.id ?? "");
   const [fullName, setFullName] = useState("");
@@ -315,20 +297,27 @@ function AddParticipantDialog({
       setError("Choisissez un collègue.");
       return;
     }
+    // Same rules as the server, checked before queueing (e-mail, lengths).
+    const parsed = participantInputSchema.safeParse(participant);
+    if (!parsed.success) {
+      const next: Record<string, string> = {};
+      for (const issue of parsed.error.issues) {
+        const key = String(issue.path[0] ?? "form");
+        if (!next[key]) next[key] = issue.message;
+      }
+      setFields(next);
+      setError("Vérifiez les champs signalés.");
+      return;
+    }
     startTransition(async () => {
-      const result = await addParticipantAction({ visitId, version, participant });
-      if (result.ok && result.version && result.id) {
-        advance(result.version);
-        onAdded({ id: result.id, visitId, ...participant });
+      const result = await mutations.addParticipant(parsed.data);
+      if (result.ok) {
+        onAdded();
       } else if (result.conflict) {
-        setConflict(
-          result.error ??
-            "Cette visite a été modifiée entre-temps. Rechargez pour voir la dernière version.",
-        );
+        setConflict({ message: result.error, entry: result.conflict });
         onClose();
       } else {
-        setFields(result.fields ?? {});
-        setError(result.error ?? "Erreur, réessayer");
+        setError(result.error);
       }
     });
   }

@@ -1,35 +1,29 @@
 "use client";
 
-import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, type ReactNode, useContext, useMemo, useState } from "react";
+
+import type { ConflictEntry } from "@/lib/offline/db";
+
+/** A version conflict of the visit, with its entry of the store when there is one. */
+export interface VisitConflict {
+  message: string;
+  entry: ConflictEntry | null;
+}
 
 interface VisitVersionValue {
-  version: number;
-  /** Records the version returned by a successful write. */
-  advance: (version: number) => void;
-  conflict: string | null;
-  setConflict: (message: string | null) => void;
+  conflict: VisitConflict | null;
+  setConflict: (conflict: VisitConflict | null) => void;
 }
 
 const VisitVersionContext = createContext<VisitVersionValue | null>(null);
 
-/** Shares the visit version between the information form and the participants panel. */
-export function VisitVersionProvider({
-  initialVersion,
-  children,
-}: {
-  initialVersion: number;
-  children: ReactNode;
-}) {
-  const [version, setVersion] = useState(initialVersion);
-  const [conflict, setConflict] = useState<string | null>(null);
-  const advance = useCallback(
-    (next: number) => setVersion((current) => Math.max(current, next)),
-    [],
-  );
-  const value = useMemo(
-    () => ({ version, advance, conflict, setConflict }),
-    [version, advance, conflict],
-  );
+/**
+ * Shares the conflict of the visit between the information form and the participants panel.
+ * Since step 12 the version itself is read by the outbox when an operation is queued.
+ */
+export function VisitVersionProvider({ children }: { children: ReactNode }) {
+  const [conflict, setConflict] = useState<VisitConflict | null>(null);
+  const value = useMemo(() => ({ conflict, setConflict }), [conflict]);
   return <VisitVersionContext.Provider value={value}>{children}</VisitVersionContext.Provider>;
 }
 

@@ -1,30 +1,20 @@
 "use client";
 
 import { RefreshCw, Settings2 } from "lucide-react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Galet } from "@/components/brand/Galet";
+import { useOffline } from "@/components/offline/offline-provider";
+import { useVisit } from "@/components/offline/visit-data";
+import { useVisitMutations } from "@/components/offline/visit-mutations";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui/toast";
+import type { ConflictEntry } from "@/lib/offline/db";
+import { replaceQuery } from "@/lib/offline/query";
 import { isZoneFilled, parseNoteContent } from "@/lib/notes/format";
-import {
-  createNoteSaver,
-  type NoteConflict,
-  type NoteSaver,
-  type NoteSaveStatus,
-} from "@/lib/notes/saver";
-import {
-  addTemplateZoneAction,
-  addZoneAction,
-  insertZoneTemplateAction,
-  removeZoneAction,
-  renameZoneAction,
-  reorderZonesAction,
-  saveZoneNoteAction,
-  type ZoneStructureActionResult,
-} from "@/server/actions/zone-note-actions";
+import type { NoteConflict, NoteSaveStatus } from "@/lib/notes/status";
 import type { VisitType } from "@/server/domain/enums";
 import { templateForVisitType } from "@/server/domain/templates";
 import type { ZoneNoteView } from "@/server/domain/zone-notes";
@@ -41,111 +31,127 @@ import { ZoneReserves } from "./zone-reserves";
 export interface NotesTabProps {
   visitId: string;
   visitType: VisitType;
-  initialVersion: number;
-  initialNotes: ZoneNoteView[];
   canEdit: boolean;
   userId: string;
-  /** Ready photos of the visit, for the per-zone counter and strip. */
+  /** Photos of the visit, for the per-zone counter and strip. */
   photos: PhotoView[];
   /** Reserves (not deleted) per zone key, open and done, for the zone counter and « + Réserve ». */
   reservesByZone?: Record<string, { open: number; done: number }>;
 }
 
 const IDLE: NoteSaveStatus = { kind: "idle" };
+
+/** A copy of `map` without `key`. */
+function without<T>(map: Record<string, T>, key: string): Record<string, T> {
+  const next = { ...map };
+  delete next[key];
+  return next;
+}
+const DEBOUNCE_MS = 800;
 const STRUCTURE_CONFLICT =
   "Cette visite a été modifiée entre-temps. Rechargez pour voir la dernière version.";
 
+/** The note conflict of an entry of the store, in the shape of the step 6 dialog. */
+function asNoteConflict(entry: ConflictEntry): { mine: string; theirs: NoteConflict } {
+  const theirs = entry.theirs as Partial<NoteConflict>;
+  return {
+    mine: String((entry.mine as { content?: string }).content ?? ""),
+    theirs: {
+      content: String(theirs.content ?? ""),
+      version: Number(theirs.version ?? entry.serverVersion),
+      updatedAt: String(theirs.updatedAt ?? entry.createdAt),
+      updatedByName: theirs.updatedByName ?? null,
+    },
+  };
+}
+
 /**
- * « Notes » tab: zone selector (list from 1024 px, pills below), editor with per-zone
- * autosave and retries, zone management, per-zone conflict dialog and the read-only view.
- * The selected zone is reflected in the URL (`?onglet=notes&zone=docks`).
+ * « Notes » tab: zone selector (list from 1024 px, pills below), editor saved 800 ms after the
+ * last keystroke (or at once on blur, zone change, page hidden) **through the outbox**: the text
+ * is on the device at once and reaches the server when it can, offline included. Zone
+ * management, conflict dialog (« Garder ma version », « Prendre la sienne », « Fusionner ») and
+ * the read-only view. The selected zone is reflected in the URL (`?onglet=notes&zone=docks`).
  */
 export function NotesTab({
   visitId,
   visitType,
-  initialVersion,
-  initialNotes,
   canEdit,
   userId,
   photos,
   reservesByZone = {},
 }: NotesTabProps) {
-  const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const { online, engine } = useOffline();
+  const data = useVisit();
+  const mutations = useVisitMutations(visitId);
+  const notes = data.notes;
 
-  const [notes, setNotes] = useState(initialNotes);
-  const [visitVersion, setVisitVersion] = useState(initialVersion);
   const [structureConflict, setStructureConflict] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const [statuses, setStatuses] = useState<Record<string, NoteSaveStatus>>({});
+  const [saving, setSaving] = useState<Record<string, boolean>>({});
+  const [saved, setSaved] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [mode, setMode] = useState<EditorMode>("edit");
   const [managing, setManaging] = useState(false);
   const [pending, setPending] = useState(false);
-  const [conflict, setConflict] = useState<{
-    noteId: string;
-    mine: string;
-    theirs: NoteConflict;
-  } | null>(null);
+  const [dismissed, setDismissed] = useState<string | null>(null);
 
+  const draftsRef = useRef(drafts);
+  draftsRef.current = drafts;
   const notesRef = useRef(notes);
   notesRef.current = notes;
-  // Note versions, updated synchronously: a save can follow another one before React
-  // re-renders, and it must carry the version just returned by the server.
-  const versionsRef = useRef<Record<string, number>>(
-    Object.fromEntries(initialNotes.map((n) => [n.id, n.version])),
+  const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+
+  const save = useCallback(
+    async (noteId: string) => {
+      const timer = timers.current.get(noteId);
+      if (timer) clearTimeout(timer);
+      timers.current.delete(noteId);
+      const content = draftsRef.current[noteId];
+      const note = notesRef.current.find((n) => n.id === noteId);
+      if (content === undefined || !note) return;
+      if (content === note.content) {
+        setDrafts((map) => without(map, noteId));
+        return;
+      }
+      setSaving((map) => ({ ...map, [noteId]: true }));
+      setErrors((map) => without(map, noteId));
+      const result = mutations.saveNote(noteId, content, note.zoneLabel);
+      // The store holds the text as soon as it is queued: the draft can go.
+      setDrafts((map) => (map[noteId] !== content ? map : without(map, noteId)));
+      const outcome = await result;
+      setSaving((map) => ({ ...map, [noteId]: false }));
+      if (outcome.ok && !outcome.queued) {
+        setSaved((map) => ({
+          ...map,
+          [noteId]: String(outcome.data.savedAt ?? new Date().toISOString()),
+        }));
+      } else if (!outcome.ok && !outcome.conflict) {
+        setErrors((map) => ({ ...map, [noteId]: outcome.error }));
+      }
+    },
+    [mutations],
   );
-  const saverRef = useRef<NoteSaver | null>(null);
 
-  if (!saverRef.current) {
-    saverRef.current = createNoteSaver({
-      save: (noteId, version, content) => saveZoneNoteAction({ noteId, version, content }),
-      getVersion: (noteId) =>
-        versionsRef.current[noteId] ?? notesRef.current.find((n) => n.id === noteId)?.version ?? 1,
-      onSaved: (noteId, version, savedAt, content) => {
-        versionsRef.current[noteId] = version;
-        setNotes((list) =>
-          list.map((n) =>
-            n.id === noteId
-              ? {
-                  ...n,
-                  version,
-                  updatedAt: savedAt,
-                  updatedBy: userId,
-                  updatedByName: null,
-                  content,
-                }
-              : n,
-          ),
-        );
-      },
-      onConflict: (noteId, mine, theirs) => setConflict({ noteId, mine, theirs }),
-      onStatus: (noteId, status) => setStatuses((map) => ({ ...map, [noteId]: status })),
-    });
-    for (const note of initialNotes) saverRef.current.track(note.id, note.content);
-  }
-  const saver = saverRef.current;
+  const flushAll = useCallback(() => {
+    for (const id of Object.keys(draftsRef.current)) void save(id);
+  }, [save]);
 
-  useEffect(() => () => saver.dispose(), [saver]);
-
-  // Nothing is lost on a page unload or when the tab goes to the background.
+  // Leaving the page or hiding the tab saves what is being typed (it is then on the device).
   useEffect(() => {
-    const beforeUnload = (event: BeforeUnloadEvent) => {
-      if (!saver.hasPending()) return;
-      saver.flushAll();
-      event.preventDefault();
+    const pendingTimers = timers.current;
+    const hidden = () => {
+      if (document.visibilityState === "hidden") flushAll();
     };
-    const visibility = () => {
-      if (document.visibilityState === "hidden") saver.flushAll();
-    };
-    window.addEventListener("beforeunload", beforeUnload);
-    document.addEventListener("visibilitychange", visibility);
+    window.addEventListener("pagehide", flushAll);
+    document.addEventListener("visibilitychange", hidden);
     return () => {
-      window.removeEventListener("beforeunload", beforeUnload);
-      document.removeEventListener("visibilitychange", visibility);
+      window.removeEventListener("pagehide", flushAll);
+      document.removeEventListener("visibilitychange", hidden);
+      for (const timer of pendingTimers.values()) clearTimeout(timer);
     };
-  }, [saver]);
+  }, [flushAll]);
 
   const requestedZone = searchParams.get("zone");
   const selected = notes.find((n) => n.zoneKey === requestedZone) ?? notes[0] ?? null;
@@ -155,83 +161,122 @@ export function NotesTab({
     (id: string) => {
       const target = notesRef.current.find((n) => n.id === id);
       if (!target) return;
-      if (selected && selected.id !== id) saver.flush(selected.id);
-      const params = new URLSearchParams(searchParams.toString());
+      if (selected && selected.id !== id) void save(selected.id);
+      const params = new URLSearchParams(window.location.search);
       params.set("onglet", "notes");
       params.set("zone", target.zoneKey);
-      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+      replaceQuery(params);
     },
-    [pathname, router, saver, searchParams, selected],
+    [save, selected],
   );
 
   const valueOf = useCallback((note: ZoneNoteView) => drafts[note.id] ?? note.content, [drafts]);
 
   function change(noteId: string, value: string) {
     setDrafts((map) => ({ ...map, [noteId]: value }));
-    saver.change(noteId, value);
+    const previous = timers.current.get(noteId);
+    if (previous) clearTimeout(previous);
+    timers.current.set(
+      noteId,
+      setTimeout(() => void save(noteId), DEBOUNCE_MS),
+    );
   }
 
-  function applyStructure(result: ZoneStructureActionResult): string | null {
-    if (result.ok) {
-      setVisitVersion(result.version);
-      setNotes(result.notes);
-      for (const note of result.notes) {
-        if (!notesRef.current.some((n) => n.id === note.id)) {
-          versionsRef.current[note.id] = note.version;
-          saver.track(note.id, note.content);
-        }
+  function statusOf(noteId: string): NoteSaveStatus {
+    if (errors[noteId]) return { kind: "error", message: errors[noteId]! };
+    const waiting = data.outbox.find(
+      (entry) => entry.kind === "note.update" && entry.entityId === noteId,
+    );
+    if (saving[noteId]) {
+      if (!online) return { kind: "offline", attempt: 0, deviceOffline: true };
+      if (waiting && (waiting.lastError || waiting.attempts > 0)) {
+        return { kind: "offline", attempt: waiting.attempts };
       }
-      return null;
+      return { kind: "saving" };
     }
-    if (result.conflict) {
-      setStructureConflict(result.error || STRUCTURE_CONFLICT);
-      setManaging(false);
-    }
-    return result.error;
+    if (waiting) return { kind: "offline", attempt: waiting.attempts, deviceOffline: !online };
+    if (saved[noteId]) return { kind: "saved", at: saved[noteId]! };
+    return IDLE;
   }
+
+  // A note queued while this page was open and applied later (back online): « Enregistré à ».
+  useEffect(() => {
+    for (const note of notes) {
+      const waiting = data.outbox.some(
+        (entry) => entry.kind === "note.update" && entry.entityId === note.id,
+      );
+      const conflicting = data.conflicts.some((entry) => entry.entityId === note.id);
+      if (
+        !waiting &&
+        !conflicting &&
+        saving[note.id] === false &&
+        !saved[note.id] &&
+        !errors[note.id]
+      ) {
+        setSaved((map) => ({ ...map, [note.id]: note.updatedAt }));
+      }
+    }
+  }, [notes, data.outbox, data.conflicts, saving, saved, errors]);
 
   async function structure(
-    operation: () => Promise<ZoneStructureActionResult>,
+    operation: () => ReturnType<typeof mutations.addZone>,
   ): Promise<string | null> {
     setPending(true);
     try {
-      return applyStructure(await operation());
+      const result = await operation();
+      if (result.ok) return null;
+      if (result.conflict) {
+        setStructureConflict(result.error || STRUCTURE_CONFLICT);
+        setManaging(false);
+      }
+      return result.error;
     } finally {
       setPending(false);
     }
   }
 
-  function keepMine() {
-    if (!conflict) return;
-    const { noteId, theirs } = conflict;
-    versionsRef.current[noteId] = theirs.version;
-    setNotes((list) => list.map((n) => (n.id === noteId ? { ...n, version: theirs.version } : n)));
-    setConflict(null);
-    saver.retry(noteId);
+  // Conflict of the selected note (raised here, or found waiting in the store).
+  const noteConflict =
+    data.conflicts.find(
+      (entry) =>
+        entry.kind === "note.update" && entry.entityId === selected?.id && entry.id !== dismissed,
+    ) ?? null;
+  const conflict = noteConflict ? asNoteConflict(noteConflict) : null;
+
+  async function keepMine() {
+    if (!noteConflict || !engine || !conflict) return;
+    await resolveWith(conflict.mine);
+  }
+
+  async function resolveWith(content: string) {
+    if (!noteConflict || !engine) return;
+    const note = notes.find((n) => n.id === noteConflict.entityId);
+    setSaving((map) => ({ ...map, [noteConflict.entityId]: true }));
+    const resolved = await engine.resolveConflict(noteConflict, {
+      visitId,
+      kind: "note.update",
+      entityId: noteConflict.entityId,
+      payload: { noteId: noteConflict.entityId, content },
+      baseVersion: noteConflict.serverVersion,
+      versionScope: `note:${noteConflict.entityId}`,
+      label: noteConflict.label,
+    });
+    const outcome = await resolved?.wait();
+    setSaving((map) => ({ ...map, [noteConflict.entityId]: false }));
+    if (outcome?.status === "applied") {
+      setSaved((map) => ({
+        ...map,
+        [noteConflict.entityId]: String(outcome.data.savedAt ?? note?.updatedAt ?? ""),
+      }));
+    }
   }
 
   async function takeTheirs() {
-    if (!conflict) return;
-    const { noteId, mine, theirs } = conflict;
-    setNotes((list) =>
-      list.map((n) =>
-        n.id === noteId
-          ? {
-              ...n,
-              content: theirs.content,
-              version: theirs.version,
-              updatedAt: theirs.updatedAt,
-              updatedByName: theirs.updatedByName,
-              updatedBy: theirs.updatedByName ? "" : n.updatedBy,
-            }
-          : n,
-      ),
-    );
-    versionsRef.current[noteId] = theirs.version;
-    setDrafts((map) => ({ ...map, [noteId]: theirs.content }));
-    saver.track(noteId, theirs.content);
-    setStatuses((map) => ({ ...map, [noteId]: IDLE }));
-    setConflict(null);
+    if (!noteConflict || !engine || !conflict) return;
+    const { mine } = conflict;
+    setDrafts((map) => without(map, noteConflict.entityId));
+    setDismissed(noteConflict.id);
+    await engine.resolveConflict(noteConflict, null);
     let copied = false;
     try {
       if (mine.trim() !== "" && navigator.clipboard) {
@@ -258,7 +303,8 @@ export function NotesTab({
     zoneKey: note.zoneKey,
     zoneLabel: note.zoneLabel,
     filled: isZoneFilled(valueOf(note)),
-    status: statuses[note.id],
+    status: statusOf(note.id),
+    pending: data.pendingIds.has(note.id),
     photos: photos.filter((photo) => photo.zoneKey === note.zoneKey).length,
   }));
 
@@ -279,13 +325,7 @@ export function NotesTab({
               size="lg"
               loading={pending}
               onClick={() =>
-                void structure(() =>
-                  insertZoneTemplateAction({
-                    visitId,
-                    version: visitVersion,
-                    templateKey: template.key,
-                  }),
-                ).then((message) => {
+                void structure(() => mutations.insertTemplate(template.key)).then((message) => {
                   if (message) toast({ variant: "error", title: message });
                 })
               }
@@ -339,13 +379,18 @@ export function NotesTab({
                 key={selected.id}
                 note={selected}
                 value={valueOf(selected)}
-                status={statuses[selected.id] ?? IDLE}
+                status={statusOf(selected.id)}
+                pending={data.pendingIds.has(selected.id)}
                 mode={mode}
                 userId={userId}
                 onModeChange={setMode}
                 onChange={(value) => change(selected.id, value)}
-                onBlur={() => saver.flush(selected.id)}
-                onRetry={() => saver.retry(selected.id)}
+                onBlur={() => void save(selected.id)}
+                onRetry={() => {
+                  setErrors((map) => without(map, selected.id));
+                  setDrafts((map) => ({ ...map, [selected.id]: valueOf(selected) }));
+                  void save(selected.id);
+                }}
                 onPrevious={
                   selectedIndex > 0 ? () => selectZone(notes[selectedIndex - 1]!.id) : undefined
                 }
@@ -395,33 +440,35 @@ export function NotesTab({
             const ordered = notes.map((n) => n.id);
             ordered.splice(index, 1);
             ordered.splice(target, 0, id);
-            return structure(() =>
-              reorderZonesAction({ visitId, version: visitVersion, orderedIds: ordered }),
-            );
+            return structure(() => mutations.reorderZones(ordered));
           }}
-          onRename={(noteId, label) =>
-            structure(() => renameZoneAction({ visitId, version: visitVersion, noteId, label }))
-          }
+          onRename={(noteId, label) => structure(() => mutations.renameZone(noteId, label))}
           onRemove={(noteId) =>
-            structure(() => removeZoneAction({ visitId, version: visitVersion, noteId }))
+            structure(() =>
+              mutations.removeZone(noteId, notes.find((n) => n.id === noteId)?.zoneLabel ?? ""),
+            )
           }
-          onAdd={(label) =>
-            structure(() => addZoneAction({ visitId, version: visitVersion, label }))
-          }
+          onAdd={(label) => structure(() => mutations.addZone(label))}
           onAddTemplate={(zoneKey) =>
-            structure(() => addTemplateZoneAction({ visitId, version: visitVersion, zoneKey }))
+            structure(() =>
+              mutations.addTemplateZone(
+                zoneKey,
+                template.zones.find((zone) => zone.key === zoneKey)?.label ?? zoneKey,
+              ),
+            )
           }
         />
       ) : null}
 
-      {conflict ? (
+      {conflict && noteConflict ? (
         <NoteConflictDialog
-          zoneLabel={notes.find((n) => n.id === conflict.noteId)?.zoneLabel ?? ""}
+          zoneLabel={notes.find((n) => n.id === noteConflict.entityId)?.zoneLabel ?? ""}
           mine={conflict.mine}
           theirs={conflict.theirs}
-          pending={statuses[conflict.noteId]?.kind === "saving"}
-          onKeepMine={keepMine}
+          pending={Boolean(saving[noteConflict.entityId])}
+          onKeepMine={() => void keepMine()}
           onTakeTheirs={() => void takeTheirs()}
+          onMerge={(merged) => void resolveWith(merged)}
         />
       ) : null}
     </div>

@@ -8,7 +8,7 @@ import { NavLink } from "./nav-link";
  * Bottom navigation bar for tablets in portrait (below 1024 px).
  * 56 px high plus the device safe area; every entry has an icon and a label.
  */
-export function BottomNav({ user }: { user: CurrentUser }) {
+export function BottomNav({ user }: { user: Pick<CurrentUser, "role"> }) {
   const items = navItemsFor(user);
   return (
     <nav

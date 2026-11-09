@@ -1,5 +1,5 @@
 import type { ConflictEntry, OutboxEntry, RondeLocalDb } from "./db";
-import { blobKeys, META_KEYS, readMeta, writeMeta } from "./db";
+import { appliedAtKey, blobKeys, META_KEYS, readMeta, writeMeta } from "./db";
 import { applyLocally } from "./local-apply";
 import type { SyncAuthFailure, SyncOperation, SyncResult } from "./ops";
 import { enqueueOperation, type EnqueueOutcome, type NewOperation, unblock } from "./outbox";
@@ -464,8 +464,14 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
         lastSyncAt = response.serverTime;
         await writeMeta(db, META_KEYS.lastSyncAt, response.serverTime);
         await writeMeta(db, META_KEYS.lastServerContactAt, response.serverTime);
+        // A snapshot read before this answer must not undo it (see mergeSnapshot).
+        await writeMeta(db, appliedAtKey(visitId), response.serverTime);
         if (response.results.some((result) => result.status === "retry")) sawRetry = true;
         await handleResults(batch, response.results);
+        // The screens waiting on this batch learn its outcome now, not at the end of the run.
+        await refresh({ message: null, nextRetryAt: null, authReason: null });
+        publish({ state: "syncing" });
+        deliver();
         progressed = true;
       }
       const uploads = await uploadPhotos();
@@ -639,6 +645,16 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
 
     async resolveConflict(conflict, resolution) {
       await db.conflicts.delete(conflict.id);
+      // The operations held back by the conflict now build on the server version.
+      const held = await db.outbox
+        .filter(
+          (entry) =>
+            entry.blockedBy === conflict.id && entry.versionScope === conflict.versionScope,
+        )
+        .toArray();
+      for (const entry of held) {
+        await db.outbox.update(entry.opId, { baseVersion: conflict.serverVersion });
+      }
       await unblock(db, conflict.id);
       let result: Enqueued | null = null;
       if (resolution) result = await enqueue(resolution);

@@ -23,7 +23,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { useUploadQueue } from "@/components/visits/photos/upload-queue-provider";
 import { cn } from "@/lib/cn";
 import { formatDate, todayInParis } from "@/lib/format";
-import { reachServer } from "@/lib/network";
 import { applyDueShortcut, DUE_SHORTCUTS, isPastDate } from "@/lib/reserves/dates";
 import {
   emptyReserveForm,
@@ -33,11 +32,11 @@ import {
   reserveToForm,
   type ResponsibleMode,
 } from "@/lib/reserves/schema";
-import {
-  createReserveAction,
-  responsibleSuggestionsAction,
-  updateReserveAction,
-} from "@/server/actions/reserve-actions";
+import { useOffline } from "@/components/offline/offline-provider";
+import { useOptionalVisit } from "@/components/offline/visit-data";
+import { useVisitMutations } from "@/components/offline/visit-mutations";
+import type { ConflictEntry } from "@/lib/offline/db";
+import { responsibleSuggestionsAction } from "@/server/actions/reserve-actions";
 import { RESERVE_PRIORITIES, RESERVE_PRIORITY_LABELS } from "@/server/domain/enums";
 import type { PhotoView } from "@/server/photos/types";
 import type { ReserveDetail, ResponsibleSuggestions } from "@/server/reserves/types";
@@ -46,6 +45,14 @@ import type { ReserveDetail, ResponsibleSuggestions } from "@/server/reserves/ty
 export type ReserveSheetTarget =
   | { kind: "create"; zoneKey: string | null; photoIds?: string[] }
   | { kind: "edit"; reserve: ReserveDetail };
+
+/** A saved reserve: « R-? » while it waits for the server (`queued`). */
+export interface SavedReserve {
+  id: string;
+  code: string;
+  action: string;
+  queued: boolean;
+}
 
 export interface ReserveSheetProps {
   open: boolean;
@@ -57,7 +64,7 @@ export interface ReserveSheetProps {
   /** Ready photos of the visit, offered as defect photos. */
   photos: PhotoView[];
   /** Called after each successful save. `again`: « Enregistrer et nouvelle ». */
-  onSaved: (reserve: ReserveDetail, options: { again: boolean }) => void;
+  onSaved: (reserve: SavedReserve, options: { again: boolean }) => void;
 }
 
 const RESPONSIBLE_OPTIONS: Array<{ value: ResponsibleMode; label: string }> = [
@@ -109,15 +116,18 @@ export function ReserveSheet({
     setValue,
     watch,
     reset,
-    setError,
     setFocus,
     formState: { errors, isSubmitting },
   } = form;
   const [serverError, setServerError] = useState<string | null>(null);
-  const [conflict, setConflict] = useState<{ current: ReserveDetail; message: string } | null>(
-    null,
-  );
-  const [version, setVersion] = useState(editing?.version ?? 1);
+  const [conflict, setConflict] = useState<{
+    current: ReserveDetail;
+    message: string;
+    entry: ConflictEntry;
+  } | null>(null);
+  const { engine, online } = useOffline();
+  const visitData = useOptionalVisit();
+  const mutations = useVisitMutations(visitId);
   const [pastConfirm, setPastConfirm] = useState<{ again: boolean } | null>(null);
   const [descriptionOpen, setDescriptionOpen] = useState(Boolean(editing?.description));
   const [suggestions, setSuggestions] = useState<ResponsibleSuggestions | null>(null);
@@ -144,7 +154,6 @@ export function ReserveSheet({
   useEffect(() => {
     if (!open) return;
     reset(initialValues(target));
-    setVersion(target.kind === "edit" ? target.reserve.version : 1);
     setConflict(null);
     setServerError(null);
     setPhotoZone(null);
@@ -156,13 +165,33 @@ export function ReserveSheet({
   useEffect(() => {
     if (!open || suggestions) return;
     let cancelled = false;
-    void responsibleSuggestionsAction({ siteId }).then((result) => {
-      if (!cancelled && result.ok) setSuggestions(result.suggestions);
-    });
+    // Offline: the colleagues known by the local copy, no company suggestion.
+    const fallback = () => {
+      if (!cancelled) {
+        setSuggestions({
+          internal: (visitData?.visit.writers ?? []).map((w) => ({
+            id: w.id,
+            fullName: w.fullName,
+          })),
+          external: [],
+        });
+      }
+    };
+    if (!online) {
+      fallback();
+      return;
+    }
+    void responsibleSuggestionsAction({ siteId })
+      .then((result) => {
+        if (cancelled) return;
+        if (result.ok) setSuggestions(result.suggestions);
+        else fallback();
+      })
+      .catch(fallback);
     return () => {
       cancelled = true;
     };
-  }, [open, siteId, suggestions]);
+  }, [open, siteId, suggestions, online, visitData?.visit.writers]);
 
   // A photo taken from the sheet is selected as soon as the queue confirms it.
   useEffect(() => {
@@ -211,31 +240,44 @@ export function ReserveSheet({
     );
   }
 
-  async function persist(values: ReserveFormValues, again: boolean, expectedVersion = version) {
+  function savedFrom(
+    result: { queued: boolean; data: Record<string, unknown>; id?: string },
+    values: ReserveFormValues,
+  ): SavedReserve {
+    const server = result.data.reserve as ReserveDetail | undefined;
+    return {
+      id: server?.id ?? result.id ?? editing?.id ?? "",
+      code: server?.code ?? editing?.code ?? "R-?",
+      action: server?.action ?? values.action,
+      queued: result.queued,
+    };
+  }
+
+  async function persist(values: ReserveFormValues, again: boolean) {
     setServerError(null);
     if (editing) {
-      const result = await reachServer(() =>
-        updateReserveAction({ reserveId: editing.id, version: expectedVersion, values }),
-      );
+      const result = await mutations.updateReserve(editing.id, values, editing.code);
       if (result.ok) {
         setConflict(null);
-        setVersion(result.reserve.version);
-        onSaved(result.reserve, { again: false });
+        onSaved(savedFrom(result, values), { again: false });
         return;
       }
-      if ("conflict" in result) {
-        setConflict({ current: result.current, message: result.error });
-        return;
+      if (result.conflict) {
+        const current = (result.conflict.theirs as { reserve?: ReserveDetail }).reserve;
+        if (current) {
+          setConflict({ current, message: result.error, entry: result.conflict });
+          return;
+        }
       }
-      applyServerErrors(result);
+      setServerError(result.error);
       return;
     }
-    const result = await reachServer(() => createReserveAction({ visitId, values }));
+    const result = await mutations.createReserve(values);
     if (!result.ok) {
-      applyServerErrors(result);
+      setServerError(result.error);
       return;
     }
-    onSaved(result.reserve, { again });
+    onSaved(savedFrom(result, values), { again });
     if (again) {
       // Next reserve: same zone, every other field back to its default (priority « Normale »).
       reset(emptyReserveForm(values.zoneKey || null));
@@ -243,18 +285,6 @@ export function ReserveSheet({
       setDescriptionOpen(false);
       setRefocus((n) => n + 1);
     }
-  }
-
-  function applyServerErrors(result: { error: string; fields?: Record<string, string> }) {
-    let mapped = false;
-    for (const [field, message] of Object.entries(result.fields ?? {})) {
-      const name = field.replace(/^values\./, "") as keyof ReserveFormValues;
-      if (name in emptyReserveForm()) {
-        setError(name, { message });
-        mapped = true;
-      }
-    }
-    if (!mapped) setServerError(result.error);
   }
 
   function submit(again: boolean) {
@@ -323,9 +353,45 @@ export function ReserveSheet({
                     <Button
                       type="button"
                       onClick={() =>
-                        void handleSubmit((values) =>
-                          persist(values, false, conflict.current.version),
-                        )()
+                        void handleSubmit(async (values) => {
+                          if (!engine || !editing) return;
+                          const resolved = await engine.resolveConflict(conflict.entry, {
+                            visitId,
+                            kind: "reserve.update",
+                            entityId: editing.id,
+                            payload: { id: editing.id, values },
+                            baseVersion: conflict.entry.serverVersion,
+                            versionScope: `reserve:${editing.id}`,
+                            label: conflict.entry.label,
+                          });
+                          const outcome = await resolved?.wait();
+                          if (outcome?.status === "conflict") {
+                            const current = (outcome.conflict.theirs as { reserve?: ReserveDetail })
+                              .reserve;
+                            if (current) {
+                              setConflict({
+                                current,
+                                message: outcome.conflict.message,
+                                entry: outcome.conflict,
+                              });
+                            }
+                            return;
+                          }
+                          if (outcome?.status === "rejected") {
+                            setServerError(outcome.message);
+                            return;
+                          }
+                          setConflict(null);
+                          onSaved(
+                            {
+                              id: editing.id,
+                              code: conflict.current.code,
+                              action: values.action,
+                              queued: outcome?.status !== "applied",
+                            },
+                            { again: false },
+                          );
+                        })()
                       }
                       data-testid="reserve-conflict-keep"
                     >
@@ -341,7 +407,7 @@ export function ReserveSheet({
                             photoIds: conflict.current.photos.map((p) => p.id),
                           }),
                         );
-                        setVersion(conflict.current.version);
+                        void engine?.resolveConflict(conflict.entry, null);
                         setConflict(null);
                       }}
                     >

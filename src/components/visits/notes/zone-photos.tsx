@@ -1,17 +1,17 @@
 "use client";
 
 import { Images } from "lucide-react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
+import { PendingDot } from "@/components/offline/pending-dot";
 import { PhotoPickerButtons } from "@/components/visits/photos/photo-picker-buttons";
-import { useUploadQueue } from "@/components/visits/photos/upload-queue-provider";
 import { UploadQueuePanel } from "@/components/visits/photos/upload-queue-panel";
+import { replaceQuery } from "@/lib/offline/query";
 import type { PhotoView } from "@/server/photos/types";
 
 /**
  * Photos of one zone under the notes editor: counter, « Ajouter une photo à cette zone »
  * (camera or import with the zone pre-filled) and a strip of thumbnails that opens the
- * viewer of the Photos tab. Photos confirmed by the queue join the strip at once.
+ * viewer of the Photos tab. A photo taken here joins the strip at once, before its upload.
  */
 export function ZonePhotos({
   zoneKey,
@@ -19,25 +19,15 @@ export function ZonePhotos({
   canEdit,
 }: {
   zoneKey: string;
-  photos: PhotoView[];
+  photos: Array<PhotoView & { uploadStatus?: "pending" | "ready" }>;
   canEdit: boolean;
 }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const { uploaded } = useUploadQueue();
-
-  const all = [
-    ...photos,
-    ...uploaded.filter((p) => p.zoneKey === zoneKey && !photos.some((x) => x.id === p.id)),
-  ];
-
   function open(photoId: string) {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(window.location.search);
     params.set("onglet", "photos");
     params.set("zone", zoneKey);
     params.set("photo", photoId);
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    replaceQuery(params);
   }
 
   return (
@@ -50,7 +40,7 @@ export function ZonePhotos({
         <p className="inline-flex min-h-11 items-center gap-2 text-ui font-semibold text-ink">
           <Images className="size-5 text-ink-2" aria-hidden="true" />
           <span data-testid="zone-photos-count">
-            {all.length} photo{all.length > 1 ? "s" : ""} liée{all.length > 1 ? "s" : ""}
+            {photos.length} photo{photos.length > 1 ? "s" : ""} liée{photos.length > 1 ? "s" : ""}
           </span>
         </p>
         {canEdit ? (
@@ -60,10 +50,10 @@ export function ZonePhotos({
           </div>
         ) : null}
       </div>
-      {all.length > 0 ? (
+      {photos.length > 0 ? (
         <ul className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" data-testid="zone-photo-strip">
-          {all.map((photo) => (
-            <li key={photo.id} className="shrink-0">
+          {photos.map((photo) => (
+            <li key={photo.id} className="relative shrink-0">
               <button
                 type="button"
                 onClick={() => open(photo.id)}
@@ -71,7 +61,7 @@ export function ZonePhotos({
                 aria-label={`Ouvrir la photo : ${photo.caption ?? "Sans légende"}`}
               >
                 {photo.thumbUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- signed URL
+                  // eslint-disable-next-line @next/next/no-img-element -- signed or local URL
                   <img
                     src={photo.thumbUrl}
                     alt=""
@@ -82,6 +72,9 @@ export function ZonePhotos({
                   />
                 ) : null}
               </button>
+              {photo.uploadStatus === "pending" ? (
+                <PendingDot className="absolute top-1 right-1 rounded-pill bg-paper px-1" />
+              ) : null}
             </li>
           ))}
         </ul>

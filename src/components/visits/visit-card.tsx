@@ -1,6 +1,7 @@
 import { Camera, ChevronRight, FileText, MapPin, NotebookPen } from "lucide-react";
 import Link from "next/link";
 
+import { KeptMark } from "@/components/offline/kept-mark";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { StatusPill } from "@/components/ui/status-pill";
@@ -28,6 +29,7 @@ export function VisitCard({ visit }: { visit: VisitSummary }) {
             <span className="font-semibold text-ink">{formatDate(visit.visitDate, "weekday")}</span>
             <VisitStatusBadge status={visit.status} />
             <Badge>{VISIT_REASON_LABELS[visit.reason]}</Badge>
+            <KeptMark visitId={visit.id} />
           </div>
           <p className="truncate text-body font-semibold text-ink">{visit.title}</p>
           <p className="flex items-center gap-1 text-ui text-ink-2">

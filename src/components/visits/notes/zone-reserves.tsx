@@ -1,6 +1,6 @@
 import { Plus, TriangleAlert } from "lucide-react";
-import Link from "next/link";
 
+import { QueryLink } from "@/components/offline/query-link";
 import { type ZoneReserveCounts, zoneReservesLabel } from "@/lib/reserves/list";
 import { newReserveHref } from "@/lib/reserves/links";
 import { Button } from "@/components/ui/button";
@@ -30,14 +30,13 @@ export function ZoneReserves({
       <p className="inline-flex min-h-11 items-center gap-2 text-ui font-semibold text-ink">
         <TriangleAlert className="size-5 text-ink-2" aria-hidden="true" />
         {label ? (
-          <Link
+          <QueryLink
             href={listHref}
-            scroll={false}
             className="inline-flex min-h-11 items-center text-brand-deep underline"
             data-testid="zone-reserves-link"
           >
             {label}
-          </Link>
+          </QueryLink>
         ) : (
           <span className="text-ink-2" data-testid="zone-reserves-link">
             Aucune réserve
@@ -46,11 +45,11 @@ export function ZoneReserves({
       </p>
       {canEdit ? (
         <Button asChild variant="secondary">
-          <Link href={newReserveHref({ zoneKey })} scroll={false} data-testid="zone-add-reserve">
+          <QueryLink href={newReserveHref({ zoneKey })} data-testid="zone-add-reserve">
             <Plus className="size-4" aria-hidden="true" />
             Réserve
             <span className="sr-only"> dans cette zone</span>
-          </Link>
+          </QueryLink>
         </Button>
       ) : null}
     </section>

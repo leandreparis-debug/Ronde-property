@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Participant } from "@/server/domain";
 import { incompletePoints } from "@/server/domain/visits";
 import type { AssignableProfile } from "@/server/repositories/profile-repository";
-import type { VisitDetail } from "@/server/repositories/visit-repository";
+import type { VisitView } from "@/lib/offline/snapshot";
 
 import { ConflictNotice } from "./conflict-notice";
 import { IncompletePoints } from "./incomplete-points";
@@ -12,8 +12,10 @@ import { VisitInfoReadonly } from "./visit-info-readonly";
 import { VisitVersionProvider } from "./visit-version-context";
 
 export interface VisitInformationTabProps {
-  visit: VisitDetail;
+  visit: VisitView;
   participants: Participant[];
+  /** Entities with an operation waiting (« en attente » marks). */
+  pendingIds?: Set<string>;
   writers: AssignableProfile[];
   /** Zones with a non-blank note (« Aucune observation saisie » when zero). */
   filledZonesCount: number;
@@ -33,6 +35,7 @@ export interface VisitInformationTabProps {
 export function VisitInformationTab({
   visit,
   participants,
+  pendingIds,
   writers,
   filledZonesCount,
   uncaptionedPhotosCount,
@@ -51,7 +54,7 @@ export function VisitInformationTab({
   });
 
   return (
-    <VisitVersionProvider initialVersion={visit.version}>
+    <VisitVersionProvider>
       <div className="flex flex-col gap-6">
         <ConflictNotice />
         <IncompletePoints points={points} />
@@ -80,7 +83,8 @@ export function VisitInformationTab({
             <CardContent className="pt-5">
               <ParticipantsPanel
                 visitId={visit.id}
-                initial={participants}
+                participants={participants}
+                pendingIds={pendingIds}
                 colleagues={writers}
                 canEdit={canEdit}
               />

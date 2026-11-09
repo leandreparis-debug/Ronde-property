@@ -241,6 +241,9 @@ export const META_KEYS = {
   autoKeep: "autoKeep",
 } as const;
 
+/** Meta key of the server time of the last answer applied for a visit. */
+export const appliedAtKey = (visitId: string) => `appliedAt:${visitId}`;
+
 /** Blob keys. */
 export const blobKeys = {
   photoMain: (photoId: string) => `${photoId}:main`,

@@ -1,9 +1,9 @@
 import { formatDate } from "@/lib/format";
 import { VISIT_REASON_LABELS, VISIT_TYPE_LABELS } from "@/server/domain/labels";
-import type { VisitDetail } from "@/server/repositories/visit-repository";
+import type { VisitView } from "@/lib/offline/snapshot";
 
 /** Information fields as plain text, for readers. */
-export function VisitInfoReadonly({ visit }: { visit: VisitDetail }) {
+export function VisitInfoReadonly({ visit }: { visit: VisitView }) {
   return (
     <dl
       className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 text-ui"

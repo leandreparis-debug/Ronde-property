@@ -2,6 +2,7 @@
 
 import { ImageOff, MessageSquareDashed, Star } from "lucide-react";
 
+import { PendingDot } from "@/components/offline/pending-dot";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/cn";
 import type { PhotoView } from "@/server/photos/types";
@@ -19,10 +20,13 @@ export function PhotoThumb({
   photo,
   marker,
   reserves = [],
+  pending = false,
   onOpen,
   onImageError,
 }: {
   photo: PhotoView;
+  /** Not yet sent, or an edit waits in the outbox (« en attente » dot). */
+  pending?: boolean;
   /** Marker linked to the photo, shown as an « R3 » badge. */
   marker?: PhotoMarkerLink | null;
   /** Reserves the photo illustrates, shown as « R-07 » badges. */
@@ -61,6 +65,12 @@ export function PhotoThumb({
               <span className="sr-only">Image indisponible</span>
             </span>
           )}
+          {pending ? (
+            <PendingDot
+              className="absolute right-2 bottom-2 h-7 rounded-pill bg-paper/95 px-2"
+              label
+            />
+          ) : null}
           {photo.isCover ? (
             <span
               className="absolute top-2 left-2 inline-flex h-7 items-center gap-1 rounded-pill bg-paper/95 px-2 text-label font-semibold text-ink"

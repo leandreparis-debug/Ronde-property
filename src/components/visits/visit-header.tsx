@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/format";
 import { photosCountLabel } from "@/server/domain/photos";
 import { VISIT_REASON_LABELS } from "@/server/domain/labels";
-import type { VisitDetail } from "@/server/repositories/visit-repository";
+import type { VisitView } from "@/lib/offline/snapshot";
 
 import { VisitStatusBadge } from "./visit-status-badge";
 
@@ -22,7 +22,7 @@ export function VisitHeader({
   status,
   actions,
 }: {
-  visit: VisitDetail;
+  visit: VisitView;
   zones?: { filled: number; total: number };
   /** Ready photos of the visit. */
   photosCount?: number;

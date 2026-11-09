@@ -4,7 +4,7 @@ import { CircleAlert, CircleCheck, ImageOff, RotateCcw, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
-import { type UploadItem, uploadStatusLabel } from "@/lib/photos/queue";
+import { type UploadItem, uploadStatusLabel } from "@/lib/photos/upload-items";
 
 import { useUploadQueue } from "./upload-queue-provider";
 

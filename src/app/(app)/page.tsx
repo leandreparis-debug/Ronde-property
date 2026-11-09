@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Pagination } from "@/components/ui/pagination";
+import { NewVisitButton } from "@/components/visits/new-visit-button";
 import { VisitCard } from "@/components/visits/visit-card";
 import { VisitFilters } from "@/components/visits/visit-filters";
 import { cn } from "@/lib/cn";
@@ -92,16 +93,7 @@ export default async function VisitsPage({ searchParams }: { searchParams: Promi
 
   return (
     <>
-      <PageHeader
-        title="Visites"
-        actions={
-          canCreate ? (
-            <Button asChild size="lg">
-              <Link href="/visites/nouvelle">Nouvelle visite</Link>
-            </Button>
-          ) : null
-        }
-      />
+      <PageHeader title="Visites" actions={canCreate ? <NewVisitButton /> : null} />
       <div className="flex flex-col gap-6">
         <nav aria-label="Périmètre" className="flex gap-2">
           {tabs.map((tab) => {

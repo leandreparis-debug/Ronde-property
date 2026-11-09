@@ -1,5 +1,5 @@
 import type { LocalBlob, LocalVisit, RondeLocalDb } from "./db";
-import { META_KEYS, planPageKey } from "./db";
+import { appliedAtKey, META_KEYS, planPageKey, readMeta } from "./db";
 import { DELETING_KINDS } from "./outbox";
 import type { VisitSnapshot } from "./snapshot";
 
@@ -13,8 +13,14 @@ export async function mergeSnapshot(
   db: RondeLocalDb,
   snapshot: VisitSnapshot,
   options: { keep?: boolean } = {},
-): Promise<void> {
+): Promise<"merged" | "stale"> {
   const visitId = snapshot.visit.id;
+  // A snapshot read before the last applied answer would bring older rows back.
+  const appliedAt = await readMeta<string>(db, appliedAtKey(visitId));
+  if (appliedAt && Date.parse(snapshot.fetchedAt) < Date.parse(appliedAt)) {
+    if (options.keep) await db.visits.update(visitId, { kept: true });
+    return "stale";
+  }
   await db.transaction(
     "rw",
     [
@@ -152,6 +158,7 @@ export async function mergeSnapshot(
       await db.meta.put({ key: META_KEYS.lastServerContactAt, value: snapshot.fetchedAt });
     },
   );
+  return "merged";
 }
 
 /** Removes a visit and everything about it from the store (blobs included). */

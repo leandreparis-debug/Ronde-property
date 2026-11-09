@@ -6,7 +6,13 @@ import { USER_ROLE_LABELS } from "@/server/domain/enums";
 import { AccountMenu } from "./account-menu";
 
 /** Initials, name and role of the user, opening the account menu. */
-export function UserBadge({ user, compact = false }: { user: CurrentUser; compact?: boolean }) {
+export function UserBadge({
+  user,
+  compact = false,
+}: {
+  user: Pick<CurrentUser, "fullName" | "role">;
+  compact?: boolean;
+}) {
   return (
     <AccountMenu
       fullName={user.fullName}
@@ -18,7 +24,13 @@ export function UserBadge({ user, compact = false }: { user: CurrentUser; compac
 }
 
 /** « Lecture seule » badge, always visible for the direction. */
-export function ReadOnlyBadge({ user, className }: { user: CurrentUser; className?: string }) {
+export function ReadOnlyBadge({
+  user,
+  className,
+}: {
+  user: Pick<CurrentUser, "role">;
+  className?: string;
+}) {
   if (user.role !== "direction") return null;
   return (
     <Badge variant="neutral" className={className}>

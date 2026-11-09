@@ -161,6 +161,19 @@ function fold(existing: OutboxEntry, incoming: NewOperation): OutboxEntry | null
   return null;
 }
 
+/**
+ * Version the device knows for a scope (`visit:<id>`, `note:<id>`, `reserve:<id>`). Read in the
+ * same transaction as the queueing: a result applied meanwhile advances the version and rebases
+ * the queued operations atomically, so a new operation never carries a stale base.
+ */
+export async function scopeVersion(db: RondeLocalDb, scope: string): Promise<number | undefined> {
+  const [kind, id] = scope.split(":") as [string, string];
+  if (kind === "visit") return (await db.visits.get(id))?.version;
+  if (kind === "note") return (await db.notes.get(id))?.version;
+  if (kind === "reserve") return (await db.reserves.get(id))?.version;
+  return undefined;
+}
+
 /** Outcome of an `enqueue`: the entry sent later, or nothing when operations cancelled out. */
 export type EnqueueOutcome =
   | { kind: "queued"; entry: OutboxEntry; folded: boolean }
@@ -175,7 +188,10 @@ export async function enqueueOperation(
   db: RondeLocalDb,
   operation: NewOperation,
 ): Promise<EnqueueOutcome> {
-  return db.transaction("rw", [db.outbox, db.meta], async () => {
+  return db.transaction("rw", [db.outbox, db.meta, db.visits, db.notes, db.reserves], async () => {
+    if (operation.versionScope && operation.baseVersion === undefined) {
+      operation = { ...operation, baseVersion: await scopeVersion(db, operation.versionScope) };
+    }
     const pending = await pendingOf(db, operation.visitId, operation.entityId);
     const creation = pending.find((entry) => CREATING_KINDS.includes(entry.kind));
 

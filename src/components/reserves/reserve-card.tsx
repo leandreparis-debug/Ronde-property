@@ -2,6 +2,7 @@ import { CalendarClock, Camera, Flag, MapPin, MapPinned, User } from "lucide-rea
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { PendingDot } from "@/components/offline/pending-dot";
 import { Badge } from "@/components/ui/badge";
 import { StatusPill } from "@/components/ui/status-pill";
 import { cn } from "@/lib/cn";
@@ -58,6 +59,8 @@ export interface ReserveCardProps {
   href: string;
   /** Extra line under the action (site page: original visit). */
   context?: ReactNode;
+  /** Not yet synchronised (« en attente » dot). */
+  pending?: boolean;
 }
 
 /**
@@ -66,7 +69,7 @@ export interface ReserveCardProps {
  * and « En retard de N j »; done: dimmed with « Levée le … par … ». The whole card is a link
  * to the detail page.
  */
-export function ReserveCard({ reserve, href, context }: ReserveCardProps) {
+export function ReserveCard({ reserve, href, context, pending = false }: ReserveCardProps) {
   const done = reserve.status === "done";
   return (
     <article
@@ -85,6 +88,7 @@ export function ReserveCard({ reserve, href, context }: ReserveCardProps) {
           <span className="font-display text-title-sm text-ink">{reserve.code}</span>
           <ReserveStatusPill reserve={reserve} />
           <PriorityBadge priority={reserve.priority} />
+          {pending ? <PendingDot label /> : null}
           {reserve.marker ? (
             <span className="inline-flex items-center text-ink-2" title="Placée sur un plan">
               <MapPinned className="size-4" aria-hidden="true" />

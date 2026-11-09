@@ -1,10 +1,10 @@
 "use client";
 
 import { Camera, ImageMinus, Move, Trash2, TriangleAlert, X } from "lucide-react";
-import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { ErrorNotice } from "@/components/auth/error-notice";
+import { QueryLink } from "@/components/offline/query-link";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,10 +22,10 @@ import { useUploadQueue } from "@/components/visits/photos/upload-queue-provider
 import { cn } from "@/lib/cn";
 import { MARKER_LABEL_MAX_LENGTH } from "@/server/domain/plans";
 import type { PhotoView } from "@/server/photos/types";
-import type { MarkerView } from "@/server/plans/types";
+import type { DisplayMarker } from "@/server/plans/types";
 
 export interface MarkerSheetProps {
-  marker: MarkerView;
+  marker: DisplayMarker;
   planName: string;
   photos: PhotoView[];
   zones: Array<{ key: string; label: string }>;
@@ -147,7 +147,9 @@ export function MarkerSheet({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <h3 id={`${id}-title`} className="font-display text-title-sm text-ink">
-            Repère n° {marker.number}
+            {marker.number
+              ? `Repère n° ${marker.number}`
+              : "Repère • (numéro attribué à la synchronisation)"}
           </h3>
           <p className="truncate text-ui text-ink-2">
             {planName} · page {marker.page}
@@ -215,13 +217,13 @@ export function MarkerSheet({
               <p className="truncate text-ui text-ink">
                 {marker.photoCaption ?? linked?.caption ?? "Sans légende"}
               </p>
-              <Link
+              <QueryLink
                 href={`?onglet=photos&photo=${marker.photoId}`}
                 className="inline-flex min-h-11 items-center font-semibold text-brand-deep underline"
                 data-testid="marker-view-photo"
               >
                 Voir la photo
-              </Link>
+              </QueryLink>
             </div>
           </div>
         ) : (
@@ -343,10 +345,10 @@ export function MarkerSheet({
 
       {canEdit && createReserveHref ? (
         <Button asChild variant="secondary" className="self-start">
-          <Link href={createReserveHref} scroll={false} data-testid="marker-create-reserve">
+          <QueryLink href={createReserveHref} data-testid="marker-create-reserve">
             <TriangleAlert className="size-4" aria-hidden="true" />
             Créer une réserve ici
-          </Link>
+          </QueryLink>
         </Button>
       ) : null}
 
@@ -377,9 +379,14 @@ export function MarkerSheet({
       <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <DialogContent data-testid="marker-delete-dialog">
           <DialogHeader>
-            <DialogTitle>Supprimer le repère n° {marker.number} ?</DialogTitle>
+            <DialogTitle>
+              {marker.number
+                ? `Supprimer le repère n° ${marker.number} ?`
+                : "Supprimer ce repère ?"}
+            </DialogTitle>
             <DialogDescription>
-              La photo liée est conservée. Le numéro {marker.number} ne sera pas réattribué.
+              La photo liée est conservée.
+              {marker.number ? ` Le numéro ${marker.number} ne sera pas réattribué.` : ""}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

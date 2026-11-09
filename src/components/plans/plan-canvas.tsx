@@ -28,7 +28,7 @@ import {
   ZOOM_STEP,
   zoomAt,
 } from "@/lib/plans/geometry";
-import type { MarkerView, PlanPageView } from "@/server/plans/types";
+import type { DisplayMarker, PlanPageView } from "@/server/plans/types";
 
 import { MARKER_HIT, MarkerPin, ReservePin } from "./marker-pin";
 
@@ -48,15 +48,15 @@ export interface PlanCanvasHandle {
 
 export interface PlanCanvasProps {
   page: PlanPageView;
-  markers: MarkerView[];
+  markers: DisplayMarker[];
   mode: CanvasMode;
   selectedId: string | null;
   showNumbers: boolean;
   /** Mouse drag of markers (desktop); never required on touch screens. */
   canDragMarkers: boolean;
   onTapPlan: (point: Point) => void;
-  onSelectMarker: (marker: MarkerView) => void;
-  onDragMarker: (marker: MarkerView, point: Point) => void;
+  onSelectMarker: (marker: DisplayMarker) => void;
+  onDragMarker: (marker: DisplayMarker, point: Point) => void;
   onImageError: () => void;
   /** Called after every transform change (tests and the zoom label). */
   onTransform?: (transform: ViewTransform, fitScale: number) => void;
@@ -266,7 +266,7 @@ export const PlanCanvas = forwardRef<PlanCanvasHandle, PlanCanvasProps>(function
   }
 
   // Mouse drag of a marker (desktop only): pointer events on the marker button itself.
-  function markerPointerDown(event: ReactPointerEvent<HTMLButtonElement>, marker: MarkerView) {
+  function markerPointerDown(event: ReactPointerEvent<HTMLButtonElement>, marker: DisplayMarker) {
     event.stopPropagation();
     if (!canDragMarkers || event.pointerType !== "mouse" || event.button !== 0) return;
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -282,7 +282,7 @@ export const PlanCanvas = forwardRef<PlanCanvasHandle, PlanCanvasProps>(function
     setDrag({ ...drag, point: relative, moved });
   }
 
-  function markerPointerUp(marker: MarkerView) {
+  function markerPointerUp(marker: DisplayMarker) {
     if (drag && drag.id === marker.id && drag.moved) onDragMarker(marker, drag.point);
     setDrag(null);
   }
@@ -336,7 +336,7 @@ export const PlanCanvas = forwardRef<PlanCanvasHandle, PlanCanvasProps>(function
           const screen = relativeToScreen(position, transform, image);
           const label = marker.reserve
             ? `Réserve ${marker.reserve.code} : ${marker.reserve.action}`
-            : `Repère n° ${marker.number}${marker.label ? ` : ${marker.label}` : ""}${marker.photoId ? "" : " (sans photo)"}`;
+            : `Repère n° ${marker.number ?? "• (en attente de numéro)"}${marker.label ? ` : ${marker.label}` : ""}${marker.photoId ? "" : " (sans photo)"}`;
           return (
             <li
               key={marker.id}
@@ -358,7 +358,7 @@ export const PlanCanvas = forwardRef<PlanCanvasHandle, PlanCanvasProps>(function
                 aria-label={label}
                 aria-pressed={selectedId === marker.id}
                 data-testid="plan-marker"
-                data-number={marker.number}
+                data-number={marker.number ?? undefined}
                 data-has-photo={marker.photoId ? "true" : "false"}
                 data-reserve={marker.reserve?.code}
                 data-x={marker.x}

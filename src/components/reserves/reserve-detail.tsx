@@ -20,11 +20,8 @@ import { useToast } from "@/components/ui/toast";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { overdueLabel } from "@/lib/reserves/dates";
 import { placeOnPlanHref } from "@/lib/reserves/links";
-import {
-  deleteReserveAction,
-  removeReserveFromPlanAction,
-  setReserveStatusAction,
-} from "@/server/actions/reserve-actions";
+import { PendingDot } from "@/components/offline/pending-dot";
+import { useVisitMutations } from "@/components/offline/visit-mutations";
 import type { ReserveStatus, VisitStatus } from "@/server/domain/enums";
 import type { PhotoView } from "@/server/photos/types";
 import type { ReserveDetail, ReserveHistoryEntry } from "@/server/reserves/types";
@@ -61,7 +58,10 @@ export function historyLines(entry: ReserveHistoryEntry): string[] {
 
 export interface ReserveDetailViewProps {
   reserve: ReserveDetail;
-  history: ReserveHistoryEntry[];
+  /** History read on the server; `null` when it could not be read (offline). */
+  history: ReserveHistoryEntry[] | null;
+  /** An operation of the reserve waits in the outbox. */
+  pending?: boolean;
   visit: { id: string; title: string; siteId: string; status: VisitStatus };
   canEdit: boolean;
   zones: Array<{ key: string; label: string }>;
@@ -78,6 +78,7 @@ export interface ReserveDetailViewProps {
 export function ReserveDetailView({
   reserve,
   history,
+  pending = false,
   visit,
   canEdit,
   zones,
@@ -85,6 +86,7 @@ export function ReserveDetailView({
 }: ReserveDetailViewProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const mutations = useVisitMutations(visit.id);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -94,19 +96,27 @@ export function ReserveDetailView({
   async function changeStatus(status: ReserveStatus, message: string) {
     setBusy(true);
     setError(null);
-    const result = await setReserveStatusAction({ reserveId: reserve.id, status });
+    const result = await mutations.setReserveStatus(
+      reserve.id,
+      status,
+      reserve.code,
+      reserve.action,
+    );
     setBusy(false);
     if (!result.ok) {
       setError(result.error);
       return;
     }
-    toast({ variant: "success", title: message });
-    router.refresh();
+    toast({
+      variant: "success",
+      title: message,
+      description: result.queued ? "En attente de synchronisation." : undefined,
+    });
   }
 
   async function remove() {
     setBusy(true);
-    const result = await deleteReserveAction({ reserveId: reserve.id, visitId: visit.id });
+    const result = await mutations.deleteReserve(reserve.id, reserve.code, reserve.action);
     setBusy(false);
     if (!result.ok) {
       setDeleteOpen(false);
@@ -120,10 +130,9 @@ export function ReserveDetailView({
   async function unplace() {
     setBusy(true);
     setError(null);
-    const result = await removeReserveFromPlanAction({ reserveId: reserve.id });
+    const result = await mutations.unplaceReserve(reserve.id, reserve.code, reserve.action);
     setBusy(false);
     if (!result.ok) setError(result.error);
-    else router.refresh();
   }
 
   const done = reserve.status === "done";
@@ -158,6 +167,7 @@ export function ReserveDetailView({
           </h1>
           <ReserveStatusPill reserve={reserve} />
           <PriorityBadge priority={reserve.priority} />
+          {pending ? <PendingDot label /> : null}
         </div>
         <p className="text-title-sm text-ink" data-testid="reserve-detail-action">
           {reserve.action}
@@ -383,8 +393,13 @@ export function ReserveDetailView({
           <h2 id="historique" className="mb-3 label-caps text-ink-2">
             Historique
           </h2>
+          {history === null ? (
+            <p className="text-ui text-ink-2 italic" data-testid="reserve-history-offline">
+              L&apos;historique s&apos;affiche avec le réseau.
+            </p>
+          ) : null}
           <ol className="flex flex-col gap-3" data-testid="reserve-history">
-            {history.flatMap((entry) =>
+            {(history ?? []).flatMap((entry) =>
               historyLines(entry).map((line, index) => (
                 <li
                   key={`${entry.id}-${index}`}
@@ -409,8 +424,14 @@ export function ReserveDetailView({
           photos={photos}
           onSaved={(saved) => {
             setEditOpen(false);
-            toast({ variant: "success", title: `${saved.code} enregistrée` });
-            router.refresh();
+            toast({
+              variant: "success",
+              title: saved.queued
+                ? `${saved.code} enregistrée sur la tablette`
+                : `${saved.code} enregistrée`,
+            });
+            // The history is read on the server.
+            if (navigator.onLine) router.refresh();
           }}
         />
       ) : null}

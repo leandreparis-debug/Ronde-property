@@ -3,8 +3,9 @@
 import { Images } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { PendingDot } from "@/components/offline/pending-dot";
 import { cn } from "@/lib/cn";
-import type { NoteSaveStatus } from "@/lib/notes/saver";
+import type { NoteSaveStatus } from "@/lib/notes/status";
 
 export interface ZoneNavItem {
   id: string;
@@ -12,7 +13,9 @@ export interface ZoneNavItem {
   zoneLabel: string;
   filled: boolean;
   status?: NoteSaveStatus;
-  /** Ready photos linked to the zone. */
+  /** An operation of the zone waits in the outbox. */
+  pending?: boolean;
+  /** Photos linked to the zone. */
   photos?: number;
 }
 
@@ -20,7 +23,7 @@ export interface ZoneNavItem {
 export function shortStatus(status: NoteSaveStatus | undefined): string | null {
   if (!status) return null;
   if (status.kind === "saving") return "Enregistrement…";
-  if (status.kind === "offline") return "Hors connexion";
+  if (status.kind === "offline") return status.deviceOffline ? "Hors réseau" : "Hors connexion";
   if (status.kind === "error") return "Erreur";
   return null;
 }
@@ -60,7 +63,10 @@ export function ZoneNav({
                       : "border-transparent text-ink hover:bg-galet",
                   )}
                 >
-                  <span className="min-w-0 truncate">{item.zoneLabel}</span>
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    <span className="truncate">{item.zoneLabel}</span>
+                    {item.pending ? <PendingDot /> : null}
+                  </span>
                   <span className="flex shrink-0 items-center gap-1.5">
                     {state ? <span className="text-label text-ink-2">{state}</span> : null}
                     {item.photos ? (
@@ -112,6 +118,7 @@ export function ZoneNav({
                 )}
               />
               {item.zoneLabel}
+              {item.pending ? <PendingDot /> : null}
               <span className="sr-only">{item.filled ? ", renseignée" : ", vide"}</span>
               {state ? <span className="text-label opacity-80">{state}</span> : null}
             </button>

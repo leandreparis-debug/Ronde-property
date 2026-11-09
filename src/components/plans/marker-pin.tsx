@@ -17,7 +17,8 @@ export function MarkerPin({
   selected = false,
   showNumber = true,
 }: {
-  number: number;
+  /** `null` while the server has not given the number yet: shown « • ». */
+  number: number | null;
   hasPhoto: boolean;
   selected?: boolean;
   showNumber?: boolean;
@@ -62,7 +63,7 @@ export function MarkerPin({
             selected ? "bg-ink text-on-brand" : "bg-paper text-ink ring-2 ring-brand",
           )}
         >
-          {number}
+          {number ?? "•"}
         </span>
       ) : null}
     </span>

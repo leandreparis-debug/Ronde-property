@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { type TouchEvent, useEffect, useRef, useState } from "react";
 
+import { QueryLink } from "@/components/offline/query-link";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -276,12 +277,12 @@ function MarkerMention({ marker }: { marker: PhotoMarkerLink | null | undefined 
     >
       <MapPin className="size-4 text-brand" aria-hidden="true" />
       Repère n° {marker.number} sur {marker.planName}
-      <a
+      <QueryLink
         href={`?onglet=plans&plan=${marker.planId}&page=${marker.page}&repere=${marker.markerId}`}
         className="inline-flex min-h-11 items-center font-semibold text-brand-deep underline"
       >
         Voir sur le plan
-      </a>
+      </QueryLink>
     </p>
   );
 }
@@ -323,7 +324,6 @@ function ReadonlyPanel({
   return (
     <>
       <MarkerMention marker={marker} />
-      <ReserveMentions reserves={reserves} />
       <ReserveMentions reserves={reserves} />
       <div>
         <p className="label-caps text-ink-2">Légende</p>

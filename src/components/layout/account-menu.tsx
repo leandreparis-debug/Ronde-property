@@ -1,12 +1,14 @@
 "use client";
 
-import { ChevronDown, CircleHelp, MessageSquareHeart, UserRound } from "lucide-react";
+import { ChevronDown, CircleHelp, HardDrive, MessageSquareHeart, UserRound } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { FeedbackDialog } from "@/components/feedback/feedback-dialog";
+import { useOptionalOffline } from "@/components/offline/offline-provider";
 import { cn } from "@/lib/cn";
+import { formatBytes, QUOTA_WARNING_RATIO } from "@/lib/offline/storage";
 import { APP_VERSION } from "@/lib/version";
 
 export interface AccountMenuProps {
@@ -29,8 +31,14 @@ export function AccountMenu({ fullName, roleLabel, initials, compact = false }: 
   const [open, setOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const panelId = useId();
+  const offline = useOptionalOffline();
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (open) void offline?.refreshUsage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- on opening only
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -120,6 +128,31 @@ export function AccountMenu({ fullName, roleLabel, initials, compact = false }: 
             <CircleHelp className="size-5 shrink-0" aria-hidden="true" />
             Aide
           </Link>
+          {offline ? (
+            <div className="mt-1 flex flex-col gap-1 border-t border-rule px-3 pt-2 text-label text-ink-2">
+              <p className="flex items-center gap-2" data-testid="storage-usage">
+                <HardDrive className="size-4 shrink-0" aria-hidden="true" />
+                {offline.usage
+                  ? `Stockage de l'appareil : ${formatBytes(offline.usage.usageBytes)}${offline.usage.quotaBytes ? ` sur ${formatBytes(offline.usage.quotaBytes)}` : ""}`
+                  : "Stockage de l'appareil : calcul…"}
+              </p>
+              {offline.usage && (offline.usage.ratio ?? 0) >= QUOTA_WARNING_RATIO ? (
+                <p className="font-semibold text-ink" role="alert">
+                  Stockage presque plein : ne gardez hors réseau que les visites utiles.
+                </p>
+              ) : null}
+              <label className="flex min-h-11 items-center gap-2 text-ui text-ink">
+                <input
+                  type="checkbox"
+                  className="size-5 accent-brand"
+                  checked={offline.autoKeep}
+                  onChange={(event) => offline.setAutoKeep(event.target.checked)}
+                  data-testid="auto-keep-toggle"
+                />
+                Garder hors réseau les visites ouvertes sur la tablette
+              </label>
+            </div>
+          ) : null}
           <div className="mt-1 border-t border-rule pt-2">
             <SignOutButton variant="ghost" className="w-full justify-start" />
           </div>

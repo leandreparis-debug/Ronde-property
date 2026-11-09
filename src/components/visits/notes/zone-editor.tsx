@@ -13,8 +13,10 @@ import {
   NOTE_MAX_LENGTH,
   parseNoteContent,
 } from "@/lib/notes/format";
-import type { NoteSaveStatus } from "@/lib/notes/saver";
+import type { NoteSaveStatus } from "@/lib/notes/status";
 import type { ZoneNoteView } from "@/server/domain/zone-notes";
+
+import { PendingDot } from "@/components/offline/pending-dot";
 
 import { NoteContent } from "./note-content";
 
@@ -24,6 +26,8 @@ export interface ZoneEditorProps {
   note: ZoneNoteView;
   value: string;
   status: NoteSaveStatus;
+  /** The text waits in the outbox (« en attente » dot). */
+  pending?: boolean;
   mode: EditorMode;
   userId: string;
   onModeChange: (mode: EditorMode) => void;
@@ -42,7 +46,9 @@ export function statusLabel(status: NoteSaveStatus): string {
     case "saved":
       return `Enregistré à ${formatDateTime(status.at).slice(-5)}`;
     case "offline":
-      return "Hors connexion : nouvelle tentative…";
+      return status.deviceOffline
+        ? "Hors réseau : enregistré sur la tablette, envoi au retour du réseau."
+        : "Hors connexion : nouvelle tentative…";
     case "error":
       return `Erreur, réessayer : ${status.message}`;
     default:
@@ -59,6 +65,7 @@ export function ZoneEditor({
   note,
   value,
   status,
+  pending = false,
   mode,
   userId,
   onModeChange,
@@ -95,8 +102,12 @@ export function ZoneEditor({
       data-testid="zone-editor"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 id={`zone-title-${note.id}`} className="font-display text-title-sm text-ink">
+        <h3
+          id={`zone-title-${note.id}`}
+          className="flex items-center gap-2 font-display text-title-sm text-ink"
+        >
           {note.zoneLabel}
+          {pending ? <PendingDot /> : null}
         </h3>
         <div className="flex flex-wrap items-center gap-2" role="toolbar" aria-label="Outils">
           <Button
