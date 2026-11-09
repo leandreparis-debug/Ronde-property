@@ -880,6 +880,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      sync_operations: {
+        Row: {
+          applied_at: string;
+          op_id: string;
+          result: NonNullable<Json>;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          applied_at?: string;
+          op_id: string;
+          result?: NonNullable<Json>;
+          user_id: string;
+        };
+        Update: {
+          applied_at?: string;
+          op_id?: string;
+          result?: NonNullable<Json>;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "sync_operations_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       visit_participants: {
         Row: {
           company: string | null;

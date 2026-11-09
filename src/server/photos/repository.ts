@@ -220,7 +220,8 @@ export function createPhotoRepository(user: UserRef): PhotoRepository {
           throw new ValidationError(PHOTO_CAP_MESSAGE);
         }
         const start = (existing.max ?? -1) + 1;
-        const ids = items.map(() => randomUUID());
+        // Identifiers may come from the device (offline creation, UUID v7): accepted as they are.
+        const ids = items.map((item) => item.id ?? randomUUID());
         const inserted = await trx
           .insertInto("photos")
           .values(

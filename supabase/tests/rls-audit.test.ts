@@ -18,7 +18,7 @@ afterAll(async () => {
 });
 
 /** Tables written only by the service (no policy on purpose: RLS denies everything else). */
-const SERVICE_ONLY_TABLES = ["plan_marker_counters"];
+const SERVICE_ONLY_TABLES = ["plan_marker_counters", "sync_operations"];
 
 async function rows<T>(query: string): Promise<T[]> {
   return (await client.query<T & Record<string, unknown>>(query)).rows;

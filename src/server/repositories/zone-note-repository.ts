@@ -81,13 +81,14 @@ export interface ZoneNoteRepository {
   addZone(
     visitId: string,
     visitVersion: number,
-    input: { label: string },
+    input: { label: string; id?: string },
   ): Promise<ZoneStructureResult & { id: string }>;
   /** Puts back a zone of the template that had been removed. */
   addTemplateZone(
     visitId: string,
     visitVersion: number,
     zoneKey: string,
+    id?: string,
   ): Promise<ZoneStructureResult & { id: string }>;
   /** Renames a zone (template zones too); the key never changes. */
   rename(noteId: string, visitVersion: number, label: string): Promise<ZoneStructureResult>;
@@ -314,6 +315,7 @@ export function createZoneNoteRepository(user: UserRef): ZoneNoteRepository {
         const row = await trx
           .insertInto("visit_zone_notes")
           .values({
+            ...(input.id ? { id: input.id } : {}),
             visit_id: visitId,
             zone_key: customZoneKey(label, shortSuffix()),
             zone_label: label,
@@ -325,7 +327,7 @@ export function createZoneNoteRepository(user: UserRef): ZoneNoteRepository {
       });
     },
 
-    addTemplateZone(visitId, visitVersion, zoneKey) {
+    addTemplateZone(visitId, visitVersion, zoneKey, id) {
       return withUser(user, async (trx) => {
         await assertVisitVersion(trx, visitId, visitVersion);
         const visit = await trx
@@ -345,6 +347,7 @@ export function createZoneNoteRepository(user: UserRef): ZoneNoteRepository {
         const row = await trx
           .insertInto("visit_zone_notes")
           .values({
+            ...(id ? { id } : {}),
             visit_id: visitId,
             zone_key: zone.key,
             zone_label: zone.label,

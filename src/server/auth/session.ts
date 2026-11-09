@@ -36,16 +36,24 @@ export function hasRole(user: CurrentUser | null, roles: readonly UserRole[]): u
 }
 
 /**
- * The current user, verified for this request: identity from the auth provider
- * (signature or Supabase `getUser()`), then the profile re-read from `profiles`.
- * Returns null when signed out, without profile, **inactive**, or when the session was opened
- * before `sessions_revoked_at` (« Déconnecter toutes les sessions », deactivation): such a user
- * is signed out at their next request. Memoised per request.
+ * Outcome of the session check. The sync routes (step 12) tell the device **why** it is signed
+ * out, so that a revoked or deactivated account wipes its local copy while an expired session
+ * only asks to sign in again.
  */
-export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
+export type SessionStatus =
+  | { kind: "ok"; user: CurrentUser }
+  | { kind: "signed_out" }
+  | { kind: "revoked" }
+  | { kind: "inactive" };
+
+/**
+ * Verifies the session of this request: identity from the auth provider (signature or
+ * Supabase `getUser()`), then the profile re-read from `profiles`. Memoised per request.
+ */
+export const getSessionStatus = cache(async (): Promise<SessionStatus> => {
   const auth = await getAuthService();
   const session = await auth.getVerifiedSession();
-  if (!session) return null;
+  if (!session) return { kind: "signed_out" };
   const { userId } = session;
 
   const profile = await withSystem("session", (trx) =>
@@ -63,16 +71,34 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
       .where("id", "=", userId)
       .executeTakeFirst(),
   );
-  if (!profile || !profile.is_active) return null;
-  if (isSessionRevoked(session.authenticatedAt, profile.sessions_revoked_at)) return null;
+  if (!profile) return { kind: "signed_out" };
+  if (!profile.is_active) return { kind: "inactive" };
+  if (isSessionRevoked(session.authenticatedAt, profile.sessions_revoked_at)) {
+    return { kind: "revoked" };
+  }
 
   return {
-    id: profile.id,
-    email: profile.email,
-    fullName: profile.full_name,
-    role: profile.role,
-    mustChangePassword: profile.must_change_password,
+    kind: "ok",
+    user: {
+      id: profile.id,
+      email: profile.email,
+      fullName: profile.full_name,
+      role: profile.role,
+      mustChangePassword: profile.must_change_password,
+    },
   };
+});
+
+/**
+ * The current user, verified for this request: identity from the auth provider
+ * (signature or Supabase `getUser()`), then the profile re-read from `profiles`.
+ * Returns null when signed out, without profile, **inactive**, or when the session was opened
+ * before `sessions_revoked_at` (« Déconnecter toutes les sessions », deactivation): such a user
+ * is signed out at their next request. Memoised per request.
+ */
+export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
+  const status = await getSessionStatus();
+  return status.kind === "ok" ? status.user : null;
 });
 
 async function currentPathname(): Promise<string> {

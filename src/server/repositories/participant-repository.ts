@@ -18,6 +18,7 @@ export interface ParticipantRepository {
     visitId: string,
     version: number,
     input: ParticipantInput,
+    options?: { id?: string },
   ): Promise<VisitVersion & { id: string }>;
   update(
     visitId: string,
@@ -88,7 +89,7 @@ export function createParticipantRepository(user: UserRef): ParticipantRepositor
       }));
     },
 
-    async add(visitId, version, input) {
+    async add(visitId, version, input, options) {
       try {
         return await withUser(user, async (trx) => {
           await assertVisitVersion(trx, visitId, version);
@@ -100,6 +101,7 @@ export function createParticipantRepository(user: UserRef): ParticipantRepositor
           const row = await trx
             .insertInto("visit_participants")
             .values({
+              ...(options?.id ? { id: options.id } : {}),
               visit_id: visitId,
               profile_id: input.profileId,
               full_name: input.fullName,

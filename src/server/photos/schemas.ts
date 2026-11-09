@@ -13,6 +13,7 @@ export const MAX_PREPARE_BATCH = 50;
 const zoneKey = z.string().regex(ZONE_KEY_PATTERN, "Clé de zone invalide.").nullable();
 
 export const preparePhotoItemSchema = z.object({
+  id: z.uuid().optional(),
   originalFilename: z.string().max(255).nullable().default(null),
   width: z.number().int().positive("Dimensions invalides."),
   height: z.number().int().positive("Dimensions invalides."),

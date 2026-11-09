@@ -408,6 +408,19 @@ export interface Sites {
   warehouse_code: string;
 }
 
+export interface SyncOperations {
+  applied_at: Generated<Timestamp>;
+  /**
+   * Identifiant de l'opération, généré sur l'appareil (UUID v7).
+   */
+  op_id: string;
+  /**
+   * Résultat renvoyé à l'appareil, rejoué tel quel si l'opération est renvoyée.
+   */
+  result: Generated<Json>;
+  user_id: string;
+}
+
 export interface VisitParticipants {
   company: string | null;
   created_at: Generated<Timestamp>;
@@ -531,6 +544,7 @@ export interface DB {
   site_plan_pages: SitePlanPages;
   site_plans: SitePlans;
   sites: Sites;
+  sync_operations: SyncOperations;
   visit_participants: VisitParticipants;
   visit_summaries: VisitSummaries;
   visit_zone_notes: VisitZoneNotes;

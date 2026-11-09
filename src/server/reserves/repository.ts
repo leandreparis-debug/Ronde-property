@@ -90,6 +90,8 @@ export interface SiteReserveRecord extends ReserveRecord {
 
 /** Position of a reserve marker. */
 export interface PlacementInput {
+  /** Identifier of the marker to create, chosen by the device (offline placement). */
+  markerId?: string;
   planId: string;
   page: number;
   x: number;
@@ -327,13 +329,20 @@ export class ReserveConflictError extends ConflictError {
  */
 export interface ReserveRepository {
   listForVisit(visitId: string): Promise<ReserveRecord[]>;
+  /** Every reserve of the visit with its detail fields (offline snapshot), by number. */
+  listDetailForVisit(visitId: string): Promise<ReserveDetailRecord[]>;
   /** Open reserves of a site (all visits), most urgent first, with the counters. */
   listOpenForSite(
     siteId: string,
     limit: number,
   ): Promise<{ open: number; overdue: number; urgent: number; items: SiteReserveRecord[] }>;
   get(id: string): Promise<ReserveDetailRecord>;
-  create(visitId: string, input: ReserveWrite, photoIds: string[]): Promise<ReserveDetailRecord>;
+  create(
+    visitId: string,
+    input: ReserveWrite,
+    photoIds: string[],
+    options?: { id?: string },
+  ): Promise<ReserveDetailRecord>;
   /**
    * Optimistic update: `ReserveConflictError` (with the current reserve) when
    * `expectedVersion` is stale. `photoIds` (when given) replaces the defect photos.
@@ -379,6 +388,7 @@ export function createReserveRepository(user: UserRef): ReserveRepository {
     const inserted = await trx
       .insertInto("plan_markers")
       .values({
+        ...(placement.markerId ? { id: placement.markerId } : {}),
         visit_id: reserve.visitId,
         plan_id: placement.planId,
         page: placement.page,
@@ -403,6 +413,18 @@ export function createReserveRepository(user: UserRef): ReserveRepository {
           .orderBy("r.number")
           .execute();
         return rows.map(toRecord);
+      });
+    },
+
+    listDetailForVisit(visitId) {
+      return withUser(user, async (trx) => {
+        const rows = await selectReserves(trx)
+          .where("r.visit_id", "=", visitId)
+          .orderBy("r.number")
+          .execute();
+        const details: ReserveDetailRecord[] = [];
+        for (const row of rows) details.push(await detailById(trx, row.id!));
+        return details;
       });
     },
 
@@ -449,11 +471,16 @@ export function createReserveRepository(user: UserRef): ReserveRepository {
       return withUser(user, (trx) => detailById(trx, id));
     },
 
-    create(visitId, input, photoIds) {
+    create(visitId, input, photoIds, options) {
       return withUser(user, async (trx) => {
         const inserted = await trx
           .insertInto("reserves")
-          .values({ visit_id: visitId, ...writeValues(input), created_by: user.id })
+          .values({
+            ...(options?.id ? { id: options.id } : {}),
+            visit_id: visitId,
+            ...writeValues(input),
+            created_by: user.id,
+          })
           .returning("id")
           .executeTakeFirst();
         if (!inserted) throw new ForbiddenError(RESERVE_NOT_EDITABLE_MESSAGE);

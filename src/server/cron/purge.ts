@@ -10,12 +10,15 @@ import { PLAN_BUCKET } from "@/server/plans/service";
 import { purgeStalePendingReportRowsInTrx } from "@/server/reports/repository";
 import { REPORTS_BUCKET } from "@/server/reports/service";
 import type { StorageBucket, StorageService } from "@/server/storage/types";
+import { purgeSyncOperationsInTrx } from "@/server/sync/idempotency";
 
 /** What the scheduled purge removed. */
 export interface PurgeSummary {
   photos: number;
   plans: number;
   reports: number;
+  /** Synchronisation records older than 30 days (migration 21). */
+  syncOperations: number;
   /** Storage objects removed (originals, thumbnails, plan pages, PDFs). */
   objects: number;
   /** Storage objects whose removal failed (logged; retried by nobody: orphan files). */
@@ -48,15 +51,21 @@ export async function runScheduledPurge(storage: StorageService): Promise<PurgeS
     const photos = await purgeStalePendingPhotoRowsInTrx(trx);
     const plans = await purgeStalePendingPlanRowsInTrx(trx);
     const reports = await purgeStalePendingReportRowsInTrx(trx);
+    const syncOperations = await purgeSyncOperationsInTrx(trx);
     await recordAuditInTrx(
       trx,
       "system.purge",
       "system",
       null,
-      { photos: photos.length, plans: plans.length, reports: reports.length },
+      {
+        photos: photos.length,
+        plans: plans.length,
+        reports: reports.length,
+        sync_operations: syncOperations,
+      },
       null,
     );
-    return { photos, plans, reports };
+    return { photos, plans, reports, syncOperations };
   });
 
   // Files after the commit: a row is never left without its file being at least attempted.
@@ -77,6 +86,7 @@ export async function runScheduledPurge(storage: StorageService): Promise<PurgeS
     photos: purged.photos.length,
     plans: purged.plans.length,
     reports: purged.reports.length,
+    syncOperations: purged.syncOperations,
     objects: results.reduce((sum, r) => sum + r.removed, 0),
     objectFailures: results.reduce((sum, r) => sum + r.failed, 0),
   };

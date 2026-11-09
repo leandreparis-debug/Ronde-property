@@ -488,6 +488,8 @@ export interface MarkerRepository {
   create(
     visitId: string,
     input: {
+      /** Identifier chosen by the device (offline creation); generated otherwise. */
+      id?: string;
       planId: string;
       page: number;
       x: number;
@@ -558,6 +560,7 @@ export function createMarkerRepository(user: UserRef): MarkerRepository {
         const inserted = await trx
           .insertInto("plan_markers")
           .values({
+            ...(input.id ? { id: input.id } : {}),
             visit_id: visitId,
             plan_id: input.planId,
             page: input.page,

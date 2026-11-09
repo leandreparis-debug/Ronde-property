@@ -157,10 +157,17 @@ export function describeChanges(
  */
 export interface ReserveService {
   listForVisit(visitId: string): Promise<ReserveListItem[]>;
+  /** Every reserve of the visit with its detail (offline snapshot). */
+  listDetailForVisit(visitId: string): Promise<ReserveDetail[]>;
   siteSummary(siteId: string): Promise<SiteReservesSummary>;
   get(id: string): Promise<ReserveDetail>;
   history(id: string): Promise<ReserveHistoryEntry[]>;
-  create(visitId: string, input: ReserveWrite, photoIds: string[]): Promise<ReserveDetail>;
+  create(
+    visitId: string,
+    input: ReserveWrite,
+    photoIds: string[],
+    options?: { id?: string },
+  ): Promise<ReserveDetail>;
   update(
     id: string,
     input: ReserveWrite,
@@ -233,6 +240,13 @@ export function createReserveService(
       return (await listItems(await repository.listForVisit(visitId))).map(({ item }) => item);
     },
 
+    async listDetailForVisit(visitId) {
+      const records = await repository.listDetailForVisit(visitId);
+      const details: ReserveDetail[] = [];
+      for (const record of records) details.push(await toDetail(record));
+      return details;
+    },
+
     async siteSummary(siteId) {
       const summary = await repository.listOpenForSite(siteId, SITE_RESERVES_LIMIT);
       const items = await listItems(summary.items);
@@ -266,8 +280,8 @@ export function createReserveService(
       }));
     },
 
-    async create(visitId, input, photoIds) {
-      return toDetail(await repository.create(visitId, input, photoIds));
+    async create(visitId, input, photoIds, options) {
+      return toDetail(await repository.create(visitId, input, photoIds, options));
     },
 
     async update(id, input, expectedVersion, photoIds) {

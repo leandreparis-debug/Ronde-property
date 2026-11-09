@@ -66,6 +66,8 @@ export interface PhotoPatch {
 
 /** Input of the preparation step, one entry per processed image. */
 export interface PreparePhotoItem {
+  /** Identifier chosen by the device (offline creation); the server generates one otherwise. */
+  id?: string;
   originalFilename: string | null;
   width: number;
   height: number;
