@@ -362,13 +362,16 @@ async function run(ctx: SyncContext, op: SyncOperation): Promise<SyncResult> {
     case "reserve.place": {
       const payload = op.payload as SyncPayload<"reserve.place">;
       const reserves = createReserveService(user, storage);
-      const marker = await reserves.placeOnPlan(payload.id, {
+      const ref = await reserves.placeOnPlan(payload.id, {
         markerId: payload.markerId,
         planId: payload.planId,
         page: payload.page,
         x: payload.x,
         y: payload.y,
       });
+      const marker = (await createPlanService(user, storage).markers.listForVisit(op.visitId)).find(
+        (m) => m.id === ref.id,
+      );
       return applied(id, { marker, reserve: await reserves.get(payload.id) });
     }
     case "reserve.unplace": {
@@ -380,7 +383,10 @@ async function run(ctx: SyncContext, op: SyncOperation): Promise<SyncResult> {
     case "reserve.attachMarker": {
       const payload = op.payload as SyncPayload<"reserve.attachMarker">;
       const reserves = createReserveService(user, storage);
-      const marker = await reserves.attachMarker(payload.id, payload.markerId);
+      const ref = await reserves.attachMarker(payload.id, payload.markerId);
+      const marker = (await createPlanService(user, storage).markers.listForVisit(op.visitId)).find(
+        (m) => m.id === ref.id,
+      );
       return applied(id, { marker, reserve: await reserves.get(payload.id) });
     }
   }
