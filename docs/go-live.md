@@ -19,8 +19,8 @@ Code ne liste plus d'outil `mcp__Supabase__*`.
 ## 2. Branche `main` et production depuis `main`
 
 1. GitHub → dépôt → **Pull requests → New pull request** : base `main` (la créer si besoin :
-   menu des branches → `main` → « Create branch main from claude/focused-allen-2pfr6m »),
-   comparer `claude/focused-allen-2pfr6m`. Relire, attendre la CI verte, **fusionner**.
+   menu des branches → `main` → « Create branch main from claude/blissful-wright-hqbfq7 »),
+   comparer `claude/blissful-wright-hqbfq7`. Relire, attendre la CI verte, **fusionner**.
 2. GitHub → **Settings → General → Default branch** = `main`.
 3. Vercel → projet `ronde` → **Settings → Git → Production Branch** = `main`. Toute autre
    branche produit alors un déploiement de prévisualisation.

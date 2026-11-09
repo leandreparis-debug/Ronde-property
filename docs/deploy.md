@@ -10,7 +10,7 @@ de chaque environnement Vercel, l'ordre de mise en production et les vérificati
 ## 0. Mise en place initiale (à faire une fois, par Léandre)
 
 > **Tant que la branche `main` n'existe pas, chaque push sur la branche de travail
-> (`claude/focused-allen-2pfr6m`) est déployé en production** : Vercel prend la branche par
+> (`claude/blissful-wright-hqbfq7`) est déployé en production** : Vercel prend la branche par
 > défaut du dépôt comme branche de production.
 
 1. **Couper l'accès de Claude Code à la production.** Sur claude.ai → **Settings →
@@ -18,9 +18,9 @@ de chaque environnement Vercel, l'ordre de mise en production et les vérificati
    Claude Code). La règle écrite de `CLAUDE.md` interdit son usage en écriture, mais seule la
    déconnexion supprime réellement l'accès. Faire de même pour le connecteur Vercel si l'on ne
    veut garder aucun accès en écriture.
-2. **Créer la branche `main`** sur GitHub à partir de `claude/focused-allen-2pfr6m` : page du
+2. **Créer la branche `main`** sur GitHub à partir de `claude/blissful-wright-hqbfq7` : page du
    dépôt → menu des branches → saisir `main` → « Create branch main from
-   claude/focused-allen-2pfr6m ». Puis **Settings → General → Default branch** : choisir `main`.
+   claude/blissful-wright-hqbfq7 ». Puis **Settings → General → Default branch** : choisir `main`.
 3. **Production depuis `main`** : Vercel → projet `ronde` → **Settings → Git → Production
    Branch** = `main`. Dès lors, toute autre branche produit un déploiement de prévisualisation.
 4. **Projet Supabase de test** : créer un second projet (même région), y appliquer toutes les
