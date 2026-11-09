@@ -14,6 +14,7 @@ import { useToast } from "@/components/ui/toast";
 import type { ConflictEntry } from "@/lib/offline/db";
 import { replaceQuery } from "@/lib/offline/query";
 import { isZoneFilled, parseNoteContent } from "@/lib/notes/format";
+import { cleanZoneLabel, zoneLabelError } from "@/lib/notes/messages";
 import type { NoteConflict, NoteSaveStatus } from "@/lib/notes/status";
 import type { VisitType } from "@/server/domain/enums";
 import { templateForVisitType } from "@/server/domain/templates";
@@ -117,10 +118,9 @@ export function NotesTab({
       }
       setSaving((map) => ({ ...map, [noteId]: true }));
       setErrors((map) => without(map, noteId));
-      const result = mutations.saveNote(noteId, content, note.zoneLabel);
-      // The store holds the text as soon as it is queued: the draft can go.
-      setDrafts((map) => (map[noteId] !== content ? map : without(map, noteId)));
-      const outcome = await result;
+      // The draft stays until the store shows the same text (effect below): dropping it now
+      // would show the previous text for a moment, and a toolbar action would act on it.
+      const outcome = await mutations.saveNote(noteId, content, note.zoneLabel);
       setSaving((map) => ({ ...map, [noteId]: false }));
       if (outcome.ok && !outcome.queued) {
         setSaved((map) => ({
@@ -134,24 +134,43 @@ export function NotesTab({
     [mutations],
   );
 
+  // A draft whose text the store now holds (queued or saved) is no longer needed.
+  useEffect(() => {
+    setDrafts((map) => {
+      let next = map;
+      for (const [id, value] of Object.entries(map)) {
+        if (timers.current.has(id)) continue;
+        const note = notes.find((n) => n.id === id);
+        if (note && note.content === value) next = without(next, id);
+      }
+      return next;
+    });
+  }, [notes]);
+
   const flushAll = useCallback(() => {
     for (const id of Object.keys(draftsRef.current)) void save(id);
   }, [save]);
 
   // Leaving the page or hiding the tab saves what is being typed (it is then on the device).
+  // Registered once: a re-render must never cancel the pending saves.
+  const flushRef = useRef(flushAll);
+  flushRef.current = flushAll;
   useEffect(() => {
     const pendingTimers = timers.current;
+    const flush = () => flushRef.current();
     const hidden = () => {
-      if (document.visibilityState === "hidden") flushAll();
+      if (document.visibilityState === "hidden") flush();
     };
-    window.addEventListener("pagehide", flushAll);
+    window.addEventListener("pagehide", flush);
     document.addEventListener("visibilitychange", hidden);
     return () => {
-      window.removeEventListener("pagehide", flushAll);
+      window.removeEventListener("pagehide", flush);
       document.removeEventListener("visibilitychange", hidden);
+      // Leaving the tab: what is typed goes to the device rather than being dropped.
       for (const timer of pendingTimers.values()) clearTimeout(timer);
+      flush();
     };
-  }, [flushAll]);
+  }, []);
 
   const requestedZone = searchParams.get("zone");
   const selected = notes.find((n) => n.zoneKey === requestedZone) ?? notes[0] ?? null;
@@ -442,13 +461,19 @@ export function NotesTab({
             ordered.splice(target, 0, id);
             return structure(() => mutations.reorderZones(ordered));
           }}
-          onRename={(noteId, label) => structure(() => mutations.renameZone(noteId, label))}
+          onRename={async (noteId, label) =>
+            zoneLabelError(label, notes, noteId) ??
+            structure(() => mutations.renameZone(noteId, cleanZoneLabel(label)))
+          }
           onRemove={(noteId) =>
             structure(() =>
               mutations.removeZone(noteId, notes.find((n) => n.id === noteId)?.zoneLabel ?? ""),
             )
           }
-          onAdd={(label) => structure(() => mutations.addZone(label))}
+          onAdd={async (label) =>
+            zoneLabelError(label, notes) ??
+            structure(() => mutations.addZone(cleanZoneLabel(label)))
+          }
           onAddTemplate={(zoneKey) =>
             structure(() =>
               mutations.addTemplateZone(

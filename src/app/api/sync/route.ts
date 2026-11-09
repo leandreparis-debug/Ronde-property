@@ -35,5 +35,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
   const results = await applyDeviceOperations(parsed.data.ops as SyncOperation[]);
+  // Taken after every operation is committed: a snapshot read before this instant may not
+  // show them (see buildVisitSnapshot and mergeSnapshot).
   return NextResponse.json({ results, serverTime: new Date().toISOString() });
 }

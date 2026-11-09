@@ -6,5 +6,7 @@
 export function replaceQuery(params: URLSearchParams | string): void {
   const query = typeof params === "string" ? params : params.toString();
   const url = `${window.location.pathname}${query ? `?${query}` : ""}`;
-  window.history.replaceState(window.history.state, "", url);
+  // `null`, never `history.state`: Next.js only syncs its router (and `useSearchParams`) when
+  // the state is not its own (`__NA`), and copies its internal state itself.
+  window.history.replaceState(null, "", url);
 }

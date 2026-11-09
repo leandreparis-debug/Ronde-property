@@ -25,6 +25,34 @@ export async function wipeLocalData(db: RondeLocalDb): Promise<void> {
   await deleteLocalDb(userId);
 }
 
+/**
+ * Erases the local database of a user, waiting at most `timeoutMs` (another connection, such
+ * as a second tab, can hold the deletion). Returns whether the deletion finished in time; the
+ * request stays queued otherwise, and the sign-in page finishes it (`markPendingWipe`).
+ */
+export async function wipeUserData(
+  userId: string,
+  db: RondeLocalDb | null,
+  timeoutMs = 3_000,
+): Promise<boolean> {
+  db?.close();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<false>((resolve) => {
+    timer = setTimeout(() => resolve(false), timeoutMs);
+  });
+  try {
+    return await Promise.race([
+      deleteLocalDb(userId).then(
+        () => true,
+        () => false,
+      ),
+      timeout,
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** Reads what the inactivity rule needs. */
 export async function inactivityInputs(db: RondeLocalDb) {
   return {

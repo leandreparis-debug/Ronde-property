@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react";
 
 import { deleteLocalDb } from "@/lib/offline/db";
-import { clearDeviceUser, readDeviceUser } from "@/lib/offline/device-user";
+import {
+  clearDeviceUser,
+  clearPendingWipe,
+  readDeviceUser,
+  readPendingWipe,
+} from "@/lib/offline/device-user";
 
 /**
  * On the sign-in page after « sessions révoquées » or « compte désactivé »: erases the local
@@ -32,4 +37,19 @@ export function SessionWipe({ reason }: { reason: "revoquee" | "desactive" }) {
       La copie locale de cet appareil a été effacée.
     </p>
   );
+}
+
+/**
+ * On the sign-in page: finishes the erase of a copy asked at sign-out that could not complete
+ * then (another tab held the database). Renders nothing.
+ */
+export function PendingWipe() {
+  useEffect(() => {
+    const userId = readPendingWipe();
+    if (!userId) return;
+    void deleteLocalDb(userId)
+      .then(() => clearPendingWipe())
+      .catch(() => undefined);
+  }, []);
+  return null;
 }

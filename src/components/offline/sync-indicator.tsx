@@ -84,7 +84,9 @@ export function SyncIndicator({ compact = false }: { compact?: boolean }) {
         "focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand",
         !compact && "w-full px-2 py-1",
       )}
-      aria-label={`${label}. Ouvrir la synchronisation`}
+      // Compact: no visible text, the name says it all. Otherwise the visible text is the name
+      // (WCAG 2.5.3, « label in name »), completed by a hidden hint.
+      aria-label={compact ? `${label}. Ouvrir la synchronisation` : undefined}
       data-testid="sync-indicator"
       data-mood={mood}
       data-pending={status.pending}
@@ -109,6 +111,7 @@ export function SyncIndicator({ compact = false }: { compact?: boolean }) {
               ? `Synchronisé à ${formatDateTime(status.lastSyncAt).slice(-5)}`
               : "Pas encore synchronisé"}
           </span>
+          <span className="sr-only">Ouvrir la synchronisation</span>
         </span>
       )}
     </button>

@@ -4,6 +4,7 @@ import path from "node:path";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { uuidv7 } from "@/lib/offline/ids";
 import type { SyncOperation, SyncPayload, SyncResult } from "@/lib/offline/ops";
 import { emptyReserveForm } from "@/lib/reserves/schema";
 import type { CurrentUser } from "@/server/auth/types";
@@ -41,12 +42,12 @@ const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x4
 
 let dir = "";
 let storage: LocalStorageService;
-let counter = 0;
-
+/**
+ * A fresh UUID v7, as a device would make: never a counter, `sync_operations` keeps the
+ * operations of earlier runs in ronde_test.
+ */
 function uuid(): string {
-  counter += 1;
-  const hex = counter.toString(16).padStart(12, "0");
-  return `019a1000-0000-7000-8000-${hex}`;
+  return uuidv7();
 }
 
 function op<K extends SyncOperation["kind"]>(

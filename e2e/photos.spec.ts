@@ -301,7 +301,8 @@ test.describe("Alice on a laptop", () => {
     await importFiles(page, page.getByTestId("photos-tab"), [IMG("shapes.webp")]);
     await expect(uploadItems(page).first()).toContainText("Hors connexion : nouvelle tentative…");
     await expect(page.getByTestId("upload-pill")).toContainText("1 envoi en cours");
-    await expect(tiles(page)).toHaveCount(3);
+    // Step 12: the photo is kept on the device and shown at once, marked as waiting.
+    await expect(tiles(page)).toHaveCount(4);
     await page.unroute("**/api/local-storage/**");
     await waitForQueue(page, 1);
     await expect(uploadItems(page).first()).toContainText("Terminé");

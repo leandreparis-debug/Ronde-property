@@ -110,14 +110,13 @@ test.describe("Alice on a laptop", () => {
     page,
   }) => {
     await page.goto(`${visitUrl}?onglet=notes&zone=sprinkler`);
-    await page.route("**/visites/**", (route) =>
-      route.request().method() === "POST" ? route.abort("connectionfailed") : route.continue(),
-    );
+    // Step 12: the writes go through the outbox (POST /api/sync).
+    await page.route("**/api/sync", (route) => route.abort("connectionfailed"));
     await textarea(page).fill("Essai pompe conforme malgré la coupure.");
     await expect(status(page)).toContainText("Hors connexion : nouvelle tentative…");
     await expect(page.getByTestId("zone-item").nth(2)).toContainText("Hors connexion");
     await expect(textarea(page)).toHaveValue("Essai pompe conforme malgré la coupure.");
-    await page.unroute("**/visites/**");
+    await page.unroute("**/api/sync");
     await expect(status(page)).toContainText("Enregistré à");
     await page.reload();
     await expect(textarea(page)).toHaveValue("Essai pompe conforme malgré la coupure.");
@@ -181,6 +180,9 @@ test.describe("two writers on the seed visit", () => {
     await dialog.getByRole("button", { name: "Garder ma version" }).click();
     await expect(dialog).toHaveCount(0);
     await expect(status(a)).toContainText("Enregistré à");
+    // Step 12: online, Alice's copy is refreshed after her save and would already hold Bruno's
+    // next text (nothing to arbitrate). Her tablet goes offline, as on site.
+    await alice.setOffline(true);
     await b.reload();
     await expect(textarea(b)).toHaveValue("Version d'Alice");
     await expect(b.getByTestId("note-last-author")).toContainText("Modifié par Alice Fictive à");
@@ -189,6 +191,8 @@ test.describe("two writers on the seed visit", () => {
     await textarea(b).fill("Version de Bruno, bis");
     await expect(status(b)).toContainText("Enregistré à");
     await textarea(a).fill("Version d'Alice, bis");
+    await expect(status(a)).toContainText("Hors réseau");
+    await alice.setOffline(false);
     await expect(dialog).toBeVisible();
     await dialog.getByRole("button", { name: "Prendre la sienne" }).click();
     await expect(dialog).toHaveCount(0);

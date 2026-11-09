@@ -112,6 +112,8 @@ export function ReserveDetailView({
       title: message,
       description: result.queued ? "En attente de synchronisation." : undefined,
     });
+    // The history is read on the server: read it again once the change reached it.
+    if (!result.queued) router.refresh();
   }
 
   async function remove() {
@@ -133,6 +135,7 @@ export function ReserveDetailView({
     const result = await mutations.unplaceReserve(reserve.id, reserve.code, reserve.action);
     setBusy(false);
     if (!result.ok) setError(result.error);
+    else if (!result.queued) router.refresh();
   }
 
   const done = reserve.status === "done";

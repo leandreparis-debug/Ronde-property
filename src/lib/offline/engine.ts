@@ -672,6 +672,9 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
       document.addEventListener("visibilitychange", visibility);
       void (async () => {
         lastSyncAt = (await readMeta<string>(db, META_KEYS.lastSyncAt)) ?? null;
+        // A page closed or reloaded during a send left its operations « sending »: they go
+        // back to the queue (sending again is safe, the server knows each opId).
+        await db.outbox.where("status").equals("sending").modify({ status: "pending" });
         await refresh();
         void flush();
       })();

@@ -72,6 +72,7 @@ export const DELETIONS = [
   ["site_plans", "id in (select id from demo_plans)"],
   ["sites", "id in (select id from demo_sites)"],
   ["feedback", "author_id in (select id from demo_profiles)"],
+  ["sync_operations", "user_id in (select id from demo_profiles)"],
   ["site_import_runs", "performed_by in (select id from demo_profiles)"],
   ["audit_log", "actor_id in (select id from demo_profiles)"],
   ["profiles", "id in (select id from demo_profiles)"],

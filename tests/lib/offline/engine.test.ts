@@ -70,6 +70,32 @@ async function setup(
 }
 
 describe("SyncEngine", () => {
+  it("sends again, at start, an operation left « sending » by a page closed mid-send", async () => {
+    let online = false;
+    const { db, engine, transport } = await setup(appliedNote, { online: () => online });
+    const queued = await engine.enqueue(noteOp("Envoi interrompu"));
+    expect(queued.outcome.kind).toBe("queued");
+    const [entry] = await db.outbox.toArray();
+    await db.outbox.update(entry!.opId, { status: "sending" });
+    engine.dispose();
+
+    online = true;
+    const reopened = createSyncEngine({
+      db,
+      transport,
+      user: ALICE,
+      isOnline: () => online,
+      setTimer: () => 0,
+      clearTimer: () => undefined,
+      periodicMs: 30_000,
+    });
+    const stop = reopened.start();
+    await expect.poll(() => db.outbox.count()).toBe(0);
+    expect(transport.sent.flat().map((op) => op.opId)).toContain(entry!.opId);
+    stop();
+    reopened.dispose();
+  });
+
   it("applies an operation online, advances the version and empties the outbox", async () => {
     const { db, engine, transport } = await setup(appliedNote);
     const queued = await engine.enqueue(noteOp("Hors réseau"));

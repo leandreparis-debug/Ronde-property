@@ -4,6 +4,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect as baseExpect, type Locator, type Page } from "@playwright/test";
 
 import { test } from "./helpers/csp";
+import { expectSynced } from "./helpers/sync";
 
 import { FIXTURE_IMAGES_DIR, FIXTURE_PLANS_DIR } from "./global-setup";
 import { storageStatePath } from "./helpers/auth";
@@ -141,6 +142,8 @@ test.describe("Alice", () => {
       .first()
       .setInputFiles(IMG("shapes.webp"));
     await expect(page.getByTestId("photo-tile")).toHaveCount(1);
+    // Step 12: the tile shows as soon as the photo is on the device; wait for the server.
+    await expectSynced(page);
 
     await openTab(page);
     await expect(page.getByText("Aucune réserve, tout est en ordre")).toBeVisible();
@@ -322,15 +325,21 @@ test.describe("Alice", () => {
     await expect(page.locator(`[data-testid=plan-marker][data-reserve="${code}"]`)).toBeVisible();
   });
 
-  test("two tabs: the second save shows the conflict without losing its input", async ({
+  test("two devices: the second save shows the conflict without losing its input", async ({
     browser,
   }) => {
+    // Step 12: two tabs of one browser share the device copy (no conflict between them); the
+    // conflict is between two devices of the same person, hence two browser contexts.
     const context = await browser.newContext({
       storageState: storageStatePath("alice"),
       viewport: { width: 1280, height: 800 },
     });
+    const otherDevice = await browser.newContext({
+      storageState: storageStatePath("alice"),
+      viewport: { width: 1280, height: 800 },
+    });
     const first = await context.newPage();
-    const second = await context.newPage();
+    const second = await otherDevice.newPage();
     for (const page of [first, second]) {
       await openTab(page);
       await openDetail(page, "Repeindre le marquage du quai 4");
@@ -356,6 +365,7 @@ test.describe("Alice", () => {
     await expect(second.getByTestId("reserve-history")).toContainText("Échéance :");
     await expect(second.getByTestId("reserve-history")).toContainText("Action :");
     await context.close();
+    await otherDevice.close();
   });
 
   test("deletes the placed reserve after a confirmation naming it; its marker goes too", async ({

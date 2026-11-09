@@ -15,13 +15,7 @@ export async function mergeSnapshot(
   options: { keep?: boolean } = {},
 ): Promise<"merged" | "stale"> {
   const visitId = snapshot.visit.id;
-  // A snapshot read before the last applied answer would bring older rows back.
-  const appliedAt = await readMeta<string>(db, appliedAtKey(visitId));
-  if (appliedAt && Date.parse(snapshot.fetchedAt) < Date.parse(appliedAt)) {
-    if (options.keep) await db.visits.update(visitId, { kept: true });
-    return "stale";
-  }
-  await db.transaction(
+  return db.transaction(
     "rw",
     [
       db.visits,
@@ -37,6 +31,14 @@ export async function mergeSnapshot(
       db.meta,
     ],
     async () => {
+      // A snapshot read before the last applied answer would bring older rows back. Checked
+      // inside the transaction: an answer applied between the check and the writes would
+      // otherwise empty the outbox and let this older snapshot delete what it created.
+      const appliedAt = await readMeta<string>(db, appliedAtKey(visitId));
+      if (appliedAt && Date.parse(snapshot.fetchedAt) < Date.parse(appliedAt)) {
+        if (options.keep) await db.visits.update(visitId, { kept: true });
+        return "stale" as const;
+      }
       const pending = await db.outbox.where("visitId").equals(visitId).toArray();
       const busy = new Set(pending.map((entry) => entry.entityId));
       const deleted = new Set(
@@ -156,9 +158,9 @@ export async function mergeSnapshot(
       await db.reports.bulkPut(snapshot.reports.map((report) => ({ ...report, visitId })));
 
       await db.meta.put({ key: META_KEYS.lastServerContactAt, value: snapshot.fetchedAt });
+      return "merged" as const;
     },
   );
-  return "merged";
 }
 
 /** Removes a visit and everything about it from the store (blobs included). */

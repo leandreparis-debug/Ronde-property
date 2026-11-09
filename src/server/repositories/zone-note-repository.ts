@@ -5,7 +5,13 @@ import { randomBytes } from "node:crypto";
 import { sql } from "kysely";
 
 import { isZoneFilled } from "@/lib/notes/format";
-import { REMOVE_NOT_EMPTY_MESSAGE, removeHasPhotosMessage } from "@/lib/notes/messages";
+import {
+  DUPLICATE_ZONE_LABEL_MESSAGE,
+  EMPTY_ZONE_LABEL_MESSAGE,
+  LONG_ZONE_LABEL_MESSAGE,
+  REMOVE_NOT_EMPTY_MESSAGE,
+  removeHasPhotosMessage,
+} from "@/lib/notes/messages";
 import { type Trx, type UserRef, withUser } from "@/server/db/context";
 import {
   customZoneKey,
@@ -101,9 +107,9 @@ export interface ZoneNoteRepository {
   remove(noteId: string, visitVersion: number): Promise<ZoneStructureResult>;
 }
 
-const EMPTY_LABEL = "Le libellé de la zone est obligatoire.";
-const LONG_LABEL = `${ZONE_LABEL_MAX_LENGTH} caractères maximum.`;
-const DUPLICATE_LABEL = "Une zone porte déjà ce libellé.";
+const EMPTY_LABEL = EMPTY_ZONE_LABEL_MESSAGE;
+const LONG_LABEL = LONG_ZONE_LABEL_MESSAGE;
+const DUPLICATE_LABEL = DUPLICATE_ZONE_LABEL_MESSAGE;
 export const REMOVE_NOT_EMPTY = REMOVE_NOT_EMPTY_MESSAGE;
 
 function cleanLabel(label: string): string {

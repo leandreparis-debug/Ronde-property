@@ -35,7 +35,7 @@ const UNAVAILABLE = "La tablette prépare sa copie locale : réessayez dans un i
  * present. Offline, it resolves at once with `queued: true`.
  */
 export function useVisitMutations(visitId: string) {
-  const { engine, refreshVisit } = useOffline();
+  const { engine: readyEngine, waitForEngine, refreshVisit } = useOffline();
 
   const run = useCallback(
     async <K extends SyncKind>(
@@ -43,6 +43,7 @@ export function useVisitMutations(visitId: string) {
       context: Parameters<typeof describeOperation>[1] = {},
       id?: string,
     ): Promise<MutationResult> => {
+      const engine = readyEngine ?? (await waitForEngine());
       if (!engine) return { ok: false, error: UNAVAILABLE };
       const enqueued = await engine.enqueue({
         ...operation,
@@ -67,7 +68,7 @@ export function useVisitMutations(visitId: string) {
         }
       }
     },
-    [engine, refreshVisit, visitId],
+    [readyEngine, waitForEngine, refreshVisit, visitId],
   );
 
   return useMemo(() => {

@@ -203,12 +203,18 @@ test.describe("version conflict", () => {
   test("the second page is told who changed the visit and does not overwrite", async ({
     browser,
   }) => {
+    // Step 12: two tabs of one browser share the device copy (no conflict between them); the
+    // conflict is between two devices of the same person, hence two browser contexts.
     const context = await browser.newContext({
       baseURL: E2E_BASE_URL,
       storageState: storageStatePath("alice"),
     });
+    const otherDevice = await browser.newContext({
+      baseURL: E2E_BASE_URL,
+      storageState: storageStatePath("alice"),
+    });
     const first = await context.newPage();
-    const second = await context.newPage();
+    const second = await otherDevice.newPage();
     await first.goto(visitUrl);
     await second.goto(visitUrl);
     await first.fill("#visit-title", "Titre de la première page");
@@ -222,6 +228,7 @@ test.describe("version conflict", () => {
     await second.getByRole("button", { name: "Recharger" }).click();
     await expect(second.locator("#visit-title")).toHaveValue("Titre de la première page");
     await context.close();
+    await otherDevice.close();
   });
 });
 

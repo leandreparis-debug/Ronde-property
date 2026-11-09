@@ -39,3 +39,33 @@ export function clearDeviceUser(): void {
     // Nothing to forget.
   }
 }
+
+/** Key of a wipe asked at sign-out and not confirmed yet (the id of the user to erase). */
+export const PENDING_WIPE_KEY = "ronde.offline.wipe";
+
+/** Records that the copy of this user must be erased (finished on the sign-in page if needed). */
+export function markPendingWipe(userId: string): void {
+  try {
+    window.localStorage.setItem(PENDING_WIPE_KEY, userId);
+  } catch {
+    // Storage blocked: the erase is attempted right away anyway.
+  }
+}
+
+/** The user whose copy still has to be erased, or null. */
+export function readPendingWipe(): string | null {
+  try {
+    return window.localStorage.getItem(PENDING_WIPE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/** The erase is done. */
+export function clearPendingWipe(): void {
+  try {
+    window.localStorage.removeItem(PENDING_WIPE_KEY);
+  } catch {
+    // Nothing to clear.
+  }
+}

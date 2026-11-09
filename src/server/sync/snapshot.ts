@@ -51,6 +51,10 @@ export async function buildVisitSnapshot(
   storage: StorageService,
   visitId: string,
 ): Promise<VisitSnapshot | null> {
+  // Taken before the first read: whatever was committed before this instant is in the
+  // snapshot. The device compares it with the time of its last applied answer (taken after the
+  // commit) to drop a snapshot that may predate its own changes (mergeSnapshot).
+  const fetchedAt = new Date().toISOString();
   const visit = await createVisitRepository(user).getById(visitId);
   if (!visit) return null;
   const plans = createPlanService(user, storage);
@@ -88,7 +92,7 @@ export async function buildVisitSnapshot(
     }
   }
   return {
-    fetchedAt: new Date().toISOString(),
+    fetchedAt,
     user: { id: user.id, role: user.role },
     canCreate: user.role === "rt" || user.role === "admin",
     visit: toVisitView(visit),

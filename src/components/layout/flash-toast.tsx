@@ -1,9 +1,10 @@
 "use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
 
 import { useToast } from "@/components/ui/toast";
+import { replaceQuery } from "@/lib/offline/query";
 
 const FLASH_MESSAGES: Record<string, { title: string; description?: string }> = {
   password_changed: { title: "Mot de passe modifié" },
@@ -15,11 +16,12 @@ const FLASH_MESSAGES: Record<string, { title: string; description?: string }> = 
   visit_deleted: { title: "Visite supprimée" },
 };
 
-/** Shows a one-time success toast carried by the `flash` query parameter, then cleans the URL. */
+/**
+ * Shows a one-time success toast carried by the `flash` query parameter, then cleans the URL
+ * locally (no server round trip, which would race with a tab change and drop its parameters).
+ */
 export function FlashToast() {
   const searchParams = useSearchParams();
-  const pathname = usePathname();
-  const router = useRouter();
   const { toast } = useToast();
   const shown = useRef<string | null>(null);
 
@@ -31,11 +33,11 @@ export function FlashToast() {
     if (!message) return;
     shown.current = flash;
     toast({ variant: "success", ...message });
-    const params = new URLSearchParams(searchParams.toString());
+    // Read the live URL: another component may have replaced the query in the meantime.
+    const params = new URLSearchParams(window.location.search);
     params.delete("flash");
-    const query = params.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname);
-  }, [flash, pathname, router, searchParams, toast]);
+    replaceQuery(params);
+  }, [flash, toast]);
 
   return null;
 }

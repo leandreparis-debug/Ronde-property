@@ -4,6 +4,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect as baseExpect, type Locator, type Page } from "@playwright/test";
 
 import { test } from "./helpers/csp";
+import { expectSynced } from "./helpers/sync";
 
 import { FIXTURE_IMAGES_DIR, FIXTURE_PLANS_DIR } from "./global-setup";
 import { storageStatePath } from "./helpers/auth";
@@ -170,6 +171,8 @@ test.describe("Alice", () => {
       .first()
       .setInputFiles(IMG("shapes.webp"));
     await expect(page.getByTestId("photo-tile")).toHaveCount(1);
+    // Step 12: the tile shows as soon as the photo is on the device; wait for the server.
+    await expectSynced(page);
 
     await openPlan(page, 2);
     const fit = Number(await canvas(page).getAttribute("data-fit-scale"));

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { Galet } from "@/components/brand/Galet";
-import { SessionWipe } from "@/components/auth/session-wipe";
+import { PendingWipe, SessionWipe } from "@/components/auth/session-wipe";
 import { SignInForm } from "@/components/auth/sign-in-form";
 import { Card } from "@/components/ui/card";
 import { getCurrentUser, safeNext } from "@/server/auth/session";
@@ -35,6 +35,7 @@ export default async function SignInPage({
           </p>
         </div>
       </div>
+      <PendingWipe />
       {session === "revoquee" || session === "desactive" ? <SessionWipe reason={session} /> : null}
       <SignInForm next={next} />
     </Card>

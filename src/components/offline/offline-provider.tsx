@@ -11,7 +11,14 @@ import {
   useState,
 } from "react";
 
-import { clearDeviceUser, type DeviceUser, writeDeviceUser } from "@/lib/offline/device-user";
+import {
+  clearDeviceUser,
+  clearPendingWipe,
+  type DeviceUser,
+  markPendingWipe,
+  readPendingWipe,
+  writeDeviceUser,
+} from "@/lib/offline/device-user";
 import { META_KEYS, openLocalDb, readMeta, type RondeLocalDb, writeMeta } from "@/lib/offline/db";
 import { createSyncEngine, type SyncEngine, type SyncStatus } from "@/lib/offline/engine";
 import { mergeSnapshot } from "@/lib/offline/merge";
@@ -19,7 +26,12 @@ import type { SyncAuthFailure } from "@/lib/offline/ops";
 import type { VisitSnapshot } from "@/lib/offline/snapshot";
 import { estimateUsage, requestPersistence, type StorageUsage } from "@/lib/offline/storage";
 import { createFetchTransport } from "@/lib/offline/transport";
-import { inactivityInputs, shouldWipeForInactivity, wipeLocalData } from "@/lib/offline/wipe";
+import {
+  inactivityInputs,
+  shouldWipeForInactivity,
+  wipeLocalData,
+  wipeUserData,
+} from "@/lib/offline/wipe";
 
 import { useOnline } from "./use-online";
 
@@ -43,6 +55,12 @@ export interface OfflineContextValue {
   /** Local database of the user; null until opened in the browser. */
   db: RondeLocalDb | null;
   engine: SyncEngine | null;
+  /**
+   * The engine once ready (the local database opens in the background after the first
+   * render): a write made just after the page appears waits for it instead of failing.
+   * Resolves with null after `timeoutMs` when the device has no usable storage.
+   */
+  waitForEngine: (timeoutMs?: number) => Promise<SyncEngine | null>;
   status: SyncStatus;
   online: boolean;
   /** Keep automatically the visits opened on a tablet. */
@@ -108,6 +126,8 @@ export function OfflineProvider({
   const online = useOnline();
   const [db, setDb] = useState<RondeLocalDb | null>(null);
   const [engine, setEngine] = useState<SyncEngine | null>(null);
+  const engineRef = useRef<SyncEngine | null>(null);
+  const engineWaiters = useRef(new Set<(engine: SyncEngine) => void>());
   const [status, setStatus] = useState<SyncStatus>(INITIAL_STATUS);
   const [autoKeep, setAutoKeepState] = useState(true);
   const [usage, setUsage] = useState<StorageUsage | null>(null);
@@ -143,6 +163,10 @@ export function OfflineProvider({
     let created: SyncEngine | null = null;
     const opened = openLocalDb(user.id);
     void (async () => {
+      // A sign-out whose erase did not finish: finish it before anything is read.
+      if (readPendingWipe() === user.id) {
+        if (await wipeUserData(user.id, null)) clearPendingWipe();
+      }
       try {
         await opened.open();
       } catch {
@@ -200,6 +224,9 @@ export function OfflineProvider({
       stop = created.start();
       setDb(current);
       setEngine(created);
+      engineRef.current = created;
+      for (const resolve of engineWaiters.current) resolve(created);
+      engineWaiters.current.clear();
       void requestPersistence().then(() => refreshUsage());
     })();
     return () => {
@@ -210,6 +237,7 @@ export function OfflineProvider({
       dbRef.current = null;
       setDb(null);
       setEngine(null);
+      engineRef.current = null;
       for (const timer of timers.values()) clearTimeout(timer);
       timers.clear();
     };
@@ -223,17 +251,36 @@ export function OfflineProvider({
     [db],
   );
 
+  const waitForEngine = useCallback((timeoutMs = 10_000) => {
+    if (engineRef.current) return Promise.resolve(engineRef.current);
+    return new Promise<SyncEngine | null>((resolve) => {
+      const waiter = (ready: SyncEngine) => {
+        clearTimeout(timer);
+        resolve(ready);
+      };
+      const timer = setTimeout(() => {
+        engineWaiters.current.delete(waiter);
+        resolve(null);
+      }, timeoutMs);
+      engineWaiters.current.add(waiter);
+    });
+  }, []);
+
   const wipe = useCallback(async () => {
     engine?.dispose();
-    if (db) await wipeLocalData(db);
+    // Recorded first: if the deletion is held (another tab), the sign-in page finishes it.
+    markPendingWipe(user.id);
+    const done = await wipeUserData(user.id, db ?? dbRef.current);
+    if (done) clearPendingWipe();
     clearDeviceUser();
-  }, [db, engine]);
+  }, [db, engine, user.id]);
 
   const value = useMemo<OfflineContextValue>(
     () => ({
       user,
       db,
       engine,
+      waitForEngine,
       status,
       online,
       autoKeep,
@@ -251,6 +298,7 @@ export function OfflineProvider({
       user,
       db,
       engine,
+      waitForEngine,
       status,
       online,
       autoKeep,

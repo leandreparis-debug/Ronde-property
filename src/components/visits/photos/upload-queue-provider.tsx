@@ -62,6 +62,9 @@ interface LocalItem {
   error: string | null;
 }
 
+const STORAGE_UNAVAILABLE =
+  "Cet appareil ne peut pas garder la photo (stockage indisponible). Réessayez.";
+
 /**
  * Photos of a visit, on top of the synchronisation engine (step 12): each picked file is
  * compressed in the browser (worker), stored as two blobs in IndexedDB and queued
@@ -76,7 +79,7 @@ export function UploadQueueProvider({
   visitId: string;
   children: ReactNode;
 }) {
-  const { engine, status, online, usage, refreshUsage } = useOffline();
+  const { engine, waitForEngine, status, online, usage, refreshUsage } = useOffline();
   const data = useVisit();
   const [local, setLocal] = useState<LocalItem[]>([]);
   const [uploaded, setUploaded] = useState<PhotoView[]>([]);
@@ -98,7 +101,7 @@ export function UploadQueueProvider({
 
   const start = useCallback(
     (files: File[], zoneKey: string | null) => {
-      if (!engine || !processor.current) return;
+      if (!processor.current) return;
       const current = processor.current;
       for (const file of files) {
         const localId = `local-${uuidv7()}`;
@@ -112,7 +115,10 @@ export function UploadQueueProvider({
           try {
             const photo = await processed;
             const photoId = uuidv7();
-            await engine.enqueuePhoto({
+            // The local database may still be opening right after the page appeared.
+            const ready = engine ?? (await waitForEngine());
+            if (!ready) throw new Error(STORAGE_UNAVAILABLE);
+            await ready.enqueuePhoto({
               visitId,
               photoId,
               name: file.name,
@@ -170,7 +176,7 @@ export function UploadQueueProvider({
       }
       void chain.current.then(() => refreshUsage());
     },
-    [engine, refreshUsage, visitId],
+    [engine, waitForEngine, refreshUsage, visitId],
   );
 
   const enqueue = useCallback(
