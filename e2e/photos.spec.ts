@@ -5,6 +5,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect as baseExpect, type Page } from "@playwright/test";
 
 import { test } from "./helpers/csp";
+import { syncBeforeLeaving } from "./helpers/sync";
 import exifr from "exifr";
 
 import { E2E_ENV } from "../playwright.config";
@@ -13,6 +14,12 @@ import { FIXTURE_IMAGES_DIR } from "./global-setup";
 import { E2E_BASE_URL, storageStatePath } from "./helpers/auth";
 
 test.describe.configure({ mode: "serial" });
+
+// Step 12: a change is shown as soon as it is on the device; the next test (a new browser
+// context) only sees what reached the server.
+test.afterEach(async ({ page }) => {
+  await syncBeforeLeaving(page);
+});
 
 // Browser-side compression, direct uploads and server actions on a shared runner.
 const expect = baseExpect.configure({ timeout: 20_000 });

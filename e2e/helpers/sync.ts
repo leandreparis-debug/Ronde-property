@@ -10,3 +10,14 @@ export async function expectSynced(page: Page, timeout = 30_000) {
     timeout,
   });
 }
+
+/**
+ * For `test.afterEach` in the serial suites (each test builds on the previous one): the page of
+ * the test must not close while its changes are still on the device only.
+ */
+export async function syncBeforeLeaving(page: Page) {
+  if (page.isClosed()) return;
+  const indicator = page.getByTestId("sync-indicator").first();
+  if ((await indicator.count()) === 0) return;
+  await expectSynced(page);
+}
