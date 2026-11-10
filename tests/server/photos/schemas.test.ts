@@ -33,6 +33,8 @@ describe("preparePhotoUploadSchema", () => {
       thumbSizeBytes: 1,
       takenAt: null,
       zoneKey: null,
+      toSort: false,
+      hintViewId: null,
     });
   });
 

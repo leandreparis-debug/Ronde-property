@@ -43,6 +43,8 @@ export interface MarkerRecord {
   x: number;
   y: number;
   number: number;
+  /** « photo » (or a reserve) or « note » (note on the plan, step 12 b). */
+  kind: "photo" | "note";
   label: string | null;
   photoId: string | null;
   /** Thumbnail path of the linked photo (ready photos only). */
@@ -144,6 +146,8 @@ export interface MarkerView {
   x: number;
   y: number;
   number: number;
+  /** « photo » (or a reserve) or « note » (note on the plan, step 12 b). */
+  kind: "photo" | "note";
   label: string | null;
   photoId: string | null;
   photoThumbUrl: string | null;

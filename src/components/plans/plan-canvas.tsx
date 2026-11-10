@@ -30,10 +30,13 @@ import {
 } from "@/lib/plans/geometry";
 import type { DisplayMarker, PlanPageView } from "@/server/plans/types";
 
-import { MARKER_HIT, MarkerPin, ReservePin } from "./marker-pin";
+import { MARKER_HIT, MarkerPin, NotePin, ReservePin } from "./marker-pin";
 
-/** What a tap on the plan does. */
-export type CanvasMode = "view" | "place" | "move";
+/**
+ * What a tap on the plan does: nothing (`view`), place or move a marker (`place`, `move`,
+ * crosshair cursor), or reach `onTapPlan` with the plan screen deciding (`menu`, step 12 b).
+ */
+export type CanvasMode = "view" | "place" | "move" | "menu";
 
 /** Imperative controls of the canvas, used by the toolbar. */
 export interface PlanCanvasHandle {
@@ -54,12 +57,24 @@ export interface PlanCanvasProps {
   showNumbers: boolean;
   /** Mouse drag of markers (desktop); never required on touch screens. */
   canDragMarkers: boolean;
-  onTapPlan: (point: Point) => void;
+  /** A tap on the plan: relative point, and its position in the canvas (CSS pixels). */
+  onTapPlan: (point: Point, screen: Point) => void;
   onSelectMarker: (marker: DisplayMarker) => void;
   onDragMarker: (marker: DisplayMarker, point: Point) => void;
   onImageError: () => void;
   /** Called after every transform change (tests and the zoom label). */
   onTransform?: (transform: ViewTransform, fitScale: number) => void;
+  /**
+   * Transform to restore when the page is shown (zoom and position kept per view during the
+   * visit, step 12 b); the page is fitted when absent.
+   */
+  initialTransform?: ViewTransform | null;
+  /** Drawn above the image, under the markers: receives the relative → canvas projection. */
+  overlay?: (project: (point: Point) => Point) => React.ReactNode;
+  /** Height of the canvas (Tailwind classes); 60 % of the screen by default. */
+  sizeClassName?: string;
+  /** Accessible description of the canvas (what a tap does). */
+  label?: string;
 }
 
 interface Gesture {
@@ -92,6 +107,10 @@ export const PlanCanvas = forwardRef<PlanCanvasHandle, PlanCanvasProps>(function
     onDragMarker,
     onImageError,
     onTransform,
+    initialTransform,
+    overlay,
+    sizeClassName,
+    label,
   },
   ref,
 ) {
@@ -130,10 +149,10 @@ export const PlanCanvas = forwardRef<PlanCanvasHandle, PlanCanvasProps>(function
   const fittedFor = useRef<string | null>(null);
   useEffect(() => {
     if (viewport.width === 0) return;
-    const key = `${page.pageNumber}:${page.width}x${page.height}`;
+    const key = `${page.imageUrl ?? page.pageNumber}:${page.pageNumber}:${page.width}x${page.height}`;
     if (fittedFor.current === key) return;
     fittedFor.current = key;
-    apply(fitTransform(image, viewport));
+    apply(initialTransform ?? fitTransform(image, viewport));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fit once per page
   }, [viewport, page.pageNumber, page.width, page.height]);
 
@@ -262,7 +281,7 @@ export const PlanCanvas = forwardRef<PlanCanvasHandle, PlanCanvasProps>(function
     });
     if (!tap || mode === "view") return;
     const relative = screenToRelative(point, transformRef.current, image);
-    if (relative) onTapPlan(relative);
+    if (relative) onTapPlan(relative, point);
   }
 
   // Mouse drag of a marker (desktop only): pointer events on the marker button itself.
@@ -298,13 +317,16 @@ export const PlanCanvas = forwardRef<PlanCanvasHandle, PlanCanvasProps>(function
     <div
       ref={containerRef}
       className={cn(
-        "relative h-[60dvh] min-h-[360px] w-full touch-none overflow-hidden rounded-lg border border-rule bg-craie select-none lg:h-[70dvh]",
-        mode === "view" ? "cursor-grab" : "cursor-crosshair",
+        "relative w-full touch-none overflow-hidden rounded-lg border border-rule bg-craie select-none",
+        sizeClassName ?? "h-[60dvh] min-h-[360px] lg:h-[70dvh]",
+        mode === "view" || mode === "menu" ? "cursor-grab" : "cursor-crosshair",
       )}
       data-testid="plan-canvas"
       data-scale={transform.scale}
       data-fit-scale={fitScale}
       data-mode={mode}
+      role={label ? "application" : undefined}
+      aria-label={label}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
@@ -329,14 +351,17 @@ export const PlanCanvas = forwardRef<PlanCanvasHandle, PlanCanvasProps>(function
           Page indisponible
         </p>
       )}
+      {overlay ? overlay((p) => relativeToScreen(p, transform, image)) : null}
       <ul className="pointer-events-none absolute inset-0" aria-label="Repères de la page">
         {markers.map((marker) => {
           const position =
             drag && drag.id === marker.id ? drag.point : { x: marker.x, y: marker.y };
           const screen = relativeToScreen(position, transform, image);
-          const label = marker.reserve
+          const markerLabel = marker.reserve
             ? `Réserve ${marker.reserve.code} : ${marker.reserve.action}`
-            : `Repère n° ${marker.number ?? "• (en attente de numéro)"}${marker.label ? ` : ${marker.label}` : ""}${marker.photoId ? "" : " (sans photo)"}`;
+            : marker.kind === "note"
+              ? `Note : ${marker.label ?? ""}`
+              : `Repère n° ${marker.number ?? "• (en attente de numéro)"}${marker.label ? ` : ${marker.label}` : ""}${marker.photoId ? "" : " (sans photo)"}`;
           return (
             <li
               key={marker.id}
@@ -355,12 +380,13 @@ export const PlanCanvas = forwardRef<PlanCanvasHandle, PlanCanvasProps>(function
                   "focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand",
                   canDragMarkers && "cursor-move",
                 )}
-                aria-label={label}
+                aria-label={markerLabel}
                 aria-pressed={selectedId === marker.id}
                 data-testid="plan-marker"
                 data-number={marker.number ?? undefined}
                 data-has-photo={marker.photoId ? "true" : "false"}
                 data-reserve={marker.reserve?.code}
+                data-kind={marker.reserve ? "reserve" : marker.kind}
                 data-x={marker.x}
                 data-y={marker.y}
                 onPointerDown={(event) => markerPointerDown(event, marker)}
@@ -370,7 +396,9 @@ export const PlanCanvas = forwardRef<PlanCanvasHandle, PlanCanvasProps>(function
                   if (!drag?.moved) onSelectMarker(marker);
                 }}
               >
-                {marker.reserve ? (
+                {marker.kind === "note" && !marker.reserve ? (
+                  <NotePin selected={selectedId === marker.id} />
+                ) : marker.reserve ? (
                   <ReservePin
                     reserve={marker.reserve}
                     selected={selectedId === marker.id}

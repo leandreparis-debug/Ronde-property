@@ -27,6 +27,7 @@ import { mergeSnapshot } from "@/lib/offline/merge";
 import type { VisitSnapshot } from "@/lib/offline/snapshot";
 import type { Participant } from "@/server/domain";
 import type { PlanPageView } from "@/server/plans/types";
+import type { SiteBuildingView, SiteViewView } from "@/lib/plans/structure";
 import type { ReportView } from "@/server/reports/service";
 import type { ReserveDetail } from "@/server/reserves/types";
 
@@ -43,6 +44,10 @@ export interface VisitData {
   /** Pages of each plan, with displayable URLs. */
   planPages: Record<string, PlanPageView[]>;
   markers: LocalMarker[];
+  /** Buildings of the site (step 12 b), archived ones included. */
+  buildings: SiteBuildingView[];
+  /** Views of the site (exterior view, levels), archived and replaced ones included. */
+  views: SiteViewView[];
   /**
    * Reserves; one created offline has the code « R-? » and sorts after the numbered ones
    * (`number` = `Number.MAX_SAFE_INTEGER`) until the server numbers it.
@@ -82,6 +87,8 @@ export function dataFromSnapshot(snapshot: VisitSnapshot): VisitData {
     })),
     planPages: snapshot.planPages,
     markers: snapshot.markers,
+    buildings: snapshot.buildings ?? [],
+    views: snapshot.views ?? [],
     reserves: snapshot.reserves,
     reports: snapshot.reports,
     pendingIds: new Set(),
@@ -156,6 +163,8 @@ interface StoreRows {
   plans: LocalPlan[];
   pages: Array<PlanPageView & { planId: string }>;
   markers: LocalMarker[];
+  buildings: SiteBuildingView[];
+  views: SiteViewView[];
   reserves: LocalReserve[];
   reports: ReportView[];
   outbox: OutboxEntry[];
@@ -176,6 +185,10 @@ async function readStore(db: RondeLocalDb, visitId: string): Promise<StoreRows> 
       db.outbox.where("visitId").equals(visitId).toArray(),
       db.conflicts.where("visitId").equals(visitId).toArray(),
     ]);
+  const [buildings, views] = await Promise.all([
+    db.buildings.where("visitId").equals(visitId).toArray(),
+    db.views.where("visitId").equals(visitId).toArray(),
+  ]);
   const pages = plans.length
     ? await db.planPages
         .where("planId")
@@ -190,6 +203,8 @@ async function readStore(db: RondeLocalDb, visitId: string): Promise<StoreRows> 
     plans,
     pages,
     markers,
+    buildings,
+    views,
     reserves,
     reports,
     outbox,
@@ -260,6 +275,8 @@ function withImages(rows: StoreRows, urls: Map<string, string>): VisitData {
     plans,
     planPages,
     markers,
+    buildings: rows.buildings,
+    views: rows.views,
     reserves,
     reports: [...rows.reports].sort((a, b) => b.generatedAt.localeCompare(a.generatedAt)),
     pendingIds: new Set(rows.outbox.map((entry) => entry.entityId)),

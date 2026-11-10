@@ -19,6 +19,11 @@ export const PLAN_THUMB_JPEG_QUALITY = 0.7;
 /** Length limits of the plan name and the marker label. */
 export const PLAN_NAME_MAX_LENGTH = 120;
 export const MARKER_LABEL_MAX_LENGTH = 80;
+/** Length limit of a note on the plan (marker of kind « note », step 12 b). */
+export const NOTE_LABEL_MAX_LENGTH = 500;
+/** Kind of a marker: a photo (or a reserve, carried by `reserve_id`) or a note on the plan. */
+export const MARKER_KINDS = ["photo", "note"] as const;
+export type MarkerKind = (typeof MARKER_KINDS)[number];
 /** Decimals kept for the relative coordinates (numeric(6,5) in the database). */
 export const MARKER_COORDINATE_DECIMALS = 5;
 

@@ -4,6 +4,7 @@ import type { VisitSnapshot, VisitView } from "@/lib/offline/snapshot";
 import type { CurrentUser } from "@/server/auth/types";
 import { toZoneNoteView } from "@/server/domain/zone-notes";
 import { createPhotoService } from "@/server/photos/service";
+import { createSiteStructureRepository } from "@/server/plans/structure-repository";
 import { createPlanService } from "@/server/plans/service";
 import type { PlanPageView } from "@/server/plans/types";
 import { createParticipantRepository } from "@/server/repositories/participant-repository";
@@ -79,6 +80,7 @@ export async function buildVisitSnapshot(
     createReportService(user, storage).list(visitId),
     createReportService(user, storage).lastOptions(visitId),
   ]);
+  const structure = await createSiteStructureRepository(user).listForSite(visit.siteId);
   const planPages: Record<string, PlanPageView[]> = {};
   const planOriginals: Record<string, string | null> = {};
   for (const plan of planList) {
@@ -105,6 +107,8 @@ export async function buildVisitSnapshot(
     planOriginals,
     markers: markerSnapshot.markers,
     markersSnapshotAt: markerSnapshot.snapshotAt,
+    buildings: structure.buildings,
+    views: structure.views,
     reserves,
     reports,
     reportOptions: options,

@@ -27,11 +27,15 @@ import type { DisplayMarker } from "@/server/plans/types";
 export interface MarkerSheetProps {
   marker: DisplayMarker;
   planName: string;
+  /** Where the marker is (« Bâtiment B · R+1 »), in place of « plan · page N ». */
+  where?: string;
   photos: PhotoView[];
   zones: Array<{ key: string; label: string }>;
   canEdit: boolean;
   /** « Créer une réserve ici »: Reserves tab with the photo prelinked and this marker. */
   createReserveHref?: string;
+  /** « En faire une réserve » on the plan screen (step 12 b): opens the reserve sheet in place. */
+  onCreateReserve?: () => void;
   moving: boolean;
   onClose: () => void;
   /** Saves a patch; resolves with the error message, or `null`. */
@@ -54,10 +58,12 @@ const LABEL_DEBOUNCE_MS = 800;
 export function MarkerSheet({
   marker,
   planName,
+  where,
   photos,
   zones,
   canEdit,
   createReserveHref,
+  onCreateReserve,
   moving,
   onClose,
   onUpdate,
@@ -152,7 +158,7 @@ export function MarkerSheet({
               : "Repère • (numéro attribué à la synchronisation)"}
           </h3>
           <p className="truncate text-ui text-ink-2">
-            {planName} · page {marker.page}
+            {where ?? `${planName} · page ${marker.page}`}
           </p>
         </div>
         <Button
@@ -343,7 +349,18 @@ export function MarkerSheet({
 
       {error ? <ErrorNotice message={error} /> : null}
 
-      {canEdit && createReserveHref ? (
+      {canEdit && onCreateReserve && !marker.reserve ? (
+        <Button
+          type="button"
+          variant="secondary"
+          className="self-start"
+          onClick={onCreateReserve}
+          data-testid="marker-create-reserve"
+        >
+          <TriangleAlert className="size-4" aria-hidden="true" />
+          En faire une réserve
+        </Button>
+      ) : canEdit && createReserveHref ? (
         <Button asChild variant="secondary" className="self-start">
           <QueryLink href={createReserveHref} data-testid="marker-create-reserve">
             <TriangleAlert className="size-4" aria-hidden="true" />

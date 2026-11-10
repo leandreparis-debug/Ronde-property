@@ -15,6 +15,10 @@ export interface PhotoRecord {
   category: string | null;
   zoneKey: string | null;
   zoneLabel: string | null;
+  /** Taken with the shutter, not placed yet (« À ranger », step 12 b). */
+  toSort: boolean;
+  /** View shown when it was taken: hint to place it. */
+  hintViewId: string | null;
   takenAt: Date | null;
   sortOrder: number;
   isCover: boolean;
@@ -40,6 +44,10 @@ export interface PhotoView {
   category: PhotoCategory;
   zoneKey: string | null;
   zoneLabel: string | null;
+  /** Taken with the shutter, not placed yet (« À ranger », step 12 b). */
+  toSort: boolean;
+  /** View shown when it was taken: hint to place it. */
+  hintViewId: string | null;
   takenAt: string | null;
   width: number | null;
   height: number | null;
@@ -62,6 +70,8 @@ export interface PhotoPatch {
   caption?: string | null;
   category?: PhotoCategory;
   zoneKey?: string | null;
+  /** `false` once placed, kept without location or turned into a reserve. */
+  toSort?: boolean;
 }
 
 /** Input of the preparation step, one entry per processed image. */
@@ -75,6 +85,9 @@ export interface PreparePhotoItem {
   thumbSizeBytes: number;
   takenAt: string | null;
   zoneKey: string | null;
+  /** Taken with the shutter: goes to « À ranger » (step 12 b). */
+  toSort?: boolean;
+  hintViewId?: string | null;
 }
 
 /** Outcome of the confirmation step. */

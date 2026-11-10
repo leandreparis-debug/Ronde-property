@@ -3,6 +3,7 @@ import type { Participant } from "@/server/domain";
 import type { UserRole, VisitReason, VisitStatus, VisitType } from "@/server/domain/enums";
 import type { ZoneNoteView } from "@/server/domain/zone-notes";
 import type { PhotoView } from "@/server/photos/types";
+import type { SiteBuildingView, SiteViewView } from "@/lib/plans/structure";
 import type { MarkerView, PlanPageView, PlanView } from "@/server/plans/types";
 import type { AssignableProfile } from "@/server/repositories/profile-repository";
 import type { VisitPermissions } from "@/server/repositories/visit-repository";
@@ -57,6 +58,10 @@ export interface VisitSnapshot {
   planOriginals: Record<string, string | null>;
   markers: MarkerView[];
   markersSnapshotAt: string;
+  /** Buildings of the site, archived ones included (step 12 b). */
+  buildings: SiteBuildingView[];
+  /** Views of the site (exterior view, levels), archived and replaced ones included. */
+  views: SiteViewView[];
   reserves: ReserveDetail[];
   reports: ReportView[];
   reportOptions: ReportOptions;

@@ -8,6 +8,8 @@ export interface LabelContext {
   reserveAction?: string | null;
   participantName?: string | null;
   markerNumber?: number | null;
+  /** « note » for a note on the plan (step 12 b). */
+  markerKind?: "photo" | "note";
 }
 
 function reserve(context: LabelContext): string {
@@ -66,7 +68,7 @@ export function describeOperation(kind: SyncKind, context: LabelContext = {}): s
     case "photo.delete":
       return `Photo supprimée ${context.photoName ?? ""}`.trim();
     case "marker.create":
-      return `${marker(context)} placé`;
+      return context.markerKind === "note" ? "Note sur le plan" : `${marker(context)} placé`;
     case "marker.move":
       return `${marker(context)} déplacé`;
     case "marker.update":

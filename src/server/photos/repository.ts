@@ -47,6 +47,8 @@ function selectPhotos(trx: Trx) {
       "p.category",
       "p.zone_key",
       "n.zone_label",
+      "p.to_sort",
+      "p.hint_view_id",
       "p.taken_at",
       "p.sort_order",
       "p.is_cover",
@@ -75,6 +77,8 @@ function toRecord(row: PhotoRow): PhotoRecord {
     category: row.category,
     zoneKey: row.zone_key,
     zoneLabel: row.zone_label ?? null,
+    toSort: row.to_sort,
+    hintViewId: row.hint_view_id,
     takenAt: row.taken_at,
     sortOrder: row.sort_order,
     isCover: row.is_cover,
@@ -240,6 +244,8 @@ export function createPhotoRepository(user: UserRef): PhotoRepository {
                 size_bytes: item.sizeBytes,
                 category: DEFAULT_PHOTO_CATEGORY,
                 zone_key: item.zoneKey,
+                to_sort: item.toSort ?? false,
+                hint_view_id: item.hintViewId ?? null,
                 taken_at: item.takenAt ? new Date(item.takenAt) : null,
                 sort_order: start + index,
                 is_cover: false,
@@ -300,6 +306,7 @@ export function createPhotoRepository(user: UserRef): PhotoRepository {
           caption: string | null;
           category: string;
           zone_key: string | null;
+          to_sort: boolean;
         }> = {};
         if (patch.caption !== undefined) {
           const caption = patch.caption?.trim() ?? "";
@@ -307,6 +314,7 @@ export function createPhotoRepository(user: UserRef): PhotoRepository {
         }
         if (patch.category !== undefined) values.category = patch.category;
         if (patch.zoneKey !== undefined) values.zone_key = patch.zoneKey;
+        if (patch.toSort !== undefined) values.to_sort = patch.toSort;
         if (Object.keys(values).length === 0) return photoById(trx, photoId);
         if (values.zone_key) {
           const { visitId } = await photoById(trx, photoId);

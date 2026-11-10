@@ -1,5 +1,5 @@
 import { cn } from "@/lib/cn";
-import { PIN_PATH, RESERVE_PATH } from "@/lib/plans/pins";
+import { NOTE_PATH, PIN_PATH, RESERVE_PATH } from "@/lib/plans/pins";
 
 /** On-screen size of a marker drawing, in CSS pixels, at every zoom level. */
 export const MARKER_SIZE = 36;
@@ -147,6 +147,42 @@ export function ReservePin({
           {reserve.code}
         </span>
       ) : null}
+    </span>
+  );
+}
+
+/**
+ * A note on the plan (step 12 b): a yellow sticky note with « ✎ », same 36 px size and anchor
+ * as {@link MarkerPin}. The yellow is reserved for notes, never for a status.
+ */
+export function NotePin({ selected = false }: { selected?: boolean }) {
+  return (
+    <span className="relative block" style={{ width: MARKER_SIZE, height: MARKER_SIZE }}>
+      <svg
+        viewBox="0 0 36 36"
+        width={MARKER_SIZE}
+        height={MARKER_SIZE}
+        aria-hidden="true"
+        className={cn("block overflow-visible drop-shadow-sm", selected && "drop-shadow-md")}
+      >
+        <path
+          d={NOTE_PATH}
+          fill="var(--color-note)"
+          stroke={selected ? "var(--color-ink)" : "var(--color-note-ink)"}
+          strokeWidth={selected ? 3 : 2}
+          strokeLinejoin="round"
+        />
+        <text
+          x="17"
+          y="20"
+          textAnchor="middle"
+          fontSize="15"
+          fontWeight="700"
+          fill="var(--color-note-ink)"
+        >
+          ✎
+        </text>
+      </svg>
     </span>
   );
 }

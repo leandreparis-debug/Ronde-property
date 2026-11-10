@@ -37,12 +37,23 @@ export interface UploadQueueContextValue {
    * the device (before the upload): a reserve or a marker can use them at once, offline too.
    */
   uploaded: PhotoView[];
-  enqueue: (files: File[], options?: { zoneKey?: string | null }) => void;
+  enqueue: (files: File[], options?: EnqueueOptions) => void;
   retry: (localId: string) => void;
   remove: (localId: string) => void;
   clearDone: () => void;
   /** True while a photo is being prepared or sent. */
   active: boolean;
+}
+
+/** Options of a photo added to the queue. */
+export interface EnqueueOptions {
+  zoneKey?: string | null;
+  /** Taken with the shutter of the plan screen: « À ranger » (step 12 b). */
+  toSort?: boolean;
+  /** View shown when the photo was taken (hint to place it). */
+  hintViewId?: string | null;
+  /** Called once the photo is stored on the device, with its id (before any upload). */
+  onStored?: (photo: PhotoView) => void;
 }
 
 const UploadQueueContext = createContext<UploadQueueContextValue | null>(null);
@@ -85,7 +96,7 @@ export function UploadQueueProvider({
   const [uploaded, setUploaded] = useState<PhotoView[]>([]);
   const [quotaFiles, setQuotaFiles] = useState<{
     files: File[];
-    zoneKey: string | null;
+    options: EnqueueOptions;
   } | null>(null);
   const processor = useRef<PhotoProcessor | null>(null);
   const chain = useRef<Promise<void>>(Promise.resolve());
@@ -100,7 +111,8 @@ export function UploadQueueProvider({
   }, []);
 
   const start = useCallback(
-    (files: File[], zoneKey: string | null) => {
+    (files: File[], options: EnqueueOptions) => {
+      const zoneKey = options.zoneKey ?? null;
       if (!processor.current) return;
       const current = processor.current;
       for (const file of files) {
@@ -132,32 +144,35 @@ export function UploadQueueProvider({
                 thumbSizeBytes: photo.thumb.size,
                 takenAt: photo.takenAt,
                 zoneKey,
+                toSort: options.toSort ?? false,
+                hintViewId: options.hintViewId ?? null,
               },
             });
             setLocal((list) => list.filter((item) => item.localId !== localId));
-            setUploaded((list) => [
-              ...list,
-              {
-                id: photoId,
-                visitId,
-                caption: null,
-                category: "general",
-                zoneKey,
-                zoneLabel: null,
-                takenAt: photo.takenAt,
-                width: photo.width,
-                height: photo.height,
-                sizeBytes: photo.main.size,
-                sortOrder: Number.MAX_SAFE_INTEGER,
-                isCover: false,
-                originalFilename: photo.originalFilename,
-                createdByName: null,
-                createdAt: new Date().toISOString(),
-                url: null,
-                thumbUrl: null,
-                urlsExpireAt: new Date().toISOString(),
-              },
-            ]);
+            const stored: PhotoView = {
+              id: photoId,
+              visitId,
+              caption: null,
+              category: "general",
+              zoneKey,
+              zoneLabel: null,
+              toSort: options.toSort ?? false,
+              hintViewId: options.hintViewId ?? null,
+              takenAt: photo.takenAt,
+              width: photo.width,
+              height: photo.height,
+              sizeBytes: photo.main.size,
+              sortOrder: Number.MAX_SAFE_INTEGER,
+              isCover: false,
+              originalFilename: photo.originalFilename,
+              createdByName: null,
+              createdAt: new Date().toISOString(),
+              url: null,
+              thumbUrl: null,
+              urlsExpireAt: new Date().toISOString(),
+            };
+            setUploaded((list) => [...list, stored]);
+            options.onStored?.(stored);
           } catch (error) {
             setLocal((list) =>
               list.map((item) =>
@@ -180,13 +195,12 @@ export function UploadQueueProvider({
   );
 
   const enqueue = useCallback(
-    (files: File[], options?: { zoneKey?: string | null }) => {
-      const zoneKey = options?.zoneKey ?? null;
+    (files: File[], options: EnqueueOptions = {}) => {
       if (!online && usage?.nearQuota) {
-        setQuotaFiles({ files, zoneKey });
+        setQuotaFiles({ files, options });
         return;
       }
-      start(files, zoneKey);
+      start(files, options);
     },
     [online, start, usage?.nearQuota],
   );
@@ -306,7 +320,7 @@ export function UploadQueueProvider({
             <Button
               type="button"
               onClick={() => {
-                if (quotaFiles) start(quotaFiles.files, quotaFiles.zoneKey);
+                if (quotaFiles) start(quotaFiles.files, quotaFiles.options);
                 setQuotaFiles(null);
               }}
               data-testid="quota-confirm-add"

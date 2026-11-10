@@ -1,5 +1,6 @@
 import Dexie, { type Table, type Transaction } from "dexie";
 
+import type { SiteBuildingView, SiteViewView } from "@/lib/plans/structure";
 import type { ReportOptions } from "@/lib/report/options";
 import type { Participant } from "@/server/domain";
 import type { ZoneNoteView } from "@/server/domain/zone-notes";
@@ -60,6 +61,16 @@ export interface LocalPlanPage extends PlanPageView {
 }
 
 /** A marker; `number` is null until the server assigns it (shown « • »). */
+/** A building of the site of a visit (step 12 b). */
+export interface LocalBuilding extends SiteBuildingView {
+  visitId: string;
+}
+
+/** A view of the site of a visit: exterior view or level (step 12 b). */
+export interface LocalView extends SiteViewView {
+  visitId: string;
+}
+
 export interface LocalMarker extends Omit<MarkerView, "number"> {
   number: number | null;
 }
@@ -178,6 +189,14 @@ export const LOCAL_SCHEMA_VERSIONS: Array<{
       meta: "key",
     },
   },
+  {
+    // Step 12 b: buildings and views of the site of each visit (copied with the visit).
+    version: 2,
+    stores: {
+      buildings: "id, visitId",
+      views: "id, visitId",
+    },
+  },
 ];
 
 /** The local database of one user. */
@@ -189,6 +208,8 @@ export class RondeLocalDb extends Dexie {
   plans!: Table<LocalPlan, string>;
   planPages!: Table<LocalPlanPage, string>;
   markers!: Table<LocalMarker, string>;
+  buildings!: Table<LocalBuilding, string>;
+  views!: Table<LocalView, string>;
   reserves!: Table<LocalReserve, string>;
   reports!: Table<LocalReport, string>;
   blobs!: Table<LocalBlob, string>;

@@ -201,6 +201,7 @@ export function createPlanService(
       photoId: m.photoId,
       photoThumbUrl: m.photoThumbPath ? (urls[m.photoThumbPath] ?? null) : null,
       photoCaption: m.photoCaption,
+      kind: m.kind,
       reserve: m.reserve,
       createdAt: m.createdAt.toISOString(),
       updatedAt: m.updatedAt.toISOString(),

@@ -13,3 +13,7 @@ export const PIN_PATH =
 /** Square body of a reserve marker, ending in a point at the bottom centre (its position). */
 export const RESERVE_PATH =
   "M18 35 L13 28 H7 a4 4 0 0 1 -4 -4 V6 a4 4 0 0 1 4 -4 H29 a4 4 0 0 1 4 4 V24 a4 4 0 0 1 -4 4 H23 Z";
+
+/** Body of a note on the plan (step 12 b): a folded sticky note ending in a point. */
+export const NOTE_PATH =
+  "M18 35 L13 28 H6 a3 3 0 0 1 -3 -3 V5 a3 3 0 0 1 3 -3 H24 L33 11 V25 a3 3 0 0 1 -3 3 H23 Z";

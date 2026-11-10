@@ -7,6 +7,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { FeedbackDialog } from "@/components/feedback/feedback-dialog";
 import { useOptionalOffline } from "@/components/offline/offline-provider";
+import { useHandedness } from "@/components/visits/plan-screen/use-handedness";
 import { cn } from "@/lib/cn";
 import { formatBytes, QUOTA_WARNING_RATIO } from "@/lib/offline/storage";
 import { APP_VERSION } from "@/lib/version";
@@ -23,8 +24,9 @@ const ITEM =
   "flex min-h-11 w-full items-center gap-3 rounded-md px-3 text-left text-ui font-semibold text-ink hover:bg-craie";
 
 /**
- * Account menu: « Mon compte », « Donner mon avis », « Aide », sign out and the version of the
- * application. A disclosure button (works with touch and keyboard), closed by Escape, a click
+ * Account menu: « Mon compte », « Donner mon avis », « Aide », the options of the device
+ * (offline copy, « Gaucher »: controls of the plan screen on the left), sign out and the version
+ * of the application. A disclosure button (works with touch and keyboard), closed by Escape, a click
  * outside or the choice of an item.
  */
 export function AccountMenu({ fullName, roleLabel, initials, compact = false }: AccountMenuProps) {
@@ -32,6 +34,7 @@ export function AccountMenu({ fullName, roleLabel, initials, compact = false }: 
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const panelId = useId();
   const offline = useOptionalOffline();
+  const [leftHanded, setLeftHanded] = useHandedness();
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
 
@@ -153,6 +156,16 @@ export function AccountMenu({ fullName, roleLabel, initials, compact = false }: 
               </label>
             </div>
           ) : null}
+          <label className="mt-1 flex min-h-11 items-center gap-2 border-t border-rule px-3 pt-2 text-ui text-ink">
+            <input
+              type="checkbox"
+              className="size-5 accent-brand"
+              checked={leftHanded}
+              onChange={(event) => setLeftHanded(event.target.checked)}
+              data-testid="left-handed-toggle"
+            />
+            Gaucher : commandes du plan à gauche (sur cet appareil)
+          </label>
           <div className="mt-1 border-t border-rule pt-2">
             <SignOutButton variant="ghost" className="w-full justify-start" />
           </div>

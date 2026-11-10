@@ -147,6 +147,8 @@ export async function applyLocally<K extends SyncKind>(
         category: "general",
         zoneKey: item.zoneKey ?? null,
         zoneLabel: zone?.zoneLabel ?? null,
+        toSort: item.toSort ?? false,
+        hintViewId: item.hintViewId ?? null,
         takenAt: item.takenAt ?? null,
         width: item.width,
         height: item.height,
@@ -178,6 +180,7 @@ export async function applyLocally<K extends SyncKind>(
         ...photo,
         ...(patch.caption !== undefined ? { caption: patch.caption } : {}),
         ...(patch.category !== undefined ? { category: patch.category } : {}),
+        ...(patch.toSort !== undefined ? { toSort: patch.toSort } : {}),
         ...(patch.zoneKey !== undefined
           ? { zoneKey: patch.zoneKey, zoneLabel: patch.zoneKey ? (zone?.zoneLabel ?? null) : null }
           : {}),
@@ -248,6 +251,7 @@ export async function applyLocally<K extends SyncKind>(
         x: input.x,
         y: input.y,
         number: null,
+        kind: input.kind ?? "photo",
         label: input.label ?? null,
         photoId: input.photoId ?? null,
         photoThumbUrl: photo?.thumbUrl ?? null,
@@ -368,6 +372,7 @@ export async function applyLocally<K extends SyncKind>(
         x,
         y,
         number: null,
+        kind: "photo",
         label: null,
         photoId: null,
         photoThumbUrl: null,

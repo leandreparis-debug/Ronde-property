@@ -32,6 +32,9 @@ export const preparePhotoItemSchema = z.object({
     .nullable()
     .default(null),
   zoneKey: zoneKey.default(null),
+  // Taken with the shutter of the plan screen (step 12 b): « À ranger » until placed.
+  toSort: z.boolean().default(false),
+  hintViewId: z.uuid().nullable().default(null),
 });
 
 export const preparePhotoUploadSchema = z.object({
@@ -52,6 +55,7 @@ export const photoPatchSchema = z.object({
   category: z.enum(PHOTO_CATEGORIES, { message: "Catégorie inconnue." }).optional(),
   // No default here: an absent key must leave the zone untouched (patch semantics).
   zoneKey: zoneKey.optional(),
+  toSort: z.boolean().optional(),
 });
 
 export const movePhotoSchema = z.object({

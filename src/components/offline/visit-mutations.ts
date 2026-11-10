@@ -157,9 +157,28 @@ export function useVisitMutations(visitId: string) {
       deletePhoto: (id: string, name: string | null) =>
         run(op("photo.delete", id, { id }), { photoName: name }),
 
-      createMarker: (input: { planId: string; page: number; x: number; y: number }) => {
-        const id = uuidv7();
-        return run(op("marker.create", id, { id, ...input }), {}, id);
+      createMarker: ({
+        id: givenId,
+        ...input
+      }: {
+        /** Identifier chosen by the caller (to open its sheet before the server answers). */
+        id?: string;
+        planId: string;
+        page: number;
+        x: number;
+        y: number;
+        /** Photo taken from the plan (« Photo » of the quick menu, « Placer »). */
+        photoId?: string | null;
+        /** « note »: a note on the plan, its text in `label` (step 12 b). */
+        kind?: "photo" | "note";
+        label?: string | null;
+      }) => {
+        const id = givenId ?? uuidv7();
+        return run(
+          op("marker.create", id, { id, ...input }),
+          { markerKind: input.kind ?? "photo" },
+          id,
+        );
       },
       moveMarker: (id: string, x: number, y: number, number: number | null) =>
         run(op("marker.move", id, { id, x, y }), { markerNumber: number }),

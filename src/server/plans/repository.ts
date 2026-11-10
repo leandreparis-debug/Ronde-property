@@ -414,6 +414,7 @@ function selectMarkers(trx: Trx) {
       "m.x",
       "m.y",
       "m.number",
+      "m.kind",
       "m.label",
       "m.photo_id",
       "ph.thumb_path as photo_thumb_path",
@@ -440,6 +441,7 @@ function toMarker(row: MarkerRow): MarkerRecord {
     x: Number(row.x),
     y: Number(row.y),
     number: row.number,
+    kind: row.kind === "note" ? "note" : "photo",
     label: row.label,
     photoId: row.photo_id,
     photoThumbPath: row.photo_thumb_path ?? null,
@@ -496,6 +498,8 @@ export interface MarkerRepository {
       y: number;
       label?: string | null;
       photoId?: string | null;
+      /** « note » for a note on the plan (label required, 500 characters). */
+      kind?: "photo" | "note";
     },
   ): Promise<MarkerRecord>;
   move(markerId: string, x: number, y: number): Promise<MarkerRecord>;
@@ -568,6 +572,7 @@ export function createMarkerRepository(user: UserRef): MarkerRepository {
             y: roundCoordinate(input.y),
             label: input.label?.trim() || null,
             photo_id: input.photoId ?? null,
+            kind: input.kind ?? "photo",
             created_by: user.id,
           })
           .returning("id")

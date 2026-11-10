@@ -26,7 +26,7 @@ import { NotesTab } from "./notes/notes-tab";
 import { PhotosTab } from "./photos/photos-tab";
 import { UploadQueuePill } from "./photos/upload-queue-pill";
 import { UploadQueueProvider } from "./photos/upload-queue-provider";
-import { PlansTab } from "./plans/plans-tab";
+import { VisitPlanScreen } from "./plan-screen/visit-plan-screen";
 import { VisitActions } from "./visit-actions";
 import { VisitBanner } from "./visit-banner";
 import { VisitHeader } from "./visit-header";
@@ -51,7 +51,10 @@ function useDerived(data: VisitData) {
     const uncaptionedPhotosCount = photos.filter((photo) => !photo.caption).length;
     const photoIds = new Set(photos.map((photo) => photo.id));
     const markersWithoutPhotoCount = markers.filter(
-      (marker) => !marker.reserve && (!marker.photoId || !photoIds.has(marker.photoId)),
+      (marker) =>
+        marker.kind !== "note" &&
+        !marker.reserve &&
+        (!marker.photoId || !photoIds.has(marker.photoId)),
     ).length;
     const reserveCounts = reserveIncompleteCounts(reserves);
     const reservesByZone: Record<string, { open: number; done: number }> = {};
@@ -160,6 +163,16 @@ function VisitScreen({ snapshot }: { snapshot: VisitSnapshot | null }) {
       />
       <VisitBanner visit={visit} user={{ role: user.role }} />
       <VisitTabs
+        defaultScreen={data.views.length === 0 && !canCreate ? "liste" : "plan"}
+        plan={
+          <VisitPlanScreen
+            key={`plan-${visit.status}-${canEdit}`}
+            visitId={visit.id}
+            canEdit={canEdit}
+            canConfigure={canCreate}
+            zones={derived.zones}
+          />
+        }
         notes={
           <NotesTab
             key={`${visit.status}-${canEdit}`}
@@ -191,27 +204,6 @@ function VisitScreen({ snapshot }: { snapshot: VisitSnapshot | null }) {
             photos={data.photos.filter((photo) => photo.uploadStatus === "ready")}
             incomplete={derived.points}
             blockedReason={reportBlocked}
-          />
-        }
-        plans={
-          <PlansTab
-            key={`plans-${visit.status}-${canEdit}`}
-            visitId={visit.id}
-            siteId={visit.siteId}
-            plans={data.plans}
-            planPages={data.planPages}
-            markers={data.markers}
-            photos={data.photos}
-            zones={derived.zones}
-            canEdit={canEdit}
-            canImport={canCreate}
-            reserves={data.reserves.map((reserve) => ({
-              id: reserve.id,
-              code: reserve.code,
-              action: reserve.action,
-              marker: reserve.marker,
-            }))}
-            pendingIds={data.pendingIds}
           />
         }
         photos={
@@ -257,7 +249,7 @@ export function VisitUnavailable() {
 }
 
 /**
- * The visit screen (header, actions, banner, the six tabs), rendered from the local store once
+ * The visit screen (header, actions, banner, Plan / Liste / Rapport), rendered from the local store once
  * the server snapshot is merged into it, or from the snapshot until then. Without a snapshot
  * (offline shell), the store alone.
  */

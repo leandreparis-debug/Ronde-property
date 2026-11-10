@@ -3,7 +3,7 @@ import { z } from "zod";
 import { NOTE_MAX_LENGTH } from "@/lib/notes/format";
 import { reserveFormSchema } from "@/lib/reserves/schema";
 import { RESERVE_STATUSES } from "@/server/domain/enums";
-import { MARKER_LABEL_MAX_LENGTH } from "@/server/domain/plans";
+import { MARKER_LABEL_MAX_LENGTH, NOTE_LABEL_MAX_LENGTH } from "@/server/domain/plans";
 import { participantInputSchema, visitUpdateSchema } from "@/server/domain/schemas";
 import { ZONE_LABEL_MAX_LENGTH } from "@/server/domain/templates";
 import { photoPatchSchema, preparePhotoItemSchema } from "@/server/photos/schemas";
@@ -40,26 +40,48 @@ export const syncPayloadSchemas = {
   "zone.reorder": z.object({ orderedIds: z.array(uuid).max(200) }),
   "zone.remove": z.object({ noteId: uuid }),
 
-  "photo.create": z.object({ id: uuid, item: preparePhotoItemSchema.omit({ id: true }) }),
+  "photo.create": z.object({
+    id: uuid,
+    item: preparePhotoItemSchema.omit({ id: true }).extend({
+      // « À ranger » (step 12 b): optional, absent from the operations queued before it.
+      toSort: z.boolean().optional(),
+      hintViewId: uuid.nullable().optional(),
+    }),
+  }),
   "photo.confirm": z.object({ id: uuid }),
   "photo.update": z.object({ id: uuid, patch: photoPatchSchema.omit({ photoId: true }) }),
   "photo.setCover": z.object({ id: uuid }),
   "photo.move": z.object({ id: uuid, direction: z.enum(["before", "after"]) }),
   "photo.delete": z.object({ id: uuid }),
 
-  "marker.create": z.object({
-    id: uuid,
-    planId: uuid,
-    page: z.number().int().min(1),
-    x: coordinate,
-    y: coordinate,
-    label: z.string().trim().max(MARKER_LABEL_MAX_LENGTH).nullable().optional(),
-    photoId: uuid.nullable().optional(),
-  }),
+  "marker.create": z
+    .object({
+      id: uuid,
+      planId: uuid,
+      page: z.number().int().min(1),
+      x: coordinate,
+      y: coordinate,
+      label: z.string().trim().max(NOTE_LABEL_MAX_LENGTH).nullable().optional(),
+      photoId: uuid.nullable().optional(),
+      // « note »: a note on the plan (step 12 b), its text in `label`, 500 characters.
+      kind: z.enum(["photo", "note"]).optional(),
+    })
+    .superRefine((value, context) => {
+      if (value.kind === "note" && !value.label?.trim()) {
+        context.addIssue({ code: "custom", message: "La note est vide." });
+      }
+      if (value.kind !== "note" && (value.label?.length ?? 0) > MARKER_LABEL_MAX_LENGTH) {
+        context.addIssue({
+          code: "custom",
+          message: `${MARKER_LABEL_MAX_LENGTH} caractères maximum.`,
+        });
+      }
+    }),
   "marker.move": z.object({ id: uuid, x: coordinate, y: coordinate }),
   "marker.update": z.object({
     id: uuid,
-    label: z.string().trim().max(MARKER_LABEL_MAX_LENGTH).nullable().optional(),
+    // Up to 500 for a note; the database keeps 200 for a photo marker (the sheet allows 80).
+    label: z.string().trim().max(NOTE_LABEL_MAX_LENGTH).nullable().optional(),
     photoId: uuid.nullable().optional(),
   }),
   "marker.delete": z.object({ id: uuid }),

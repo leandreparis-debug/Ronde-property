@@ -27,6 +27,8 @@ export async function mergeSnapshot(
       db.markers,
       db.reserves,
       db.reports,
+      db.buildings,
+      db.views,
       db.outbox,
       db.meta,
     ],
@@ -157,6 +159,12 @@ export async function mergeSnapshot(
       await db.reports.where("visitId").equals(visitId).delete();
       await db.reports.bulkPut(snapshot.reports.map((report) => ({ ...report, visitId })));
 
+      // Buildings and views (step 12 b): configured online, copied as they are.
+      await db.buildings.where("visitId").equals(visitId).delete();
+      await db.buildings.bulkPut((snapshot.buildings ?? []).map((b) => ({ ...b, visitId })));
+      await db.views.where("visitId").equals(visitId).delete();
+      await db.views.bulkPut((snapshot.views ?? []).map((v) => ({ ...v, visitId })));
+
       await db.meta.put({ key: META_KEYS.lastServerContactAt, value: snapshot.fetchedAt });
       return "merged" as const;
     },
@@ -177,6 +185,8 @@ export async function removeVisitLocally(db: RondeLocalDb, visitId: string): Pro
       db.markers,
       db.reserves,
       db.reports,
+      db.buildings,
+      db.views,
       db.blobs,
       db.conflicts,
     ],
@@ -192,6 +202,8 @@ export async function removeVisitLocally(db: RondeLocalDb, visitId: string): Pro
         db.markers.where("visitId").equals(visitId).delete(),
         db.reserves.where("visitId").equals(visitId).delete(),
         db.reports.where("visitId").equals(visitId).delete(),
+        db.buildings.where("visitId").equals(visitId).delete(),
+        db.views.where("visitId").equals(visitId).delete(),
         db.blobs.where("visitId").equals(visitId).delete(),
         db.conflicts.where("visitId").equals(visitId).delete(),
       ]);

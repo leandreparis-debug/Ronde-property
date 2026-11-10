@@ -26,6 +26,12 @@
   --color-galet: #e9e9e6; /* neutral pills, counters */
   --color-rule: #e4e4e0; /* borders, separators */
 
+  /* Notes on the plan (step 12 b): a sticky-note yellow, distinct from the amber of the
+     « in progress » status; dark ink on it (8.9:1). Never used for a status. */
+  --color-note: #ffd84a; /* note pin body */
+  --color-note-ink: #4a3b00; /* glyph and border of the note pin */
+  --color-note-soft: #fff6cc; /* note sheet background */
+
   /* Statuses — reserved for reserve statuses, never for decoration */
   /* Text #C0341F rather than #D63A22: 4.6:1 on its background (3.9:1 otherwise). The dot keeps #D63A22. */
   --color-status-open: #c0341f; /* open reserve, overdue (text) */

@@ -77,6 +77,8 @@ export function toPhotoView(
     category: isPhotoCategory(photo.category) ? photo.category : DEFAULT_PHOTO_CATEGORY,
     zoneKey: photo.zoneKey,
     zoneLabel: photo.zoneLabel,
+    toSort: photo.toSort,
+    hintViewId: photo.hintViewId,
     takenAt: photo.takenAt ? photo.takenAt.toISOString() : null,
     width: photo.width,
     height: photo.height,

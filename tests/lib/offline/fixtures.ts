@@ -90,6 +90,8 @@ export function snapshot(overrides: Partial<VisitSnapshot> = {}): VisitSnapshot 
     planOriginals: {},
     markers: [],
     markersSnapshotAt: "2026-11-09T08:00:00.000Z",
+    buildings: [],
+    views: [],
     reserves: [],
     reports: [],
     reportOptions: DEFAULT_REPORT_OPTIONS,

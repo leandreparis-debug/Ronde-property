@@ -59,7 +59,8 @@ export async function createVisitAction(
     const fields = /site/i.test(message) ? { siteId: message } : undefined;
     return { ok: false, error: message, fields };
   }
-  redirect(`/visites/${created.id}?flash=visit_created`);
+  // A new visit opens on « Liste › Informations »: participants and subject first, then the plan.
+  redirect(`/visites/${created.id}?onglet=information&flash=visit_created`);
 }
 
 /** Result of an autosave or a participant write. */
@@ -179,7 +180,7 @@ export async function duplicateVisitAction(
   } catch (error) {
     return { ok: false, error: userMessage(error) };
   }
-  redirect(`/visites/${created.id}?flash=visit_duplicated`);
+  redirect(`/visites/${created.id}?onglet=information&flash=visit_duplicated`);
 }
 
 export async function completeVisitAction(
