@@ -98,7 +98,9 @@ export async function keepVisitOffline(
   snapshot: VisitSnapshot,
   deps: KeepDeps,
 ): Promise<{ downloaded: number; failed: number; bytes: number }> {
-  await mergeSnapshot(db, snapshot, { keep: true });
+  // The visit is marked « kept » only once its images are on the device: the badge
+  // « Disponible hors réseau » must not appear while the download is still running.
+  await mergeSnapshot(db, snapshot);
   const visitId = snapshot.visit.id;
   const items = planKeepItems(snapshot);
   const existing = new Set(

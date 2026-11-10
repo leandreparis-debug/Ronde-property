@@ -241,15 +241,19 @@ describe("storage estimate", () => {
     expect(items.some((item) => item.url === "/p2/1")).toBe(false);
     expect(estimateKeepSize(snap)).toBeGreaterThan(300_000);
     const fetched: string[] = [];
+    const keptDuringDownload: boolean[] = [];
     const result = await keepVisitOffline(db, snap, {
       fetchBlob: async (url) => {
         fetched.push(url);
+        // « Disponible hors réseau » only once every image is on the device.
+        keptDuringDownload.push(Boolean((await db.visits.get(VISIT))?.kept));
         if (url === "/p1/2") throw new Error("coupure");
         return new Blob([new Uint8Array([1, 2])]);
       },
       concurrency: 2,
     });
     expect(result).toEqual({ downloaded: 7, failed: 1, bytes: 14 });
+    expect(keptDuringDownload.every((kept) => !kept)).toBe(true);
     expect(await db.visits.get(VISIT)).toMatchObject({ kept: true });
     // A second call only fetches what is missing.
     const again = await keepVisitOffline(db, snap, {
