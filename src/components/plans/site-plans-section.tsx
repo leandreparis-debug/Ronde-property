@@ -1,54 +1,36 @@
 "use client";
 
-import { FileUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { useToast } from "@/components/ui/toast";
 import type { PlanView } from "@/server/plans/types";
 
-import { ImportPlanDialog } from "./import-plan-dialog";
 import { PlanActionsMenu } from "./plan-actions-menu";
 import { PlanCard } from "./plan-card";
 
 /**
- * « Plans » section of the site page: plans of the site (archived ones last, with a badge),
- * « Importer un plan » and the rename / archive actions for rt / admin.
+ * « Fichiers de plans » on the site page: the imported files (archived ones last, with a
+ * badge), with rename / archive / original download for rt / admin. Since step 12 b the plans
+ * are imported from « Bâtiments et étages », which assigns their pages to the views.
  */
 export function SitePlansSection({
-  siteId,
   initialPlans,
   canImport,
 }: {
-  siteId: string;
   initialPlans: PlanView[];
   canImport: boolean;
 }) {
   const router = useRouter();
-  const { toast } = useToast();
   const [plans, setPlans] = useState(initialPlans);
-  const [importing, setImporting] = useState(false);
 
   useEffect(() => setPlans(initialPlans), [initialPlans]);
 
   return (
     <Card data-testid="site-plans">
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
-        <CardTitle>Plans</CardTitle>
-        {canImport ? (
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => setImporting(true)}
-            data-testid="open-plan-import"
-          >
-            <FileUp className="size-5" aria-hidden="true" />
-            Importer un plan
-          </Button>
-        ) : null}
+        <CardTitle>Fichiers de plans</CardTitle>
       </CardHeader>
       <CardContent>
         {plans.length === 0 ? (
@@ -91,18 +73,6 @@ export function SitePlansSection({
           </ul>
         )}
       </CardContent>
-      {canImport ? (
-        <ImportPlanDialog
-          siteId={siteId}
-          open={importing}
-          onOpenChange={setImporting}
-          onImported={(plan) => {
-            setPlans((list) => [...list, plan]);
-            toast({ variant: "success", title: `Plan « ${plan.name} » importé` });
-            router.refresh();
-          }}
-        />
-      ) : null}
     </Card>
   );
 }

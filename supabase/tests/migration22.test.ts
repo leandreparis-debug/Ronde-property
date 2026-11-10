@@ -19,9 +19,20 @@ import {
 /* Migration 22 (step 12 b): buildings, views, marker kind, photos « À ranger », backfill. */
 
 let client: Client;
+/** A site with no building, view or plan (ronde_test keeps the rows of other suites). */
+let blank = "";
 
 beforeAll(async () => {
   client = await connect();
+  const { rows } = await client.query<{ id: string }>(
+    `select s.id from public.sites s
+     where not exists (select 1 from public.site_buildings b where b.site_id = s.id)
+       and not exists (select 1 from public.site_views v where v.site_id = s.id)
+       and not exists (select 1 from public.site_plans p where p.site_id = s.id)
+     order by s.warehouse_code limit 1`,
+  );
+  if (!rows[0]) throw new Error("Aucun site vierge dans ronde_test : relancer pnpm db:reset.");
+  blank = rows[0].id;
 });
 
 afterAll(async () => {
@@ -82,15 +93,15 @@ async function view(values: {
 describe("site_buildings and site_views (migration 22)", () => {
   it("lets a RT build the structure of a site: exterior view, buildings, levels, audit", async () => {
     await inTransaction(client, async () => {
-      const id = await plan(SITES.marseille, "Plan général", 3);
+      const id = await plan(blank, "Plan général", 3);
       await actAs(client, ACTORS.alice);
-      const b = await building(SITES.marseille, "Bâtiment B", OUTLINE);
+      const b = await building(blank, "Bâtiment B", OUTLINE);
       expect(succeeded(b)).toBe(true);
       const buildingId = b.ok ? (b.rows[0]!.id as string) : "";
       expect(
         succeeded(
           await view({
-            site: SITES.marseille,
+            site: blank,
             kind: "exterior",
             label: "Vue extérieure",
             plan: id,
@@ -99,7 +110,7 @@ describe("site_buildings and site_views (migration 22)", () => {
         ),
       ).toBe(true);
       const level = await view({
-        site: SITES.marseille,
+        site: blank,
         kind: "level",
         building: buildingId,
         label: "R+1",
@@ -113,10 +124,10 @@ describe("site_buildings and site_views (migration 22)", () => {
 
   it("keeps one active exterior view per site, and one active view per page", async () => {
     await inTransaction(client, async () => {
-      const id = await plan(SITES.marseille, "Plan général", 3);
+      const id = await plan(blank, "Plan général", 3);
       await actAs(client, ACTORS.alice);
       const first = await view({
-        site: SITES.marseille,
+        site: blank,
         kind: "exterior",
         label: "Extérieur",
         plan: id,
@@ -124,17 +135,17 @@ describe("site_buildings and site_views (migration 22)", () => {
       });
       expect(succeeded(first)).toBe(true);
       const second = await view({
-        site: SITES.marseille,
+        site: blank,
         kind: "exterior",
         label: "Extérieur 2",
         plan: id,
         page: 2,
       });
       expect(second.ok ? "" : second.code).toBe("23505");
-      const b = await building(SITES.marseille, "Bâtiment A");
+      const b = await building(blank, "Bâtiment A");
       const buildingId = b.ok ? (b.rows[0]!.id as string) : "";
       const samePage = await view({
-        site: SITES.marseille,
+        site: blank,
         kind: "level",
         building: buildingId,
         label: "RDC",
@@ -150,7 +161,7 @@ describe("site_buildings and site_views (migration 22)", () => {
       expect(
         succeeded(
           await view({
-            site: SITES.marseille,
+            site: blank,
             kind: "exterior",
             label: "Extérieur",
             plan: id,
@@ -227,10 +238,10 @@ describe("site_buildings and site_views (migration 22)", () => {
 
   it("never lets the image of a view change: it is replaced by a new view", async () => {
     await inTransaction(client, async () => {
-      const id = await plan(SITES.marseille, "Plan", 2);
+      const id = await plan(blank, "Plan", 2);
       await actAs(client, ACTORS.alice);
       const v = await view({
-        site: SITES.marseille,
+        site: blank,
         kind: "exterior",
         label: "Ext",
         plan: id,
@@ -248,12 +259,12 @@ describe("site_buildings and site_views (migration 22)", () => {
 
   it("is read by every active user, written by RT and admin only, never deleted", async () => {
     await inTransaction(client, async () => {
-      const id = await plan(SITES.marseille, "Plan", 1);
+      const id = await plan(blank, "Plan", 1);
       await actAs(client, ACTORS.alice);
-      const b = await building(SITES.marseille, "Bâtiment RLS");
+      const b = await building(blank, "Bâtiment RLS");
       const buildingId = b.ok ? (b.rows[0]!.id as string) : "";
       await view({
-        site: SITES.marseille,
+        site: blank,
         kind: "level",
         building: buildingId,
         label: "RDC",
@@ -270,7 +281,7 @@ describe("site_buildings and site_views (migration 22)", () => {
         expect(read.ok && read.rowCount).toBe(1);
       }
       await actAs(client, ACTORS.claire);
-      expect(denied(await building(SITES.marseille, "Direction"))).toBe(true);
+      expect(denied(await building(blank, "Direction"))).toBe(true);
       expect(
         denied(
           await attempt(client, "update public.site_buildings set name = 'X' where id = $1", [
@@ -396,14 +407,14 @@ describe("backfill of the existing plans (migration 22)", () => {
 
   it("follows the import order, archives the pages of an archived plan, skips sites already set up", async () => {
     await inTransaction(client, async () => {
-      const first = await plan(SITES.marseille, "Rez-de-chaussée", 1);
-      const second = await plan(SITES.marseille, "Étages", 2);
+      const first = await plan(blank, "Rez-de-chaussée", 1);
+      const second = await plan(blank, "Étages", 2);
       await client.query(
         "update public.site_plans set created_at = now() - interval '1 day' where id = $1",
         [first],
       );
       await client.query("update public.site_plans set is_archived = true where id = $1", [second]);
-      const pending = await plan(SITES.marseille, "En attente", 1);
+      const pending = await plan(blank, "En attente", 1);
       await client.query("update public.site_plans set upload_status = 'pending' where id = $1", [
         pending,
       ]);
@@ -417,7 +428,7 @@ describe("backfill of the existing plans (migration 22)", () => {
         is_archived: boolean;
       }>(
         `select label, sort_order, is_archived from public.site_views where site_id = $1 order by sort_order`,
-        [SITES.marseille],
+        [blank],
       );
       expect(rows).toEqual([
         { label: "Rez-de-chaussée", sort_order: 0, is_archived: false },
@@ -427,7 +438,7 @@ describe("backfill of the existing plans (migration 22)", () => {
       // Run again: a site that already has a building is left untouched.
       await client.query("select private.backfill_site_views()");
       const again = await client.query("select 1 from public.site_buildings where site_id = $1", [
-        SITES.marseille,
+        blank,
       ]);
       expect(again.rowCount).toBe(1);
     });

@@ -11,8 +11,10 @@ import { formatDate, formatDateTime, formatNumber, formatSurface } from "@/lib/f
 import { requireUser } from "@/server/auth/session";
 import { VISIT_REASON_LABELS, VISIT_STATUS_LABELS } from "@/server/domain/enums";
 import { SitePlansSection } from "@/components/plans/site-plans-section";
+import { SiteStructureSection } from "@/components/plans/structure/site-structure-section";
 import { SiteReservesSection } from "@/components/reserves/site-reserves-section";
 import { listSitePlans } from "@/server/services/plans";
+import { siteStructureForReader } from "@/server/services/site-structure";
 import { getSiteReservesSummary } from "@/server/services/reserves";
 import { getSiteWithVisits } from "@/server/services/sites";
 
@@ -32,9 +34,10 @@ export default async function SitePage({ params }: { params: Params }) {
   const { site, visits } = data;
   const canCreate = (user.role === "rt" || user.role === "admin") && site.isActive;
   const canImportPlans = user.role === "rt" || user.role === "admin";
-  const [plans, reserves] = await Promise.all([
+  const [plans, reserves, structure] = await Promise.all([
     listSitePlans(site.id, { includeArchived: canImportPlans }),
     getSiteReservesSummary(site.id),
+    siteStructureForReader().then((service) => service.getStructure(site.id)),
   ]);
 
   return (
@@ -142,8 +145,9 @@ export default async function SitePage({ params }: { params: Params }) {
       <div className="mt-6">
         <SiteReservesSection summary={reserves} />
       </div>
-      <div className="mt-6">
-        <SitePlansSection siteId={site.id} initialPlans={plans} canImport={canImportPlans} />
+      <div className="mt-6 flex flex-col gap-6">
+        <SiteStructureSection siteId={site.id} initial={structure} canEdit={canImportPlans} />
+        <SitePlansSection initialPlans={plans} canImport={canImportPlans} />
       </div>
     </>
   );

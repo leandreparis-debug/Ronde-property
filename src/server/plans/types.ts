@@ -1,3 +1,5 @@
+import type { SiteBuildingView, SiteViewView } from "@/lib/plans/structure";
+
 /** Formats accepted for the original file of a plan. */
 export type PlanMimeType = "application/pdf" | "image/png" | "image/jpeg";
 /** Formats of the page images produced by the browser. */
@@ -170,4 +172,26 @@ export interface PhotoMarkerLink {
   planId: string;
   planName: string;
   page: number;
+}
+
+/** A page of a plan of the site, for the structure screens (step 12 b). */
+export interface SitePageRef {
+  planId: string;
+  planName: string;
+  planArchived: boolean;
+  pageNumber: number;
+  width: number;
+  height: number;
+  imageUrl: string | null;
+  thumbUrl: string | null;
+  urlsExpireAt: string;
+  /** Active view that uses this page, `null` when the page is not assigned. */
+  viewId: string | null;
+}
+
+/** Buildings, views and pages of a site (configuration screen). */
+export interface SiteStructureView {
+  buildings: SiteBuildingView[];
+  views: SiteViewView[];
+  pages: SitePageRef[];
 }
