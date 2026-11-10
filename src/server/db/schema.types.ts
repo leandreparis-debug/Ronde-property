@@ -93,6 +93,10 @@ export interface Photos {
   created_at: Generated<Timestamp>;
   created_by: string | null;
   height: number | null;
+  /**
+   * Vue affichée au moment de la prise : indice pour la ranger.
+   */
+  hint_view_id: string | null;
   id: Generated<string>;
   /**
    * Photo de garde du rapport : au plus une par visite.
@@ -111,6 +115,10 @@ export interface Photos {
    * Chemin de la miniature JPEG 400 px dans le bucket visit-photos : {visit_id}/{photo_id}_thumb.jpg.
    */
   thumb_path: string | null;
+  /**
+   * Photo prise au déclencheur, pas encore rangée : « Placer », « Sans emplacement » ou « En faire une réserve ».
+   */
+  to_sort: Generated<boolean>;
   updated_at: Generated<Timestamp>;
   /**
    * pending : ligne créée avant l'envoi (URL signée délivrée) ; ready : objets vérifiés. Seules les ready sont listées.
@@ -131,6 +139,10 @@ export interface PlanMarkers {
   created_at: Generated<Timestamp>;
   created_by: string | null;
   id: Generated<string>;
+  /**
+   * photo : repère d'une photo (ou d'une réserve, portée par reserve_id) ; note : note sur plan (libellé obligatoire, 500 caractères).
+   */
+  kind: Generated<string>;
   label: string | null;
   /**
    * Numéro affiché, unique par visite et par plan.
@@ -317,6 +329,21 @@ export interface ReservesWithState {
   zone_key: string | null;
 }
 
+export interface SiteBuildings {
+  created_at: Generated<Timestamp>;
+  created_by: Generated<string | null>;
+  id: Generated<string>;
+  is_archived: Generated<boolean>;
+  name: string;
+  /**
+   * Polygone en coordonnées relatives à l'image de la vue extérieure : [{"x":0..1,"y":0..1}], 3 à 24 points, null sans contour.
+   */
+  outline: Json | null;
+  site_id: string;
+  sort_order: Generated<number>;
+  updated_at: Generated<Timestamp>;
+}
+
 export interface SiteImportRuns {
   created_at: Generated<Timestamp>;
   /**
@@ -406,6 +433,28 @@ export interface Sites {
    * Code entrepôt VIGIE, identifiant métier unique.
    */
   warehouse_code: string;
+}
+
+export interface SiteViews {
+  building_id: string | null;
+  created_at: Generated<Timestamp>;
+  created_by: Generated<string | null>;
+  id: Generated<string>;
+  is_archived: Generated<boolean>;
+  kind: string;
+  label: string;
+  page_number: number;
+  plan_id: string;
+  /**
+   * Vue qui a remplacé celle-ci (nouvelle image d'un étage) : l'ancienne reste visible pour les visites qui y ont des repères.
+   */
+  replaced_by: string | null;
+  site_id: string;
+  /**
+   * Ordre des étages d'un bâtiment, du bas vers le haut.
+   */
+  sort_order: Generated<number>;
+  updated_at: Generated<Timestamp>;
 }
 
 export interface SyncOperations {
@@ -540,9 +589,11 @@ export interface DB {
   reserve_photos: ReservePhotos;
   reserves: Reserves;
   reserves_with_state: ReservesWithState;
+  site_buildings: SiteBuildings;
   site_import_runs: SiteImportRuns;
   site_plan_pages: SitePlanPages;
   site_plans: SitePlans;
+  site_views: SiteViews;
   sites: Sites;
   sync_operations: SyncOperations;
   visit_participants: VisitParticipants;

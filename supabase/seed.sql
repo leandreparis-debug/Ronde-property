@@ -203,4 +203,8 @@ on conflict (id) do nothing;
 
 select set_config('request.jwt.claims', '', true);
 
+-- Reprise de l'étape 12 b (migration 22), comme en production : « Bâtiment principal » et une
+-- vue « level » par page de plan des sites qui ont des plans.
+select private.backfill_site_views();
+
 commit;

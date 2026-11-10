@@ -100,6 +100,7 @@ export type Database = {
           created_at: string;
           created_by: string | null;
           height: number | null;
+          hint_view_id: string | null;
           id: string;
           is_cover: boolean;
           mime_type: string;
@@ -109,6 +110,7 @@ export type Database = {
           storage_path: string;
           taken_at: string | null;
           thumb_path: string | null;
+          to_sort: boolean;
           updated_at: string;
           upload_status: string;
           visit_id: string;
@@ -122,6 +124,7 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           height?: number | null;
+          hint_view_id?: string | null;
           id?: string;
           is_cover?: boolean;
           mime_type: string;
@@ -131,6 +134,7 @@ export type Database = {
           storage_path: string;
           taken_at?: string | null;
           thumb_path?: string | null;
+          to_sort?: boolean;
           updated_at?: string;
           upload_status?: string;
           visit_id: string;
@@ -143,6 +147,7 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           height?: number | null;
+          hint_view_id?: string | null;
           id?: string;
           is_cover?: boolean;
           mime_type?: string;
@@ -152,6 +157,7 @@ export type Database = {
           storage_path?: string;
           taken_at?: string | null;
           thumb_path?: string | null;
+          to_sort?: boolean;
           updated_at?: string;
           upload_status?: string;
           visit_id?: string;
@@ -164,6 +170,13 @@ export type Database = {
             columns: ["created_by"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "photos_hint_view_id_fkey";
+            columns: ["hint_view_id"];
+            isOneToOne: false;
+            referencedRelation: "site_views";
             referencedColumns: ["id"];
           },
           {
@@ -228,6 +241,7 @@ export type Database = {
           created_at: string;
           created_by: string | null;
           id: string;
+          kind: string;
           label: string | null;
           number: number;
           page: number;
@@ -244,6 +258,7 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           id?: string;
+          kind?: string;
           label?: string | null;
           number?: number;
           page?: number;
@@ -259,6 +274,7 @@ export type Database = {
           created_at?: string;
           created_by?: string | null;
           id?: string;
+          kind?: string;
           label?: string | null;
           number?: number;
           page?: number;
@@ -662,6 +678,58 @@ export type Database = {
           },
         ];
       };
+      site_buildings: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          is_archived: boolean;
+          name: string;
+          outline: Json | null;
+          site_id: string;
+          sort_order: number;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          is_archived?: boolean;
+          name: string;
+          outline?: Json | null;
+          site_id: string;
+          sort_order?: number;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          is_archived?: boolean;
+          name?: string;
+          outline?: Json | null;
+          site_id?: string;
+          sort_order?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "site_buildings_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "site_buildings_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: false;
+            referencedRelation: "sites";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       site_import_runs: {
         Row: {
           created_at: string;
@@ -824,6 +892,91 @@ export type Database = {
             columns: ["uploaded_by"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      site_views: {
+        Row: {
+          building_id: string | null;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          is_archived: boolean;
+          kind: string;
+          label: string;
+          page_number: number;
+          plan_id: string;
+          replaced_by: string | null;
+          site_id: string;
+          sort_order: number;
+          updated_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          building_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          is_archived?: boolean;
+          kind: string;
+          label: string;
+          page_number: number;
+          plan_id: string;
+          replaced_by?: string | null;
+          site_id: string;
+          sort_order?: number;
+          updated_at?: string;
+        };
+        Update: {
+          building_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          is_archived?: boolean;
+          kind?: string;
+          label?: string;
+          page_number?: number;
+          plan_id?: string;
+          replaced_by?: string | null;
+          site_id?: string;
+          sort_order?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "site_views_building_id_fkey";
+            columns: ["building_id"];
+            isOneToOne: false;
+            referencedRelation: "site_buildings";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "site_views_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "site_views_plan_id_page_number_fkey";
+            columns: ["plan_id", "page_number"];
+            isOneToOne: false;
+            referencedRelation: "site_plan_pages";
+            referencedColumns: ["plan_id", "page_number"];
+          },
+          {
+            foreignKeyName: "site_views_replaced_by_fkey";
+            columns: ["replaced_by"];
+            isOneToOne: false;
+            referencedRelation: "site_views";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "site_views_site_id_fkey";
+            columns: ["site_id"];
+            isOneToOne: false;
+            referencedRelation: "sites";
             referencedColumns: ["id"];
           },
         ];

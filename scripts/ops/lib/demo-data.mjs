@@ -68,6 +68,11 @@ export const DELETIONS = [
   ["visit_zone_notes", "visit_id in (select id from demo_visits)"],
   ["visit_participants", "visit_id in (select id from demo_visits)"],
   ["visits", "id in (select id from demo_visits)"],
+  [
+    "site_views",
+    "site_id in (select id from demo_sites) or plan_id in (select id from demo_plans)",
+  ],
+  ["site_buildings", "site_id in (select id from demo_sites)"],
   ["site_plan_pages", "plan_id in (select id from demo_plans)"],
   ["site_plans", "id in (select id from demo_plans)"],
   ["sites", "id in (select id from demo_sites)"],
