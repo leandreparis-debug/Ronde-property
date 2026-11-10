@@ -676,3 +676,51 @@ une désactivation, et après 14 jours sans serveur ; une session expirée garde
 **Motivation.** Limiter ce qu'une tablette perdue expose, sans faire perdre une saisie à un RT
 dont la session expire en zone blanche. Limite assumée : pas de chiffrement applicatif de la
 copie (le verrouillage de l'appareil la protège), voir `docs/security.md`.
+
+## 2026-11-10 — « Plan », écran principal de la visite (étape 12 b)
+
+**Décision.** Une visite s'ouvre sur **« Plan »** ; les anciens onglets passent sous « Liste »
+(Informations, Notes, Réserves, Photos, contenus inchangés) à côté de « Rapport ». Les liens
+`?onglet=…` restent valides. Une visite **créée** (ou dupliquée) s'ouvre sur « Liste ›
+Informations » ; sans plan configuré, la direction arrive sur « Liste ». Pas de « Liste » à côté
+du plan au-delà de 1 280 px.
+
+**Motivation.** Sur le terrain, le RT saisit à l'endroit où il est ; le plan sert de sommaire.
+À la création, il complète d'abord l'objet et les participants. Le plan a besoin de toute la
+largeur pour rester lisible au doigt ; les feuilles s'ouvrent déjà en colonne à côté du plan à
+partir de 1 024 px.
+
+## 2026-11-10 — Une vue est une page de plan affectée
+
+**Décision.** `site_views` relie une page (`plan_id`, `page_number`) à la vue extérieure ou à
+un étage d'un bâtiment (`site_buildings`) ; les repères restent rattachés à la page. Remplacer
+l'image d'un étage archive la vue (`replaced_by`) et en crée une nouvelle ; reprise des plans
+existants en « Bâtiment principal ».
+
+**Motivation.** Aucune donnée existante à migrer (repères, rapports, copies locales), la
+conversion de l'étape 8 inchangée ; les repères d'une visite passée restent sur l'image qu'ils
+désignaient.
+
+## 2026-11-10 — Note sur le plan, repère `kind = 'note'`
+
+**Décision.** Une note posée sur le plan est un repère de type `note` (texte de 500 caractères),
+pas une zone de notes ni une table à part ; elle n'est jamais un « repère sans photo ».
+
+**Motivation.** Même numérotation, même file d'envoi, même dessin dans le rapport que les autres
+repères ; une seule requête pour la légende.
+
+## 2026-11-10 — « À ranger » pour les photos du déclencheur
+
+**Décision.** Le déclencheur prend la photo sans emplacement : `photos.to_sort` et l'indice
+`photos.hint_view_id` ; « Placer », « Sans emplacement » ou « En faire une réserve » plus tard.
+
+**Motivation.** Ne jamais retarder la prise de vue (fuite, situation dangereuse) ; ranger
+ensuite, au calme. Le point incomplet « N photos à ranger » évite d'en oublier.
+
+## 2026-11-10 — Option « Gaucher », par appareil
+
+**Décision.** Déclencheur et « À ranger » dans le tiers bas côté pouce ; l'option « Gaucher » du
+menu du compte les passe à gauche, gardée dans `localStorage` (une préférence d'affichage, pas
+une donnée personnelle ni un secret).
+
+**Motivation.** Une tablette se tient d'une main ; la préférence suit l'appareil, pas le compte.

@@ -55,6 +55,9 @@ l'enveloppe hors ligne sache quelle base ouvrir.
 
 Le schéma est versionné (`LOCAL_SCHEMA_VERSIONS`) : une nouvelle version ajoute une entrée et,
 si besoin, une fonction `upgrade` ; Dexie migre la base à l'ouverture, sans perdre la file.
+Version 2 (étape 12 b) : tables `buildings` et `views` (structure du site de la visite, avec les
+contours), remplacées à chaque copie ; les repères portent `kind` (`photo` ou `note`), les photos
+`toSort` et `hintViewId` (`docs/visit-on-plan.md`).
 
 ### Garder une visite
 
@@ -110,6 +113,8 @@ fusion.
 - **Photos** : `photo.create` (ligne `pending` et URL signée), envoi direct au stockage
   (`PUT` signé, progression), `photo.confirm`. Les images restent dans IndexedDB jusqu'à la
   confirmation, puis sont effacées si la visite n'est pas gardée.
+  Une photo du menu rapide est placée dès qu'elle est sur l'appareil : `marker.create` (avec un
+  identifiant choisi par l'appareil et `photoId`) attend `photo.create` (dépendance par l'id).
 - **Résultats** : `applied` (la copie prend la version du serveur), `conflict` (la version du
   serveur est gardée, la mienne va dans « À arbitrer »), `rejected` (droit retiré, visite
   terminée ou supprimée, donnée invalide : l'opération reste visible avec son texte et

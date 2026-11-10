@@ -7,6 +7,28 @@ versions selon [SemVer](https://semver.org/lang/fr/).
 
 ### Ajouté
 
+- **Étape 12 b, mener la visite depuis le plan** (`docs/visit-on-plan.md`) :
+  - écran principal **« Plan »** : vue extérieure avec les contours touchables des bâtiments,
+    liste des bâtiments, onglets des étages avec compteurs, fil d'Ariane, `?vue=` dans l'URL,
+    zoom gardé par vue, images voisines préchargées ;
+  - **menu rapide** au point touché (Photo, Réserve, Note), jamais sur un glisser ou un
+    pincement ; photo placée en deux touchers (appareil compris), feuille légère, « En faire une
+    réserve » ; **notes sur le plan** (épingle jaune) ;
+  - **déclencheur** côté pouce et **« À ranger »** (Placer, Sans emplacement, En faire une
+    réserve), point incomplet « N photos à ranger » ;
+  - **fil de visite** (20 dernières saisies, « Annuler » pendant 10 s), légende, option
+    **« Gaucher »** dans le menu du compte ;
+  - page du site : **« Bâtiments et étages »**, « Affecter les pages » après un import,
+    renommer, ordonner, remplacer l'image d'un étage, archiver, **tracer les contours** ;
+  - migration 22 : `site_buildings`, `site_views`, `plan_markers.kind`, `photos.to_sort` et
+    `hint_view_id`, reprise des plans existants en « Bâtiment principal » ;
+  - rapport : plans dans l'ordre du site (vue extérieure avec les contours, puis les étages),
+    titres « Bâtiment B · R+1 », notes dans la légende ;
+  - `pnpm db:prod-script <début> <fin>` : script de l'éditeur SQL de Supabase pour une plage de
+    migrations (`dist/ops/`), sans connexion ;
+  - tests : `e2e/plan-screen.spec.ts`, `e2e/plans.spec.ts` réécrit, critère de recette **C8
+    « Visite sur plan »** (C2 et C3 passent par l'écran Plan).
+
 - **Étape 12, hors réseau et synchronisation** (ADR 0001, `docs/offline.md`) :
   - copie locale par utilisateur (IndexedDB), « Garder hors réseau » avec la taille estimée,
     automatique sur tablette, badge « Disponible hors réseau », « Mes visites » hors réseau ;
@@ -30,6 +52,9 @@ versions selon [SemVer](https://semver.org/lang/fr/).
 
 ### Modifié
 
+- Les onglets de la visite deviennent **Plan**, **Liste** (Informations, Notes, Réserves,
+  Photos) et **Rapport** ; les liens `?onglet=…` restent valides. Une visite créée s'ouvre sur
+  « Liste › Informations ». Le mode « Placer un repère » disparaît (étape 12 b).
 - Les écritures des écrans de visite ne passent plus par des actions serveur mais par la file
   (`/api/sync`) ; créer, terminer, rouvrir, dupliquer, supprimer une visite, importer un plan et
   générer le rapport restent en ligne et sont désactivés hors réseau, avec la raison.

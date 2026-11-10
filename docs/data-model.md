@@ -157,7 +157,9 @@ erDiagram
 | `photos`             | Métadonnées des photos (bucket `visit-photos`)       | Au plus une photo de garde par visite.                                                                                                      |
 | `site_plans`         | Plans rattachés au **site**                          | Réutilisés de visite en visite ; archivés, jamais supprimés. `pending` jusqu'à la confirmation de l'import (migration 15).                  |
 | `site_plan_pages`    | Pages d'un plan converties en images                 | Image d'affichage 3 500 px et miniature 400 px par page ; figées une fois le plan prêt (migration 15).                                      |
-| `plan_markers`       | Repères posés sur un plan pendant une visite         | Coordonnées relatives 0..1 ; numéro unique par visite et plan.                                                                              |
+| `plan_markers`       | Repères posés sur un plan pendant une visite         | Coordonnées relatives 0..1 ; numéro unique par visite et plan ; `kind` `photo` ou `note` (migration 22).                                    |
+| `site_buildings`     | Bâtiments d'un site (étape 12 b)                     | Nom, ordre, contour facultatif sur la vue extérieure ; archivés, jamais supprimés (migration 22).                                           |
+| `site_views`         | Vues d'un site : vue extérieure ou étage             | Une page de plan affectée ; une vue extérieure active par site ; une vue active par page (migration 22).                                    |
 | `reserves`           | Réserves relevées en visite                          | Numérotées par site par trigger ; `site_id` rempli et vérifié ; `closed_at` géré ; suppression logique par RPC.                             |
 | `reserve_photos`     | Lien réserve ↔ photo                                 | `defect` ou `proof`.                                                                                                                        |
 | `reserve_events`     | Historique des réserves                              | **Ajout seul**, alimenté par trigger, `changes` = champs modifiés (ancienne / nouvelle valeur), `seq` pour l'ordre.                         |
@@ -336,6 +338,34 @@ Voir `docs/reserves.md` pour les règles d'écran.
 - Les identifiants des entités créées hors ligne (photos, réserves, repères, participants,
   zones) sont des UUID v7 fournis par l'appareil, acceptés comme clés primaires ; une création
   rejouée avec le même identifiant renvoie l'existant.
+
+## Bâtiments, vues, notes sur le plan et photos à ranger (migration 22, étape 12 b)
+
+- **`site_buildings (id, site_id, name, sort_order, outline, is_archived, created_at,
+updated_at)`** : `name` de 1 à 60 caractères ; `outline` nul ou tableau JSON de 3 à 24 points
+  `{x, y}` relatifs (0..1), vérifié par `private.is_valid_outline`.
+- **`site_views (id, site_id, kind, building_id, label, sort_order, plan_id, page_number,
+replaced_by, is_archived, created_at, updated_at)`** : `kind` `exterior` ou `level` ;
+  `building_id` obligatoire pour un étage, nul pour la vue extérieure ; `(plan_id, page_number)`
+  référence `site_plan_pages`. Index uniques partiels : **une vue extérieure active par site**
+  (`site_views_one_exterior_idx`) et **une vue active par page** (`site_views_page_idx`).
+  `sort_order` range les étages du bas vers le haut ; `replaced_by` relie l'ancienne image d'un
+  étage à la nouvelle.
+- Trigger `private.site_views_check` : bâtiment et plan du **même site** que la vue, pas de
+  nouvelle vue active dans un bâtiment archivé, image d'une vue immuable (on la remplace).
+- RLS : lecture par tout utilisateur actif ; insertion et mise à jour par rt / admin ; aucune
+  suppression (archivage). Audit `private.audit_site_structure` : `site_building.created`,
+  `.updated`, `.archived`, `.unarchived`, et de même `site_view.*`.
+- `plan_markers.kind` (`photo` par défaut, ou `note`) ; libellé de 500 caractères pour une note
+  (non vide, jamais liée à une réserve), 200 sinon. Une note n'est jamais un « repère sans
+  photo ».
+- `photos.to_sort` (booléen, faux par défaut) et `photos.hint_view_id` (vue affichée quand la
+  photo a été prise, `on delete set null`) : photos du déclencheur, « À ranger ».
+- **Reprise** `private.backfill_site_views()` (service_role, appelée par la migration et par
+  `seed.sql`) : pour chaque site qui a des plans sans structure, un « Bâtiment principal » dont
+  chaque page devient un étage libellé du nom du plan (« · p. N » pour un plan de plusieurs
+  pages), dans l'ordre d'import ; pas de vue extérieure. Sur le jeu de test : TEST-001 reçoit
+  « Bâtiment principal » avec « Plan de masse (fictif) · p. 1 » et « · p. 2 ».
 
 ## Rôle de connexion et journal d'audit (migration 13)
 

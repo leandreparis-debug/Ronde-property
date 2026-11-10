@@ -28,6 +28,8 @@ Thème clair uniquement en V1.
 | `--color-craie`                                          | `#F6F6F4`             | fond de l'application                                           |
 | `--color-galet`                                          | `#E9E9E6`             | pastilles neutres, compteurs                                    |
 | `--color-rule`                                           | `#E4E4E0`             | bordures, séparateurs                                           |
+| `--color-note` / `--color-note-ink`                      | `#FFD84A` / `#4A3B00` | note sur le plan : épingle « ✎ », bouton « Note » (13,6:1)      |
+| `--color-note-soft`                                      | `#FFF6CC`             | fond de la feuille d'une note                                   |
 | `--color-status-open` / `--color-status-open-bg`         | `#C0341F` / `#FDE4DE` | réserve **ouverte**, retard (texte)                             |
 | `--color-status-open-dot`                                | `#D63A22`             | point de la pastille « Ouverte » / « En retard »                |
 | `--color-status-progress` / `--color-status-progress-bg` | `#8F6200` / `#FFF0C7` | réserve **en cours**                                            |

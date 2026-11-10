@@ -62,11 +62,92 @@ Si la même visite est modifiée en même temps sur deux appareils, RONDE l'indi
 
 ![Onglet Informations](../public/aide-images/visite-informations.png)
 
+## Mener la visite sur le plan
+
+Une visite s'ouvre sur **« Plan »**. Les anciens onglets (Informations, Notes, Réserves, Photos)
+sont sous **« Liste »** ; **« Rapport »** reste à part. Une visite que vous venez de créer
+s'ouvre sur « Liste › Informations » : complétez l'objet et les participants, puis passez sur
+« Plan ».
+
+### Se déplacer
+
+Sur la **vue extérieure**, chaque bâtiment est entouré, avec son nom et le nombre de saisies de
+la visite : touchez-le pour y entrer. Vous arrivez sur le dernier étage consulté (sinon le
+premier) ; les onglets en haut changent d'étage, le fil d'Ariane « Vue extérieure › Bâtiment A ›
+RDC » ramène en arrière. Un bâtiment sans contour se trouve dans **« Tous les bâtiments »**.
+Zoomez avec deux doigts, déplacez avec un doigt : chaque vue garde son zoom pendant la visite.
+
+![Vue extérieure avec deux bâtiments](../public/aide-images/visite-plan-exterieur.png)
+
+### Ajouter à l'endroit touché
+
+Touchez brièvement le plan à l'endroit voulu : trois boutons apparaissent, **Photo**,
+**Réserve**, **Note**. Glisser ou pincer n'ouvre jamais ce menu, et rien n'est créé sans choisir.
+
+- **Photo** : l'appareil s'ouvre ; la photo est placée à cet endroit. Ajoutez une légende si
+  besoin, la zone est déjà proposée ; **« En faire une réserve »** ouvre la réserve avec la photo
+  et l'emplacement déjà liés. Si vous fermez l'appareil sans photo, rien n'est ajouté.
+- **Réserve** : la fiche de réserve habituelle ; elle est placée à cet endroit.
+- **Note** : une remarque courte (500 caractères) posée sur le plan, en jaune.
+
+![Menu rapide sur un étage](../public/aide-images/visite-menu-rapide.png)
+
+![Photo placée sur le plan](../public/aide-images/visite-photo-placee.png)
+
+Touchez un repère pour le revoir, le modifier ou **« Déplacer »** (puis touchez la nouvelle
+place). Sur l'ordinateur, un repère se fait aussi glisser à la souris.
+
+### Le déclencheur et « À ranger »
+
+Pas le temps de chercher l'endroit ? Le gros bouton rond **appareil photo**, en bas côté pouce,
+prend la photo tout de suite : elle va dans **« À ranger »** (le badge compte les photos en
+attente). Plus tard, ouvrez « À ranger » : **« Placer »** (touchez ensuite le plan),
+**« Sans emplacement »** ou **« En faire une réserve »**. « N photos à ranger » apparaît aussi
+dans les points à compléter.
+
+![« À ranger »](../public/aide-images/visite-a-ranger.png)
+
+### Le fil de visite
+
+Sous le plan, le **fil de visite** montre vos 20 dernières saisies, tous bâtiments confondus
+(« R-? · Fuite · Bât. B R+1 ») : touchez-en une pour y aller. **« Annuler »** retire la dernière
+saisie pendant 10 secondes. La **légende** explique les repères et masque les réserves levées.
+
+![Fil de visite](../public/aide-images/visite-fil.png)
+
+### Gaucher
+
+Dans le menu du compte, cochez **« Gaucher »** : le déclencheur et « À ranger » passent à
+gauche. Le réglage reste sur cette tablette.
+
+![Option Gaucher](../public/aide-images/visite-gaucher.png)
+
+### Sans réseau, en lecture seule
+
+Tout cela fonctionne sans réseau, comme le reste de la visite (voir « Travailler sans réseau »).
+Une visite terminée, ou que vous consultez sans y participer, s'ouvre sur le même plan, sans
+menu ni déclencheur : un repère s'ouvre en lecture.
+
+![Plan en lecture seule](../public/aide-images/visite-plan-lecture-seule.png)
+
+### Configurer le plan d'un site
+
+Le plan se prépare une fois, avec le réseau, sur la page du site (**« Bâtiments et étages »**) :
+importez le PDF, puis **« Affecter les pages »** : vue extérieure, étage d'un bâtiment existant
+ou nouveau (RDC, R+1, Sous-sol, Toiture…), ou « Ne pas utiliser ». **« Tracer les contours »**
+sur la vue extérieure : touchez les coins du bâtiment un par un, puis « Terminer ».
+
+![Affecter les pages d'un plan](../public/aide-images/site-affecter-pages.png)
+
+![Tracer le contour d'un bâtiment](../public/aide-images/site-contour.png)
+
+![Bâtiments et étages du site](../public/aide-images/site-batiments-etages.png)
+
 ## Pendant la visite
 
 ### Notes
 
-L'onglet **Notes** propose une zone par partie du site (toiture, quais, sprinklage…). Écrivez
+Les sections ci-dessous sont dans **« Liste »**. L'onglet **Notes** propose une zone par partie du site (toiture, quais, sprinklage…). Écrivez
 librement ; une ligne qui commence par « - » devient une puce. Une zone se renomme, s'ajoute ou
 se retire (si elle est vide).
 
@@ -82,13 +163,6 @@ la **photo de garde** du rapport et rattachez chaque photo à une zone si besoin
 > **À éviter** : les visages et les plaques d'immatriculation. Cadrez sur l'installation.
 
 ![Onglet Photos](../public/aide-images/visite-photos.png)
-
-### Plans
-
-Dans **Plans**, ouvrez un plan du site, zoomez avec deux doigts, puis touchez **« Placer un
-repère »** et touchez l'endroit voulu (un seul doigt). Un repère peut être relié à une réserve.
-
-![Plan avec repères](../public/aide-images/visite-plan.png)
 
 ### Réserves
 
@@ -206,7 +280,7 @@ modification ne peut plus être enregistrée : elle reste dans la liste avec son
 | Compte rendu Word à mettre en forme | Rapport PDF généré en un geste, conservé dans l'historique         |
 | Photos copiées à la main            | Photos prises dans RONDE, réduites, rangées par zone               |
 | Réserves dans le document           | Réserves suivies jusqu'à leur levée, avec échéance et responsable  |
-| Plans à part                        | Plans du site avec repères placés au doigt                         |
+| Plans à part                        | La visite se mène sur le plan : photo, réserve ou note à l'endroit |
 | Liste des sites à saisir            | Référentiel VIGIE importé : on choisit le site, on ne le tape plus |
 
 ## Que faire si…

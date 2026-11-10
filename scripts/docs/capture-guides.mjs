@@ -83,13 +83,7 @@ try {
     await rt.goto(`${visit}?onglet=${tab}`);
     await shot(rt, name);
   }
-  await rt.goto(`${visit}?onglet=plans`);
-  await rt
-    .getByRole("button", { name: /Ouvrir le plan/ })
-    .first()
-    .click();
-  await rt.getByTestId("plan-page-image").waitFor();
-  await shot(rt, "visite-plan");
+  // The plan screen (step 12 b) has its own script: scripts/docs/capture-plan-screen.mjs.
 
   await rt.goto(visit);
   await rt.getByTestId("account-menu-trigger").filter({ visible: true }).click();

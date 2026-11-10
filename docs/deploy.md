@@ -125,6 +125,7 @@ est le script.
 | `20261105160000` | `20261105160000_rgpd_anonymization_and_external_emails.sql` | migration 19 : e-mail externe jamais dans l'historique, `anonymize_profile`, `clear_external_responsible_emails`                           | à faire | appliquée le 09/11/2026 |
 | `20261105170000` | `20261105170000_feedback.sql`                               | migration 20 : table `feedback` (« Donner mon avis »), RLS insertion par l'auteur actif, lecture admin                                     | à faire | appliquée le 09/11/2026 |
 | `20261109100000` | `20261109100000_sync_operations.sql`                        | migration 21 (étape 12) : table `sync_operations` (idempotence de `POST /api/sync`, service seulement), `private.purge_sync_operations`    | à faire | **à faire**             |
+| `20261110100000` | `20261110100000_site_buildings_and_views.sql`               | migration 22 (étape 12 b) : `site_buildings`, `site_views`, `plan_markers.kind`, `photos.to_sort` / `hint_view_id`, reprise des plans      | à faire | **à faire**             |
 
 Les migrations 15 à 20 ont été appliquées sur la production le 09/11/2026, en une transaction,
 par une exception ponctuelle autorisée par Léandre (le code de l'étape 11 était en production
@@ -140,6 +141,32 @@ Elle ne touche aucune table existante ; le code de l'étape 11 l'ignore. La purg
 prévisualisation : ouvrir une visite sur une tablette (badge « Disponible hors réseau »), passer
 en mode avion, recharger, modifier une note et créer une réserve (« R-? »), quitter le mode
 avion : le Galet redevient souriant et la réserve reçoit son numéro.
+
+**Migration 22 (étape 12 b)** : à appliquer **avec** la migration 21, avant le déploiement du
+code de l'étape 12 b, dans le même script :
+
+```
+pnpm db:prod-script 21 22
+```
+
+qui écrit `dist/ops/prod-migrations-21-22.sql` (une transaction, contrôle de l'état au début :
+exactement les 20 migrations de la production, puis les deux migrations telles quelles, puis
+leur inscription dans `supabase_migrations.schema_migrations`). Léandre le colle dans l'éditeur
+SQL de Supabase, jamais par `apply_migration`. Sans la migration 22, la page de la visite échoue
+(colonnes `kind`, `to_sort` et tables des vues absentes). Elle crée deux tables, ajoute des
+colonnes avec valeur par défaut et **reprend les plans existants** : chaque site qui a des
+plans reçoit un « Bâtiment principal » dont chaque page devient un étage (rien n'est supprimé,
+aucun repère ne bouge). Vérification après coup :
+
+```sql
+select count(*) from public.site_buildings;           -- un par site qui a des plans
+select kind, count(*) from public.site_views group by kind;  -- des « level », aucune « exterior »
+select count(*) from public.plan_markers where kind <> 'photo';  -- 0
+```
+
+Scénario sur la prévisualisation : page d'un site avec plan (« Bâtiments et étages » montre le
+« Bâtiment principal »), puis une visite de ce site : « Plan » s'ouvre sur l'étage, un toucher
+propose Photo, Réserve, Note.
 
 > **Attention, prévisualisations** : tant que les variables **Preview** de Vercel pointent sur
 > le projet Supabase de **production** (situation du 10/11/2026 : même

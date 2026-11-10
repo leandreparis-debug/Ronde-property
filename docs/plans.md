@@ -1,9 +1,33 @@
 # Plans et repères
 
-L'onglet **Plans** d'une visite et la section **Plans** de la fiche site permettent d'importer
-l'export AutoCAD d'un entrepôt (PDF, PNG ou JPEG), puis d'y placer au doigt des **repères
-numérotés** liés aux photos de la visite. La direction consulte plans et repères en lecture
-seule.
+La section **Bâtiments et étages** de la fiche site permet d'importer l'export AutoCAD d'un
+entrepôt (PDF, PNG ou JPEG) et d'**affecter ses pages** (vue extérieure, étages des bâtiments) ;
+l'écran **Plan** d'une visite (étape 12 b, `docs/visit-on-plan.md`) permet d'y placer au doigt
+des **repères numérotés** : photos, réserves et notes. La direction consulte plans et repères en
+lecture seule.
+
+## Bâtiments, étages et « Affecter les pages » (étape 12 b, migration 22)
+
+- **Affecter les pages** s'ouvre juste après un import (la conversion de l'étape 8 ne change
+  pas) : pour chaque page, « Vue extérieure », « Bâtiment existant » + étage, « Nouveau
+  bâtiment » + étage, ou « Ne pas utiliser ». Libellés proposés : RDC, R+1, R+2, Sous-sol,
+  Toiture, Mezzanine, ou texte libre (60 caractères). Des pages envoyées au même nouveau
+  bâtiment le partagent ; les étages s'ajoutent du bas vers le haut dans l'ordre des pages. Une
+  nouvelle vue extérieure remplace l'ancienne.
+- **Arborescence** : vue extérieure, puis chaque bâtiment avec ses étages et leurs miniatures ;
+  renommer, monter / descendre (boutons, pas de glisser-déposer), remplacer l'image d'un étage
+  (l'ancienne vue est archivée avec `replaced_by` : les repères des visites passées y restent),
+  archiver un bâtiment (ses étages avec lui) ou un étage.
+- **Tracer le contour** d'un bâtiment sur la vue extérieure : toucher les coins un par un,
+  « Annuler le dernier point », « Terminer » ; les points se déplacent au doigt ou à la souris.
+  Refusé avec un message : moins de 3 points, plus de 24, un contour qui se croise, hors de
+  l'image, ou trop petit. Coordonnées relatives à 5 décimales, comme les repères.
+- Une page de plan sert **au plus une vue active** ; toutes les écritures passent par
+  `createSiteStructureRepository` (`withUser`, RLS : RT et admin écrivent, tout utilisateur actif
+  lit) et sont tracées dans `audit_log` (`site_building.*`, `site_view.*`).
+- Reprise des plans existants (migration 22) : chaque site qui avait des plans reçoit un
+  « Bâtiment principal » dont chaque page devient un étage libellé du nom du plan (« · p. N » si
+  le plan a plusieurs pages), dans l'ordre d'import, sans vue extérieure.
 
 ## Pourquoi les plans sont rattachés au site
 
@@ -92,8 +116,9 @@ passe en JPEG.
   géométrie pure et testée dans `src/lib/plans/geometry.ts`) : molette et glisser à la souris,
   pincement et glisser à un doigt sur tablette, boutons « + », « − » et « Ajuster ».
 - **Seul un toucher bref et immobile** (un seul pointeur, moins de 10 px de déplacement, moins
-  de 600 ms) place ou déplace un repère. Un pincement, même s'il commence par un doigt, ne pose
-  jamais de repère ; hors du mode « Placer un repère », un toucher n'en pose jamais.
+  de 600 ms) ouvre le menu rapide, place ou déplace un repère. Un pincement, même s'il commence
+  par un doigt, n'ouvre jamais le menu ; un repère n'est jamais créé sans un choix du menu
+  (le mode « Placer un repère » a disparu à l'étape 12 b).
 - Les repères sont des **mini-galets** de 36 px, dessinés hors du calque zoomé : ils gardent la
   même taille à tous les niveaux de zoom, leur pointe désigne la position exacte. Un repère sans
   photo est dessiné en contour. Zone tactile de 44 px.
@@ -103,8 +128,11 @@ passe en JPEG.
   liée dès sa confirmation), « Retirer la photo », « Déplacer » (le prochain toucher sur le plan
   donne la nouvelle position ; glisser à la souris possible sur PC), « Supprimer le repère »
   avec confirmation.
-- La liste des repères sous le plan centre la vue sur un repère ; un lien depuis la visionneuse
-  photo (`?onglet=plans&plan=…&page=…&repere=…`) ouvre le plan centré sur le repère.
+- Le fil de visite centre la vue sur une saisie ; un lien depuis la visionneuse photo ou une
+  réserve (`?onglet=plans&plan=…&page=…&repere=…`) ouvre la vue de cette page centrée sur le
+  repère, sa feuille ouverte.
+- **Notes sur le plan** : repères `kind = 'note'` (texte de 500 caractères, épingle jaune),
+  jamais comptés dans « N repères sans photo ».
 - **Lecture seule** (direction, RT non concerné, visite terminée) : zoom et consultation des
   repères, sans placement ni modification.
 
@@ -127,7 +155,5 @@ d'audit.
 
 ## Ce qui viendra
 
-- **Étape 9** : une réserve pourra être placée sur le plan. `MarkerRepository` et la feuille du
-  repère sont les points d'extension (commentés), aucune colonne n'est créée à cette étape.
-- **Étape 10** : le rapport PDF affichera les images de pages avec leurs repères numérotés.
+- Zones de la trame tracées sur les étages (`resolveZone`, `docs/visit-on-plan.md`).
 - **Phase 3** : comparaison avant / après des photos d'un même repère, d'une visite à l'autre.

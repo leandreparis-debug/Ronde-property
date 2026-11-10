@@ -18,7 +18,8 @@ Utilisateurs : **RT** (saisie sur tablette au doigt et sur PC), **Direction** (l
 Étapes : 1 fondations et design system (faite) · 2 modèle de données Supabase et RLS (faite) ·
 3 authentification, rôles, audit (faite) · 4 référentiel des sites (CSV VIGIE, faite) · 5 visites (faite) · 6 notes
 par zone (faite) · 7 photos (faite) · 8 plans AutoCAD et repères (faite) · 9 réserves (faite) · 10 rapport PDF (faite) · 11 recette et
-déploiement (faite) · 12 hors réseau et synchronisation (faite, phase 2).
+déploiement (faite) · 12 hors réseau et synchronisation (faite, phase 2) · 12 b mener la visite
+depuis le plan (faite).
 
 ## Stack et versions (exactes, pas de `^`)
 
@@ -64,6 +65,7 @@ docs/reprise.md            reprise du projet par un autre développeur (architec
 docs/design-system.md      règles de la direction artistique
 docs/pwa.md                application installable (manifeste, icônes, service worker, mise à jour)
 docs/offline.md            hors réseau : copie locale, file d'envoi, synchronisation, conflits, brancher une entité
+docs/visit-on-plan.md      mener la visite depuis le plan (vues, gestes, menu rapide, À ranger, fil, gaucher)
 docs/adr/                  décisions d'architecture détaillées (0001 hors réseau)
 docs/security.md           en-têtes et CSP, sessions et révocation, audit RLS, dépendances, secrets, journaux
 docs/cron.md               tâches planifiées (purge nocturne, CRON_SECRET)
@@ -78,7 +80,7 @@ src/components/ui/         primitives façon shadcn, écrites à la main
 src/lib/                   cn, env (zod), format (dates fr-FR), constants
 src/server/                db/ (pool, Kysely, withUser/withSystem), auth/ (AuthService local et supabase, session), services/, actions/, sites/import/ (moteur d'import VIGIE), supabase/ (clients auth), domain/, repositories/ (interfaces, SiteRepository implémenté)
 src/components/sites/      SiteCard, SiteSearchForm, SitePicker (combobox réutilisable)
-src/components/visits/     liste, création, fiche (en-tête, actions, bandeau, onglets, informations, participants), notes/ (onglet Notes), photos/ (onglet Photos, visionneuse, file d'envoi)
+src/components/visits/     liste, création, fiche (en-tête, actions, bandeau, Plan / Liste / Rapport, informations, participants), notes/ (Notes), photos/ (Photos, visionneuse, file d'envoi), plan-screen/ (écran Plan : navigation, menu rapide, déclencheur, À ranger, fil, feuilles)
 src/lib/notes/             mise en forme des notes (puces), moteur d'enregistrement automatique
 src/lib/photos/            traitement des images dans le navigateur (octets magiques, EXIF, 1600/400 px), file d'envoi
 src/server/storage/        StorageService (supabase, local), signature HMAC, route locale
