@@ -87,7 +87,8 @@ test("C5 · Claire consulte chaque onglet sans aucun contrôle de modification, 
 test("C5 · une action serveur rejouée avec la session de Claire est refusée", async ({
   browser,
 }) => {
-  // Alice saves the subject: the request of the server action is recorded…
+  // Alice saves the subject: the request is recorded… (since step 12 every change of a visit
+  // goes through the outbox, `POST /api/sync`, instead of a server action).
   const alice = await browser.newContext({
     baseURL: E2E_BASE_URL,
     storageState: storageStatePath("alice"),
@@ -95,15 +96,15 @@ test("C5 · une action serveur rejouée avec la session de Claire est refusée",
   const page = await alice.newPage();
   await page.goto(V1);
   const recorded = page.waitForRequest(
-    (request) => request.method() === "POST" && Boolean(request.headers()["next-action"]),
+    (request) => request.method() === "POST" && new URL(request.url()).pathname === "/api/sync",
   );
   const original = await page.locator("#visit-subject").inputValue();
   await page.fill("#visit-subject", `${original} (revu)`);
   await page.locator("#visit-subject").blur();
   const request = await recorded;
   await expect(page.getByTestId("save-status")).toContainText("Enregistré à");
-  const headers = request.headers();
   const body = (request.postData() ?? "").replace(`${original} (revu)`, "Modifié par la direction");
+  expect(body).toContain("Modifié par la direction");
   await alice.close();
 
   // …then replayed from Claire's browser (her session cookies): refused, nothing changes.
@@ -114,28 +115,18 @@ test("C5 · une action serveur rejouée avec la session de Claire est refusée",
   const replay = await claire.newPage();
   await replay.goto(V1);
   const answer = await replay.evaluate(
-    async ({ url, action, tree, payload }) => {
+    async ({ url, payload }) => {
       const response = await fetch(url, {
         method: "POST",
-        headers: {
-          "next-action": action,
-          "next-router-state-tree": tree,
-          "content-type": "text/plain;charset=UTF-8",
-          accept: "text/x-component",
-        },
+        headers: { "content-type": "application/json" },
         body: payload,
       });
-      return response.text();
+      return { status: response.status, text: await response.text() };
     },
-    {
-      url: request.url(),
-      action: headers["next-action"]!,
-      tree: headers["next-router-state-tree"] ?? "",
-      payload: body,
-    },
+    { url: request.url(), payload: body },
   );
-  expect(answer).toContain('"ok":false');
-  expect(answer).toContain("pas le droit");
+  expect(answer.status).toBe(403);
+  expect(answer.text).toContain("forbidden");
   const check = await claire.newPage();
   await check.goto(V1);
   await expect(check.getByText("Modifié par la direction")).toHaveCount(0);
