@@ -23,6 +23,7 @@ const expect = baseExpect.configure({ timeout: 30_000 });
 const SITE = "TEST-006";
 // Unique per run: a retried serial group starts again on a database that already has the plan.
 const PLAN_NAME = `Plan de masse e2e ${Date.now().toString(36)}`;
+const BUILDING = `Bât. e2e ${Date.now().toString(36)}`;
 const PLAN = (name: string) => path.join(FIXTURE_PLANS_DIR, name);
 const IMG = (name: string) => path.join(FIXTURE_IMAGES_DIR, name);
 let visitUrl = "";
@@ -68,17 +69,27 @@ async function expectTouchTargets(page: Page, scope: Locator) {
   expect(tooSmall, tooSmall.join(", ")).toEqual([]);
 }
 
-/** Opens the Plans tab on the plan, page 2 by default, once hydrated and the image loaded. */
-async function openPlan(page: Page, pageNumber = 2) {
-  await page.goto(`${visitUrl}?onglet=plans`);
-  await expect(page.getByTestId("plans-tab")).toHaveAttribute("data-ready", "true");
-  await page.getByRole("button", { name: new RegExp(`Ouvrir le plan.*${PLAN_NAME}`) }).click();
+/**
+ * Opens the plan screen of the visit on a level of the e2e building (« RDC » = page 2 of the
+ * PDF by default), from the list of the buildings, image loaded.
+ */
+async function openPlan(page: Page, level: "RDC" | "R+1" = "RDC") {
+  await page.goto(`${visitUrl}?vue=batiments`);
+  await expect(page.getByTestId("plan-screen")).toHaveAttribute("data-ready", "true");
+  await page.locator(`[data-testid=building-card][data-name="${BUILDING}"]`).click();
+  const tab = page.locator(`[data-testid=level-tab][data-label="${level}"]`);
+  await expect(tab).toBeVisible();
+  if ((await tab.getAttribute("aria-selected")) !== "true") await tab.click();
+  await expect(tab).toHaveAttribute("aria-selected", "true");
   await expect(page.getByTestId("plan-page-image")).toBeVisible();
-  if (pageNumber !== 1) {
-    await page.getByTestId("plan-page-select").selectOption(String(pageNumber));
-    await expect(page).toHaveURL(new RegExp(`page=${pageNumber}`));
-  }
   await expect(page.getByTestId("plan-page-image")).toHaveJSProperty("complete", true);
+}
+
+/** Quick menu at a point of the plan, then one of its choices. */
+async function quick(page: Page, fx: number, fy: number, choice: "photo" | "reserve" | "note") {
+  await tapCanvas(page, fx, fy);
+  await expect(page.getByTestId("quick-menu")).toBeVisible();
+  await page.getByTestId(`quick-${choice}`).click();
 }
 
 /** Clicks the plan at a fraction of the canvas, after checking nothing covers that point. */
@@ -109,7 +120,7 @@ async function tapCanvas(page: Page, fx: number, fy: number) {
 /** Waits for the sheet of marker `n`, failing with the error shown on screen if any. */
 async function expectSheet(page: Page, n: number) {
   const sheet = page.getByTestId("marker-sheet").filter({ hasText: `Repère n° ${n}` });
-  const error = page.getByTestId("plans-tab").getByRole("alert").filter({ hasText: /\S/ });
+  const error = page.getByTestId("plan-screen").getByRole("alert").filter({ hasText: /\S/ });
   await expect(sheet.or(error).first()).toBeVisible();
   if (await error.count()) {
     throw new Error(`Repère n° ${n} non créé : ${await error.first().innerText()}`);
@@ -143,7 +154,7 @@ test.describe("Alice", () => {
     }
   });
 
-  test("imports the 3-page PDF from the site page, sees the progress then the plan", async ({
+  test("imports the 3-page PDF, assigns its pages (exterior, RDC, R+1) and traces the outline", async ({
     page,
   }) => {
     await page.goto(`/sites/${SITE}`);
@@ -159,91 +170,171 @@ test.describe("Alice", () => {
     await expect(dialog).toHaveCount(0, { timeout: 60_000 });
     const plan = page.getByTestId("site-plan").filter({ hasText: PLAN_NAME });
     await expect(plan).toContainText("3 pages");
+
+    // « Affecter les pages » opens right after the import.
+    const assign = page.getByTestId("assign-pages-dialog");
+    await expect(assign).toBeVisible();
+    await expect(assign.getByTestId("assign-page")).toHaveCount(3);
+    await assign.getByTestId("assign-target-1").selectOption("exterior");
+    for (const [n, label] of [
+      [2, "RDC"],
+      [3, "R+1"],
+    ] as const) {
+      await assign.getByTestId(`assign-target-${n}`).selectOption("new");
+      await assign.getByTestId(`assign-building-name-${n}`).fill(BUILDING);
+      await assign.getByTestId(`assign-label-${n}`).fill(label);
+    }
+    await assign.getByTestId("assign-submit").click();
+    await expect(assign).toHaveCount(0);
+    const building = page.locator(`[data-testid=structure-building][data-name="${BUILDING}"]`);
+    await expect(building).toBeVisible();
+    await expect(page.getByTestId("structure-exterior")).toBeVisible();
+
+    // Outline of the building on the exterior view: a self-crossing one is refused.
+    await page.getByTestId("structure-trace").click();
+    const editor = page.getByTestId("outline-editor");
+    await expect(editor).toBeVisible();
+    await editor.getByTestId("outline-building").selectOption({ label: BUILDING });
+    await page.waitForTimeout(500); // pop-in animation of the dialog
+    const surface = editor.getByTestId("outline-surface");
+    const box = (await surface.boundingBox())!;
+    const click = (fx: number, fy: number) =>
+      page.mouse.click(box.x + box.width * fx, box.y + box.height * fy);
+    for (const [fx, fy] of [
+      [0.2, 0.2],
+      [0.6, 0.6],
+      [0.6, 0.2],
+      [0.2, 0.6],
+    ] as const) {
+      await click(fx, fy);
+    }
+    await editor.getByTestId("outline-save").click();
+    await expect(editor.getByTestId("outline-error")).toContainText("se croise");
+    for (let n = 0; n < 4; n += 1) await editor.getByTestId("outline-undo").click();
+    await expect(surface).toHaveAttribute("data-points", "0");
+    for (const [fx, fy] of [
+      [0.2, 0.2],
+      [0.6, 0.2],
+      [0.6, 0.6],
+      [0.2, 0.6],
+    ] as const) {
+      await click(fx, fy);
+    }
+    await expect(surface).toHaveAttribute("data-points", "4");
+    await editor.getByTestId("outline-save").click();
+    await expect(editor).toHaveCount(0);
   });
 
-  test("places a marker on page 2, links an existing photo and names it", async ({ page }) => {
+  test("a pan never opens the menu; a tap does, Escape closes it without creating anything", async ({
+    page,
+  }) => {
     await page.goto(`/visites/nouvelle?site=${SITE}`);
     await page.fill("#title", "Visite e2e plans");
     await page.getByRole("button", { name: "Créer la visite" }).click();
     await expect(page).toHaveURL(/\/visites\/[0-9a-f-]{36}/);
     visitUrl = page.url().split("?")[0]!;
 
-    // A photo of the visit to link.
-    await page.goto(`${visitUrl}?onglet=photos`);
-    await expect(page.getByTestId("photos-tab")).toHaveAttribute("data-ready", "true");
-    await page
-      .getByTestId("photos-tab")
-      .getByTestId("import-input")
-      .first()
-      .setInputFiles(IMG("shapes.webp"));
-    await expect(page.getByTestId("photo-tile")).toHaveCount(1);
-    // Step 12: the tile shows as soon as the photo is on the device; wait for the server.
-    await expectSynced(page);
+    // The visit opens on the exterior view: the outline leads into the building.
+    await page.goto(`${visitUrl}?onglet=plans`);
+    await expect(page.getByTestId("plan-screen")).toHaveAttribute("data-ready", "true");
+    await expect(page.getByTestId("exterior-outline")).toHaveCount(1);
+    await page.locator(`[data-testid=exterior-building][data-name="${BUILDING}"]`).click();
+    await expect(page.getByTestId("breadcrumb-current")).toHaveText("RDC");
+    await expect(page.getByTestId("plan-breadcrumb")).toContainText("Vue extérieure");
 
-    await openPlan(page, 2);
+    await expect(page.getByTestId("plan-page-image")).toHaveJSProperty("complete", true);
+    const box = (await canvas(page).boundingBox())!;
+    await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * 0.5 + 40, box.y + box.height * 0.5 + 30, {
+      steps: 5,
+    });
+    await page.mouse.up();
+    await expect(page.getByTestId("quick-menu")).toHaveCount(0);
+    await tapCanvas(page, 0.5, 0.5);
+    await expect(page.getByTestId("quick-menu")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("quick-menu")).toHaveCount(0);
+    await expect(markers(page)).toHaveCount(0);
+  });
+
+  test("places a photo with the quick menu, then a note; names the photo marker", async ({
+    page,
+  }) => {
+    await openPlan(page);
     const fit = Number(await canvas(page).getAttribute("data-fit-scale"));
     await page.getByTestId("zoom-in").click();
     await expect
       .poll(async () => Number(await canvas(page).getAttribute("data-scale")))
       .toBeGreaterThan(fit);
-    await page.getByTestId("toggle-place-marker").click();
-    await expect(page.getByTestId("place-hint")).toHaveText(
-      "Touchez le plan pour placer le repère n° 1",
-    );
-    await tapCanvas(page, 0.5, 0.5);
-    const sheet = await expectSheet(page, 1);
+    const camera = page.waitForEvent("filechooser");
+    await quick(page, 0.5, 0.5, "photo");
+    await (await camera).setFiles(IMG("shapes.webp"));
+    const photoSheet = page.getByTestId("photo-sheet");
+    await expect(photoSheet).toBeVisible();
+    await photoSheet.getByTestId("photo-sheet-caption").fill("Butoir quai 14");
+    await photoSheet.getByTestId("photo-sheet-done").click();
     await expect(markers(page)).toHaveCount(1);
-    await expect(page.getByTestId("toggle-place-marker")).toHaveAttribute("aria-pressed", "false");
-
-    await sheet.getByTestId("marker-label-input").fill("Butoir quai 14");
-    await sheet.getByTestId("marker-photo-choice").first().click();
-    await expect(sheet.getByTestId("marker-photo-thumb")).toBeVisible();
-    await expect(marker(page, 1)).toHaveAttribute("data-has-photo", "true");
-    await expect(page.getByTestId("markers-list")).toContainText("n° 1 · Butoir quai 14");
-  });
-
-  test("places a second marker with a photo taken on the spot", async ({ page }) => {
-    await openPlan(page, 2);
+    await expect(page.locator("[data-testid=plan-marker][data-kind=photo]")).toHaveAttribute(
+      "data-has-photo",
+      "true",
+    );
+    await expectSynced(page);
+    await expect(marker(page, 1)).toBeVisible();
     await marker(page, 1).click();
-    await expect(page.getByTestId("marker-sheet")).toContainText("Repère n° 1");
-    // Turning placement on closes the sheet of the previous marker.
-    await page.getByTestId("toggle-place-marker").click();
-    await expect(page.getByTestId("marker-sheet")).toHaveCount(0);
-    await tapCanvas(page, 0.25, 0.3);
-    const sheet = await expectSheet(page, 2);
-    await sheet.getByTestId("marker-photo-input").setInputFiles(IMG("gradient.png"));
-    await expect(sheet.getByTestId("marker-photo-thumb")).toBeVisible({ timeout: 60_000 });
-    await expect(marker(page, 2)).toHaveAttribute("data-has-photo", "true");
+    const sheet = await expectSheet(page, 1);
+    await sheet.getByTestId("marker-label-input").fill("Butoir quai 14");
+    await sheet.getByTestId("marker-label-input").press("Enter");
+    await expect(sheet.getByTestId("marker-photo-thumb")).toBeVisible();
+    await page.getByRole("button", { name: "Fermer la feuille du repère" }).click();
+
+    await quick(page, 0.25, 0.3, "note");
+    await page.getByTestId("note-text").fill("Odeur de gaz près du local de charge");
+    await page.getByTestId("note-save").click();
+    await expect(page.getByTestId("note-sheet")).toHaveCount(0);
+    await expect(page.locator("[data-testid=plan-marker][data-kind=note]")).toHaveCount(1);
+    await expect(
+      page.locator("[data-testid=level-tab][data-label=RDC] [data-testid=count-badge]"),
+    ).toHaveAttribute("data-count", "2");
   });
 
-  test("moves marker 1 and finds both positions after a reload, to 0.001", async ({ page }) => {
-    await openPlan(page, 2);
+  test("moves the photo marker and finds both positions after a reload, to 0.001", async ({
+    page,
+  }) => {
+    await openPlan(page);
     const before = await markerXY(page, 1);
-    await page.getByTestId("markers-list-item").first().click();
+    await marker(page, 1).click();
     await page.getByTestId("marker-move").click();
+    await expect(page.getByTestId("placing-hint")).toBeVisible();
     await tapCanvas(page, 0.7, 0.65);
     await expect.poll(async () => (await markerXY(page, 1)).x).not.toBeCloseTo(before.x, 2);
+    const note = page.locator("[data-testid=plan-marker][data-kind=note]");
     positions[1] = await markerXY(page, 1);
-    positions[2] = await markerXY(page, 2);
+    positions[2] = {
+      x: Number(await note.getAttribute("data-x")),
+      y: Number(await note.getAttribute("data-y")),
+    };
+    await expectSynced(page);
     await page.reload();
     await expect(page.getByTestId("plan-page-image")).toBeVisible();
-    for (const n of [1, 2] as const) {
-      const after = await markerXY(page, n);
-      expect(Math.abs(after.x - positions[n]!.x)).toBeLessThan(0.001);
-      expect(Math.abs(after.y - positions[n]!.y)).toBeLessThan(0.001);
-    }
+    const after1 = await markerXY(page, 1);
+    expect(Math.abs(after1.x - positions[1]!.x)).toBeLessThan(0.001);
+    expect(Math.abs(after1.y - positions[1]!.y)).toBeLessThan(0.001);
+    expect(Math.abs(Number(await note.getAttribute("data-x")) - positions[2]!.x)).toBeLessThan(
+      0.001,
+    );
   });
 
   test("keeps the markers at the same screen size at two zoom levels", async ({ page }) => {
-    await openPlan(page, 2);
-    const small = (await marker(page, 2).boundingBox())!;
+    await openPlan(page);
+    const small = (await marker(page, 1).boundingBox())!;
     await page.getByTestId("zoom-in").click();
     await page.getByTestId("zoom-in").click();
     const scaleBefore = Number(await canvas(page).getAttribute("data-fit-scale"));
     await expect
       .poll(async () => Number(await canvas(page).getAttribute("data-scale")))
       .toBeGreaterThan(scaleBefore * 2);
-    const large = (await marker(page, 2).boundingBox())!;
+    const large = (await marker(page, 1).boundingBox())!;
     expect(Math.round(large.width)).toBe(Math.round(small.width));
     expect(Math.round(large.height)).toBe(Math.round(small.height));
     await page.getByTestId("zoom-fit").click();
@@ -252,7 +343,7 @@ test.describe("Alice", () => {
   test("opens a marker, then « Voir la photo » shows the photo viewer with « Repère n° 1 »", async ({
     page,
   }) => {
-    await openPlan(page, 2);
+    await openPlan(page);
     await marker(page, 1).click();
     const sheet = page.getByTestId("marker-sheet");
     await expect(sheet.getByTestId("marker-label-input")).toHaveValue("Butoir quai 14");
@@ -262,7 +353,11 @@ test.describe("Alice", () => {
     await expect(viewer.getByTestId("photo-marker-mention")).toContainText(
       "Repère n° 1 sur Plan de masse e2e",
     );
-    await viewer.getByRole("button", { name: "Fermer la visionneuse" }).click();
+    // The link back opens the plan screen on that level, centred on the marker.
+    await viewer.getByTestId("photo-marker-mention").getByRole("link").click();
+    await expect(page.getByTestId("breadcrumb-current")).toHaveText("RDC");
+    await expect(page.getByTestId("marker-sheet")).toContainText("Repère n° 1");
+    await page.goto(`${visitUrl}?onglet=photos`);
     await expect(page.getByTestId("photo-marker-badge").filter({ hasText: "R1" })).toHaveCount(1);
   });
 
@@ -280,25 +375,42 @@ test.describe("Alice", () => {
     );
     await page.getByTestId("confirm-delete-photo").click();
     await expect(page.getByText("Photo supprimée").first()).toBeVisible();
-    await openPlan(page, 2);
+    await openPlan(page);
     await expect(marker(page, 1)).toHaveAttribute("data-has-photo", "false");
-    await page.goto(visitUrl);
+    // The note on the plan is not « sans photo »: one marker only is counted.
+    await page.goto(`${visitUrl}?onglet=information`);
     await expect(page.getByTestId("incomplete-points")).toContainText("1 repère sans photo");
   });
 
-  test("the Plans tab, the viewer and the marker sheet have no serious or critical axe violation", async ({
+  test("the plan screen, its menu, sheets and drawer have no serious or critical axe violation", async ({
     page,
   }) => {
     await page.goto(`${visitUrl}?onglet=plans`);
-    await expect(page.getByTestId("plans-tab")).toHaveAttribute("data-ready", "true");
+    await expect(page.getByTestId("plan-screen")).toHaveAttribute("data-ready", "true");
     await expectNoBlockingViolation(page);
-    await openPlan(page, 2);
+    await openPlan(page);
     await expectNoBlockingViolation(page);
-    await marker(page, 2).click();
+    await tapCanvas(page, 0.4, 0.4);
+    await expect(page.getByTestId("quick-menu")).toBeVisible();
+    await expectNoBlockingViolation(page);
+    await page.getByTestId("quick-note").click();
+    await expect(page.getByTestId("note-sheet")).toBeVisible();
+    await expectNoBlockingViolation(page);
+    await page.getByRole("button", { name: "Fermer la note" }).click();
+    await marker(page, 1).click();
     await expect(page.getByTestId("marker-sheet")).toBeVisible();
     await expectNoBlockingViolation(page);
+    await page.getByTestId("open-to-sort").click();
+    await expect(page.getByTestId("to-sort-drawer")).toBeVisible();
+    await expectNoBlockingViolation(page);
+    await page.getByTestId("visit-feed-toggle").click();
+    await page.getByTestId("plan-legend-toggle").click();
+    await expectNoBlockingViolation(page);
+    await page.goto(`${visitUrl}?onglet=information`);
+    await expect(page.getByTestId("incomplete-points")).toBeVisible();
+    await expectNoBlockingViolation(page);
     await page.goto(`/sites/${SITE}`);
-    await expect(page.getByTestId("site-plans")).toBeVisible();
+    await expect(page.getByTestId("site-structure")).toBeVisible();
     await expectNoBlockingViolation(page);
   });
 
@@ -307,14 +419,14 @@ test.describe("Alice", () => {
     { width: 1024, height: 768 },
     { width: 1280, height: 800 },
   ]) {
-    test(`the viewer and the sheet fit ${viewport.width} × ${viewport.height} with 44 px targets`, async ({
+    test(`the plan screen and the sheet fit ${viewport.width} × ${viewport.height} with 44 px targets`, async ({
       page,
     }) => {
       await page.setViewportSize(viewport);
-      await openPlan(page, 2);
+      await openPlan(page);
       await expectNoHorizontalOverflow(page);
-      await expectTouchTargets(page, page.getByTestId("plans-tab"));
-      await marker(page, 2).click();
+      await expectTouchTargets(page, page.getByTestId("plan-screen"));
+      await marker(page, 1).click();
       await expect(page.getByTestId("marker-sheet")).toBeVisible();
       await expectNoHorizontalOverflow(page);
       await expectTouchTargets(page, page.getByTestId("marker-sheet"));
@@ -325,11 +437,11 @@ test.describe("Alice", () => {
 test.describe("Claire", () => {
   test.use({ storageState: storageStatePath("claire"), viewport: { width: 1280, height: 800 } });
 
-  test("consults the plan and the markers without any editing control", async ({ page }) => {
-    await openPlan(page, 2);
+  test("navigates the plan and reads the markers without any editing control", async ({ page }) => {
+    await openPlan(page);
     await expect(markers(page)).toHaveCount(2);
-    await expect(page.getByTestId("toggle-place-marker")).toHaveCount(0);
-    await expect(page.getByTestId("open-plan-import")).toHaveCount(0);
+    await expect(page.getByTestId("shutter")).toHaveCount(0);
+    await expect(page.getByTestId("plan-zone")).toHaveCount(0);
     await page.getByTestId("zoom-in").click();
     await marker(page, 1).click();
     const sheet = page.getByTestId("marker-sheet");
@@ -337,9 +449,19 @@ test.describe("Claire", () => {
     await expect(sheet.getByTestId("marker-label-input")).toHaveCount(0);
     await expect(sheet.getByTestId("marker-delete")).toHaveCount(0);
     await expect(sheet.getByTestId("marker-move")).toHaveCount(0);
-    // A tap on the plan never creates a marker.
+    await page.getByRole("button", { name: "Fermer la feuille du repère" }).click();
+    await page.locator("[data-testid=plan-marker][data-kind=note]").click();
+    await expect(page.getByTestId("note-text-readonly")).toContainText("Odeur de gaz");
+    await expect(page.getByTestId("note-save")).toHaveCount(0);
+    // A tap on the plan never opens the menu nor creates a marker.
+    await page.getByRole("button", { name: "Fermer la note" }).click();
+    await page.getByTestId("zoom-fit").click();
     await tapCanvas(page, 0.1, 0.1);
+    await expect(page.getByTestId("quick-menu")).toHaveCount(0);
     await expect(markers(page)).toHaveCount(2);
+    // The breadcrumb still leads to the exterior view.
+    await page.getByTestId("breadcrumb-step").filter({ hasText: "Vue extérieure" }).click();
+    await expect(page.getByTestId("exterior-outline")).toHaveCount(1);
     await page.goto(`/sites/${SITE}`);
     await expect(page.getByTestId("open-plan-import")).toHaveCount(0);
   });
@@ -348,20 +470,23 @@ test.describe("Claire", () => {
 test.describe("Alice archives the plan", () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
-  test("keeps showing it with its markers but refuses new ones", async ({ page }) => {
+  test("keeps showing its views with their markers but refuses new ones", async ({ page }) => {
     await page.goto(`/sites/${SITE}`);
     const plan = page.getByTestId("site-plan").filter({ hasText: PLAN_NAME });
     await plan.getByTestId("archive-plan").click();
     await page.getByTestId("confirm-archive-plan").click();
     await expect(plan.getByTestId("plan-archived")).toBeVisible();
-    await openPlan(page, 2);
-    await expect(page.getByTestId("plan-viewer-title")).toContainText("Archivé");
+    await openPlan(page);
+    await expect(page.getByTestId("view-badge")).toBeVisible();
     await expect(markers(page)).toHaveCount(2);
-    await expect(page.getByTestId("toggle-place-marker")).toHaveCount(0);
+    await tapCanvas(page, 0.1, 0.1);
+    await expect(page.getByTestId("quick-menu")).toHaveCount(0);
     // Existing markers stay editable.
-    await marker(page, 2).click();
+    await marker(page, 1).click();
     await page.getByTestId("marker-label-input").fill("Toujours modifiable");
     await page.getByTestId("marker-label-input").press("Enter");
-    await expect(page.getByTestId("markers-list")).toContainText("Toujours modifiable");
+    await expect(page.getByTestId("visit-feed-latest")).toBeVisible();
+    await page.getByTestId("visit-feed-toggle").click();
+    await expect(page.getByTestId("visit-feed-list")).toContainText("Toujours modifiable");
   });
 });

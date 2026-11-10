@@ -3,6 +3,7 @@ import path from "node:path";
 import AxeBuilder from "@axe-core/playwright";
 import { expect as baseExpect, type Locator, type Page } from "@playwright/test";
 
+import { assignPages } from "./acceptance/helpers";
 import { test } from "./helpers/csp";
 import { expectSynced, syncBeforeLeaving } from "./helpers/sync";
 
@@ -25,6 +26,7 @@ const V1 = "20000000-0000-4000-8000-000000000001";
 const R1 = "50000000-0000-4000-8000-000000000001";
 // Unique per run: a retried serial group starts again on a database that already has the plan.
 const PLAN_NAME = `Plan réserves e2e ${Date.now().toString(36)}`;
+const BUILDING = `Bât. réserves ${Date.now().toString(36)}`;
 const IMG = (name: string) => path.join(FIXTURE_IMAGES_DIR, name);
 const PLAN = (name: string) => path.join(FIXTURE_PLANS_DIR, name);
 let visitUrl = "";
@@ -108,9 +110,14 @@ async function tapCanvas(page: Page, fx: number, fy: number) {
   await page.mouse.click(x, y);
 }
 
-/** Opens the e2e plan in the Plans tab (keeps the other URL parameters). */
+/**
+ * Shows the level of the e2e building on the plan screen (the site has this single level: the
+ * screen opens on it; otherwise through the list of the buildings).
+ */
 async function openPlanFromList(page: Page) {
-  await page.getByRole("button", { name: new RegExp(`Ouvrir le plan.*${PLAN_NAME}`) }).click();
+  await expect(page.getByTestId("plan-screen")).toHaveAttribute("data-ready", "true");
+  const card = page.locator(`[data-testid=building-card][data-name="${BUILDING}"]`);
+  if (await card.isVisible()) await card.click();
   await expect(page.getByTestId("plan-page-image")).toBeVisible();
   await expect(page.getByTestId("plan-page-image")).toHaveJSProperty("complete", true);
 }
@@ -133,6 +140,7 @@ test.describe("Alice", () => {
     await dialog.getByTestId("plan-name-input").fill(PLAN_NAME);
     await dialog.getByTestId("start-plan-import").click();
     await expect(dialog).toHaveCount(0, { timeout: 60_000 });
+    await assignPages(page, { building: BUILDING });
 
     await page.goto(`/visites/nouvelle?site=${SITE}`);
     await page.fill("#title", "Visite e2e réserves");
@@ -291,9 +299,8 @@ test.describe("Alice", () => {
     await openDetail(page, "Remplacer le butoir du quai 3");
     const code = (await page.getByTestId("reserve-code").innerText()).trim();
     await page.getByTestId("reserve-place").click();
-    await expect(page.getByTestId("place-reserve-choose-plan")).toContainText(code);
     await openPlanFromList(page);
-    await expect(page.getByTestId("place-reserve-hint")).toHaveText(
+    await expect(page.getByTestId("placing-hint")).toContainText(
       `Touchez le plan pour placer ${code}`,
     );
     await tapCanvas(page, 0.4, 0.45);
@@ -302,27 +309,34 @@ test.describe("Alice", () => {
     await page.getByTestId("reserve-plan-link").click();
     const reserveMarker = page.locator(`[data-testid=plan-marker][data-reserve="${code}"]`);
     await expect(reserveMarker).toBeVisible();
+    await page.getByTestId("plan-legend-toggle").click();
     await expect(page.getByTestId("plan-legend")).toContainText("Réserve ouverte ou en retard");
+    // The link centres the reserve's marker and opens its sheet, never the plain marker sheet.
+    await expect(page.getByTestId("reserve-marker-sheet")).toContainText(code);
     await expect(page.getByTestId("marker-sheet")).toHaveCount(0);
-    await reserveMarker.click();
+    await page.getByTestId("reserve-marker-open").click();
     await expect(page.getByTestId("reserve-code")).toHaveText(code);
   });
 
-  test("« Créer une réserve ici » turns a plain marker into the reserve's marker", async ({
+  test("« En faire une réserve » turns a photo placed on the plan into the reserve's marker", async ({
     page,
   }) => {
     await page.goto(`${visitUrl}?onglet=plans`);
-    await expect(page.getByTestId("plans-tab")).toHaveAttribute("data-ready", "true");
     await openPlanFromList(page);
-    await page.getByTestId("toggle-place-marker").click();
     await tapCanvas(page, 0.7, 0.6);
-    const markerSheet = page.getByTestId("marker-sheet");
-    await expect(markerSheet).toBeVisible();
-    await markerSheet.getByTestId("marker-create-reserve").click();
+    const camera = page.waitForEvent("filechooser");
+    await page.getByTestId("quick-photo").click();
+    await (await camera).setFiles(IMG("gradient.png"));
+    const photoSheet = page.getByTestId("photo-sheet");
+    await expect(photoSheet).toBeVisible();
+    await photoSheet.getByTestId("photo-make-reserve").click();
+    await expect(photoSheet).toHaveCount(0);
     await expect(sheet(page)).toBeVisible();
     await page.getByTestId("reserve-action").fill("Fixer la descente d'eau pluviale");
     await page.getByTestId("reserve-save").click();
     await expect(sheet(page)).toHaveCount(0);
+    await expectSynced(page);
+    await page.goto(`${visitUrl}?onglet=reserves`);
     const created = card(page, "Fixer la descente d'eau pluviale");
     await expect(created.getByText("Placée sur un plan")).toBeAttached();
     const code = (await created.getAttribute("data-code"))!;
@@ -405,7 +419,7 @@ test.describe("Alice", () => {
     await expect(card(page, "Changer le joint du sas du quai 2")).toContainText("Quais");
     await page.goto(`${visitUrl}?onglet=notes&zone=docks`);
     await expect(page.getByTestId("zone-reserves-link")).toHaveText("1 réserve ouverte");
-    await page.goto(visitUrl);
+    await page.goto(`${visitUrl}?onglet=information`);
     await expect(page.getByTestId("incomplete-points")).toContainText("réserves sans responsable");
     await expect(page.getByTestId("incomplete-points")).toContainText("sans échéance");
   });

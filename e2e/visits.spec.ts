@@ -123,7 +123,7 @@ test.describe("Alice on a tablet", () => {
     page,
     browser,
   }) => {
-    await page.goto(visitUrl);
+    await page.goto(`${visitUrl}?onglet=information`);
     await openActions(page, "Terminer la visite");
     const dialog = page.getByRole("dialog", { name: "Terminer la visite ?" });
     await dialog.getByRole("button", { name: "Terminer la visite" }).click();
@@ -173,7 +173,7 @@ test.describe("David", () => {
   test.use({ storageState: storageStatePath("david") });
 
   test("sees the deleted visit with its banner", async ({ page }) => {
-    await page.goto(copyUrl);
+    await page.goto(`${copyUrl}?onglet=information`);
     await expect(page.getByTestId("visit-banner")).toContainText("Visite supprimée le");
     await expect(page.getByTestId("visit-info-readonly")).toBeVisible();
   });
@@ -186,7 +186,7 @@ test.describe("Claire", () => {
     await page.goto("/");
     await expect(page.getByRole("link", { name: "Nouvelle visite" })).toHaveCount(0);
     await expect(page.locator("nav[aria-label=Périmètre] a")).toHaveText(["Toutes les visites"]);
-    await page.goto(visitUrl);
+    await page.goto(`${visitUrl}?onglet=information`);
     await expect(page.getByTestId("visit-banner")).toContainText(
       "Vous consultez cette visite en lecture seule.",
     );
@@ -215,8 +215,8 @@ test.describe("version conflict", () => {
     });
     const first = await context.newPage();
     const second = await otherDevice.newPage();
-    await first.goto(visitUrl);
-    await second.goto(visitUrl);
+    await first.goto(`${visitUrl}?onglet=information`);
+    await second.goto(`${visitUrl}?onglet=information`);
     await first.fill("#visit-title", "Titre de la première page");
     await first.locator("#visit-title").blur();
     await expect(first.getByTestId("save-status")).toContainText("Enregistré à");

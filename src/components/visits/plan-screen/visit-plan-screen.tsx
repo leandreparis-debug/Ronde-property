@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { useOffline } from "@/components/offline/offline-provider";
 import { useVisit } from "@/components/offline/visit-data";
 import { useVisitMutations } from "@/components/offline/visit-mutations";
 import { MarkerPin, NotePin, ReservePin } from "@/components/plans/marker-pin";
@@ -153,6 +154,7 @@ export function VisitPlanScreen({
   zones: Array<{ key: string; label: string }>;
 }) {
   const data = useVisit();
+  const { online } = useOffline();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -639,6 +641,12 @@ export function VisitPlanScreen({
               {data.plans.length === 0 ? "Importer un plan" : "Affecter les pages"}
             </Link>
           </Button>
+        ) : null}
+        {canConfigure && !online ? (
+          <p className="text-center text-ui text-ink-2" data-testid="offline-reason-plan-import">
+            Hors réseau : l&apos;import d&apos;un plan demande le réseau (le fichier est converti
+            puis envoyé au stockage).
+          </p>
         ) : null}
       </div>
     );

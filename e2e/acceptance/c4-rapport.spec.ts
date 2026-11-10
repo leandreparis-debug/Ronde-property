@@ -23,7 +23,8 @@ test("C4 · rapport PDF généré, conservé dans l'historique et retélécharg�
     "R-04",
     "Notes par zone",
     "Fig. 1",
-    "Plan A",
+    // Plans titled by their view since step 12 b (seed plan assigned to « Bâtiment principal »).
+    "Bâtiment principal",
   ]) {
     expect(text, expected).toContain(expected);
   }

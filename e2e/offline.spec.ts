@@ -72,8 +72,11 @@ async function openKept(page: Page, visitUrl: string) {
   await waitForServiceWorker(page);
 }
 
+/** Opens a section of « Liste » (Notes, Réserves, Photos…) from any screen of the visit. */
 async function openTab(page: Page, name: string) {
-  await page.getByRole("tab", { name }).click();
+  const section = page.getByRole("tab", { name, exact: true });
+  if (!(await section.isVisible())) await page.getByRole("tab", { name: "Liste" }).click();
+  await section.click();
 }
 
 test("a kept visit reopens offline after a reload, keeps notes and a reserve, then syncs", async ({
@@ -110,7 +113,7 @@ test("a kept visit reopens offline after a reload, keeps notes and a reserve, th
   await expectPending(page, 2);
 
   // What needs the server says why.
-  await openTab(page, "Plans");
+  await openTab(page, "Plan");
   await expect(page.getByTestId("offline-reason-plan-import")).toBeVisible();
   await openTab(page, "Rapport");
   await expect(page.getByTestId("report-blocked")).toBeVisible();

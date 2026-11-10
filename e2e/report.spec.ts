@@ -122,7 +122,8 @@ test.describe("Alice", () => {
       "R-04",
       "En retard de",
       "Notes par zone",
-      "Plan A",
+      // The seed plan was assigned to « Bâtiment principal » (migration 22): view titles.
+      "Bâtiment principal",
     ]) {
       expect(text).toContain(expected);
     }

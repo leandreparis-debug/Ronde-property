@@ -18,6 +18,9 @@ const TABS = ["information", "notes", "reserves", "photos", "plans", "report"] a
  */
 const ALLOWED = [
   /^Visites$|^Réserves$|^Sites$|^Informations$|^Notes$|^Photos$|^Plans$|^Rapport$/,
+  // Entries of the visit and navigation of the plan screen (step 12 b): buildings, levels,
+  // breadcrumb, legend and visit feed only move the view.
+  /^Plan$|^Liste$|^Bâtiment|Vue extérieure|Tous les bâtiments|Légende|Fil de visite/,
   /Masquer les levées|En retard uniquement|Statut|Priorité|Zone|Trier par|Toutes les zones|Catégorie|Sans légende/,
   /Ouvrir|Fermer|Afficher|Masquer|Zoomer|Dézoomer|Ajuster|Page|Plans|Télécharger|Aperçu|Options|Générer le rapport|Valider/,
   /Voir|Précédente|Suivante|Aide|Donner mon avis|compte|Compte|Déconnexion|Menu|Actions/,
@@ -69,7 +72,7 @@ test("C5 · Claire consulte chaque onglet sans aucun contrôle de modification, 
   const page = await context.newPage();
   for (const tab of TABS) {
     await page.goto(`${V1}?onglet=${tab}`);
-    await expect(page.getByRole("tab", { selected: true })).toBeVisible();
+    await expect(page.getByRole("tab", { selected: true }).first()).toBeVisible();
     await page.waitForLoadState("networkidle");
     expect(await editingControls(page), `onglet ${tab}`).toEqual([]);
   }
@@ -94,7 +97,7 @@ test("C5 · une action serveur rejouée avec la session de Claire est refusée",
     storageState: storageStatePath("alice"),
   });
   const page = await alice.newPage();
-  await page.goto(V1);
+  await page.goto(`${V1}?onglet=information`);
   const recorded = page.waitForRequest(
     (request) => request.method() === "POST" && new URL(request.url()).pathname === "/api/sync",
   );

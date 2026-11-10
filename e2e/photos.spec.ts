@@ -223,7 +223,7 @@ test.describe("Alice on a laptop", () => {
     await page.getByTestId("uncaptioned-filter").uncheck();
     await expect(tiles(page)).toHaveCount(3);
 
-    await page.goto(visitUrl);
+    await page.goto(`${visitUrl}?onglet=information`);
     const points = page.getByTestId("incomplete-points");
     await expect(points).toContainText("2 photos sans légende");
     await points.getByRole("link", { name: "2 photos sans légende" }).click();

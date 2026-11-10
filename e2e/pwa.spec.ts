@@ -94,7 +94,7 @@ test.describe("installable application", () => {
     context,
   }) => {
     const visit = await createVisit(page, "TEST-011", "Visite e2e hors connexion");
-    await page.goto(visit);
+    await page.goto(`${visit}?onglet=information`);
     await context.setOffline(true);
     await page.fill("#visit-subject", "Objet saisi hors connexion");
     await page.locator("#visit-subject").blur();

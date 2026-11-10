@@ -65,7 +65,7 @@ test.describe("as direction", () => {
   test.use({ storageState: storageStatePath("claire") });
 
   test("the read-only visit page has no serious or critical axe violation", async ({ page }) => {
-    await page.goto("/visites/20000000-0000-4000-8000-000000000001");
+    await page.goto("/visites/20000000-0000-4000-8000-000000000001?onglet=information");
     await expect(page.getByTestId("visit-info-readonly")).toBeVisible();
     await expectNoBlockingViolation(page);
   });

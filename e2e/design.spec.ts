@@ -35,16 +35,16 @@ test.describe("/design", () => {
   test("the visit tabs switch panels", async ({ page }) => {
     await page.goto("/design");
     const tabs = page.getByRole("tablist", { name: "Sections de la visite" }).first();
-    const labels = ["Informations", "Notes", "Réserves", "Photos", "Plans", "Rapport"];
+    const labels = ["Plan", "Liste", "Rapport"];
     for (const label of labels) {
       await expect(tabs.getByRole("tab", { name: label })).toBeVisible();
     }
-    await tabs.getByRole("tab", { name: "Photos" }).click();
-    await expect(tabs.getByRole("tab", { name: "Photos" })).toHaveAttribute(
+    await tabs.getByRole("tab", { name: "Rapport" }).click();
+    await expect(tabs.getByRole("tab", { name: "Rapport" })).toHaveAttribute(
       "aria-selected",
       "true",
     );
-    await expect(page.getByText("Contenu de l'onglet « Photos ».").first()).toBeVisible();
+    await expect(page.getByText("Contenu de l'onglet « Rapport ».").first()).toBeVisible();
   });
 
   test("the confirmation dialog opens, traps focus and closes", async ({ page }) => {
