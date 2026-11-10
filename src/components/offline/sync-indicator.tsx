@@ -84,14 +84,13 @@ export function SyncIndicator({ compact = false }: { compact?: boolean }) {
         "focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand",
         !compact && "w-full px-2 py-1",
       )}
-      // Compact: no visible text, the name says it all. Otherwise the visible text is the name
-      // (WCAG 2.5.3, « label in name »), completed by a hidden hint.
-      aria-label={compact ? `${label}. Ouvrir la synchronisation` : undefined}
+      // No aria-label: the name is the text inside (visible on a computer, hidden in the
+      // compact form), so it always contains what is shown (WCAG 2.5.3, « label in name »).
       data-testid="sync-indicator"
       data-mood={mood}
       data-pending={status.pending}
     >
-      <span className="relative shrink-0">
+      <span className="relative shrink-0" aria-hidden="true">
         <Galet mood={MOOD[mood]} size={compact ? 32 : 36} />
         {count > 0 ? (
           <span
@@ -103,7 +102,9 @@ export function SyncIndicator({ compact = false }: { compact?: boolean }) {
           </span>
         ) : null}
       </span>
-      {compact ? null : (
+      {compact ? (
+        <span className="sr-only">{`${label}. Ouvrir la synchronisation`}</span>
+      ) : (
         <span className="flex min-w-0 flex-col">
           <span className="truncate text-ui font-semibold">{label}</span>
           <span className="truncate text-label text-ink-2">

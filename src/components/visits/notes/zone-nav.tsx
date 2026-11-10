@@ -90,7 +90,7 @@ export function ZoneNav({
       <div
         role="group"
         aria-label="Zones"
-        className="-mx-4 flex [scrollbar-width:none] gap-2 overflow-x-auto px-4 pb-2 lg:hidden [&::-webkit-scrollbar]:hidden"
+        className="relative -mx-4 flex [scrollbar-width:none] gap-2 overflow-x-auto px-4 pb-2 lg:hidden [&::-webkit-scrollbar]:hidden"
       >
         {items.map((item) => {
           const selected = item.id === selectedId;

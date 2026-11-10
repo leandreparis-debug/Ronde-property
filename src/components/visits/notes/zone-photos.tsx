@@ -51,7 +51,10 @@ export function ZonePhotos({
         ) : null}
       </div>
       {photos.length > 0 ? (
-        <ul className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" data-testid="zone-photo-strip">
+        <ul
+          className="relative -mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
+          data-testid="zone-photo-strip"
+        >
           {photos.map((photo) => (
             <li key={photo.id} className="relative shrink-0">
               <button

@@ -59,49 +59,98 @@ function isShellRoute(url) {
 /** Script, style and media files referenced by an HTML page (tags and flight data). */
 function assetsOf(html) {
   const found = new Set();
-  for (const match of html.matchAll(/\/_next\/static\/[^"'\s)\\<>]+/g)) found.add(match[0]);
+  const add = (path) => {
+    // Route groups put parentheses in chunk names (`app/(app)/page-….js`): keep them, but drop
+    // a closing one that belongs to the surrounding text (CSS `url(…)`).
+    let clean = path;
+    while (
+      clean.endsWith(")") &&
+      (clean.match(/\)/g) || []).length > (clean.match(/\(/g) || []).length
+    ) {
+      clean = clean.slice(0, -1);
+    }
+    // Only complete file names (with an extension): never a fragment of a longer string.
+    if (/\.[a-z0-9]{2,5}$/i.test(clean)) found.add(clean);
+  };
+  for (const match of html.matchAll(/\/_next\/static\/[^"'\s\\<>,;]+/g)) add(match[0]);
   for (const match of html.matchAll(/["'](static\/(?:chunks|css|media)\/[^"'\s\\]+)["']/g)) {
-    found.add(`/_next/${match[1]}`);
+    add(`/_next/${match[1]}`);
   }
   return [...found];
 }
 
+/**
+ * `fetch` with a time limit. The body of a response that is not kept is always released:
+ * an unread body holds one of the few connections the browser opens per host, and the next
+ * requests of the worker would wait forever.
+ */
+async function fetchFor(path, options = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 20_000);
+  try {
+    return await fetch(path, { credentials: "same-origin", ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function release(response) {
+  try {
+    await response.body?.cancel();
+  } catch {
+    // Already consumed or closed.
+  }
+}
+
+/** Runs `task` on every item, at most `limit` at a time. */
+async function eachLimited(items, limit, task) {
+  const queue = [...items];
+  await Promise.all(
+    Array.from({ length: Math.min(limit, queue.length) }, async () => {
+      while (queue.length > 0) await task(queue.shift());
+    }),
+  );
+}
+
+/** Stores a static file in the cache, unless it is already there. Never throws. */
+async function cacheStatic(statics, path) {
+  try {
+    if (await statics.match(path)) return;
+    const response = await fetchFor(path);
+    if (response.ok) await statics.put(path, response);
+    else await release(response);
+  } catch {
+    // Picked up later, the first time a page loads it.
+  }
+}
+
 /** Caches a page and every static file it needs. */
 async function cachePage(path) {
-  const response = await fetch(path, { credentials: "same-origin", cache: "no-store" });
-  if (!response.ok || response.redirected) return;
+  let response;
+  try {
+    response = await fetchFor(path, { cache: "no-store" });
+  } catch {
+    return;
+  }
+  if (!response.ok || response.redirected) {
+    await release(response);
+    return;
+  }
   const html = await response.clone().text();
   const shell = await caches.open(SHELL_CACHE);
   await shell.put(path, response);
   const statics = await caches.open(STATIC_CACHE);
-  await Promise.all(
-    assetsOf(html).map(async (asset) => {
-      if (await statics.match(asset)) return;
-      try {
-        const file = await fetch(asset, { credentials: "same-origin" });
-        if (file.ok) await statics.put(asset, file);
-      } catch {
-        // Picked up later, the first time the page loads it.
-      }
-    }),
-  );
+  await eachLimited(assetsOf(html), 4, (asset) => cacheStatic(statics, asset));
 }
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     (async () => {
       const statics = await caches.open(STATIC_CACHE);
-      await Promise.all(
-        PRECACHE.filter((path) => path !== SHELL_PAGE && path !== OFFLINE_PAGE).map(
-          async (path) => {
-            try {
-              const response = await fetch(path, { credentials: "same-origin" });
-              if (response.ok) await statics.put(path, response);
-            } catch {
-              // Optional asset: cached on first use.
-            }
-          },
-        ),
+      await eachLimited(
+        PRECACHE.filter((path) => path !== SHELL_PAGE && path !== OFFLINE_PAGE),
+        4,
+        (path) => cacheStatic(statics, path),
       );
       await cachePage(SHELL_PAGE);
       await cachePage(OFFLINE_PAGE);

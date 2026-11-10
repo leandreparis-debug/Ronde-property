@@ -38,7 +38,10 @@ export interface SyncEngineDeps {
   clearTimer?: (handle: unknown) => void;
   /** The server refused the session: the owner decides (ask to sign in, wipe). */
   onAuthFailure?: (reason: SyncAuthFailure) => void;
-  /** Something was applied for this visit: the owner may refresh its snapshot. */
+  /**
+   * Something was applied, or refused, for this visit: the owner may refresh its snapshot (a
+   * refusal often means the visit changed: completed, deleted, rights withdrawn).
+   */
   onApplied?: (visitId: string) => void;
   /** Backoff after a failure: 1 s, 2 s, 4 s… up to 5 min by default. */
   backoff?: { baseMs: number; maxMs: number };
@@ -288,7 +291,7 @@ export function createSyncEngine(deps: SyncEngineDeps): SyncEngine {
         kept: await isKept(entry.visitId),
         now: new Date(now()).toISOString(),
       });
-      if (result.status === "applied") applied.add(entry.visitId);
+      if (result.status === "applied" || result.status === "rejected") applied.add(entry.visitId);
       if (result.status === "applied" && entry.photo && entry.photo.stage === "confirm") {
         publish({
           recent: [

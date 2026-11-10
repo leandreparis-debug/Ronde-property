@@ -279,12 +279,14 @@ export function SyncPanel() {
                     />
                     <span className="flex min-w-0 flex-1 flex-col">
                       <span className="truncate text-ui font-semibold text-ink">{entry.label}</span>
-                      <span className="truncate text-label text-ink-2">
-                        <Link href={`/visites/${entry.visitId}`} className="underline">
-                          {visitTitle(entry.visitId)}
-                        </Link>{" "}
-                        · {entryState(entry, online)}
-                      </span>
+                      <span className="text-label text-ink-2">{entryState(entry, online)}</span>
+                      <Link
+                        href={`/visites/${entry.visitId}`}
+                        onClick={() => setPanelOpen(false)}
+                        className="inline-flex min-h-11 max-w-full items-center self-start truncate text-label font-semibold text-brand-deep underline"
+                      >
+                        {visitTitle(entry.visitId)}
+                      </Link>
                     </span>
                     {entry.photo && entry.lastError ? (
                       <Button

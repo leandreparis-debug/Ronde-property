@@ -211,7 +211,7 @@ function FieldTable<T>({
     );
   }
   return (
-    <div className="overflow-x-auto">
+    <div className="relative overflow-x-auto">
       <table className="w-full border-collapse text-ui" data-testid="arbitration-fields">
         <caption className="sr-only">Champs qui diffèrent entre votre saisie et le serveur</caption>
         <thead>

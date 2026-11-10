@@ -39,15 +39,23 @@ function workerSupported(): boolean {
 export function createPhotoProcessor(options: { concurrency?: number } = {}): PhotoProcessor {
   const limit = createLimiter(options.concurrency ?? 2);
   let worker: Worker | null = null;
+  // Set once the worker could not run (its script unreachable offline, a crash): the next
+  // photos are processed on the main thread, which is slower but always available.
+  let workerFailed = false;
   let nextId = 1;
   const pending = new Map<
     number,
-    { resolve: (value: ProcessedPhoto) => void; reject: (error: Error) => void }
+    {
+      resolve: (value: ProcessedPhoto) => void;
+      reject: (error: Error) => void;
+      file: Blob;
+      filename: string | null;
+    }
   >();
 
   function getWorker(): Worker | null {
     if (worker) return worker;
-    if (!workerSupported()) return null;
+    if (workerFailed || !workerSupported()) return null;
     try {
       worker = new Worker(new URL("./process.worker.ts", import.meta.url), { type: "module" });
     } catch {
@@ -61,13 +69,16 @@ export function createPhotoProcessor(options: { concurrency?: number } = {}): Ph
       else entry.reject(new PhotoProcessingError(event.data.message));
     });
     worker.addEventListener("error", () => {
-      // The worker crashed: fail the jobs in flight and fall back to the main thread.
-      for (const entry of pending.values()) {
-        entry.reject(new PhotoProcessingError("Impossible de préparer l'image."));
-      }
+      // The worker could not load (offline, its script not cached yet) or crashed: the jobs in
+      // flight are processed on the main thread, and so are the next ones.
+      workerFailed = true;
+      const jobs = [...pending.values()];
       pending.clear();
       worker?.terminate();
       worker = null;
+      for (const job of jobs) {
+        processImageFile(job.file, job.filename ?? undefined).then(job.resolve, job.reject);
+      }
     });
     return worker;
   }
@@ -79,7 +90,7 @@ export function createPhotoProcessor(options: { concurrency?: number } = {}): Ph
         if (!target) return processImageFile(file, filename);
         return new Promise<ProcessedPhoto>((resolve, reject) => {
           const id = nextId++;
-          pending.set(id, { resolve, reject });
+          pending.set(id, { resolve, reject, file, filename: filename ?? null });
           const request: WorkerRequest = { id, file, filename: filename ?? null };
           target.postMessage(request);
         });
