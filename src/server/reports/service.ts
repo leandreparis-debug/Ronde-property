@@ -173,6 +173,9 @@ export function createReportService(
       ]);
     }
     const usedPlanIds = new Set(raw.markers.map((marker) => marker.planId));
+    // The exterior view is printed with the outlines as soon as the visit has markers.
+    const exterior = raw.views.find((view) => view.kind === "exterior" && !view.isArchived);
+    if (exterior && raw.markers.length > 0) usedPlanIds.add(exterior.planId);
     return {
       visit: {
         id: raw.visit.id,
@@ -212,6 +215,7 @@ export function createReportService(
         .map((plan) => {
           const markers = raw.markers.filter((marker) => marker.planId === plan.id);
           const markedPages = new Set(markers.map((marker) => marker.page));
+          if (exterior && exterior.planId === plan.id) markedPages.add(exterior.pageNumber);
           return {
             id: plan.id,
             name: plan.name,
@@ -230,6 +234,8 @@ export function createReportService(
             markers,
           };
         }),
+      buildings: raw.buildings,
+      views: raw.views,
       reserves: raw.reserves.map((reserve) => ({
         ...reserve,
         closedAt: reserve.closedAt?.toISOString() ?? null,

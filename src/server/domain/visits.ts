@@ -56,7 +56,8 @@ export interface IncompletePoint {
     | "markers"
     | "reserves-responsible"
     | "reserves-due"
-    | "reserves-photo";
+    | "reserves-photo"
+    | "to-sort";
   label: string;
   /** Id of the field to focus. */
   anchor: string;
@@ -73,8 +74,13 @@ export function incompletePoints(input: {
   filledZonesCount?: number;
   /** Ready photos without a caption; omit when the photos are not loaded. */
   uncaptionedPhotosCount?: number;
-  /** Plan markers of the visit without a photo; omit when the markers are not loaded. */
+  /**
+   * Plan markers of the visit without a photo (notes on the plan excluded); omit when the
+   * markers are not loaded.
+   */
   markersWithoutPhotoCount?: number;
+  /** Photos of « À ranger » (shutter of the plan screen, step 12 b); omit when not loaded. */
+  toSortPhotosCount?: number;
   /** Reserves not done of the visit; omit when the reserves are not loaded. */
   reserves?: { withoutResponsible: number; withoutDueDate: number; urgentWithoutPhoto: number };
 }): IncompletePoint[] {
@@ -105,6 +111,16 @@ export function incompletePoints(input: {
       label: markersWithoutPhotoLabel(input.markersWithoutPhotoCount),
       anchor: "plans",
       href: "?onglet=plans",
+    });
+  if (input.toSortPhotosCount)
+    points.push({
+      key: "to-sort",
+      label:
+        input.toSortPhotosCount > 1
+          ? `${input.toSortPhotosCount} photos à ranger`
+          : "1 photo à ranger",
+      anchor: "plans",
+      href: "?onglet=plans&a-ranger=1",
     });
   const reserves = input.reserves;
   if (reserves?.withoutResponsible)

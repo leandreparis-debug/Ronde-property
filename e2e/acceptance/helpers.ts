@@ -82,8 +82,27 @@ export async function addPhotos(page: Page, visitUrl: string, files: string[], e
   await expect(page.getByTestId("photo-tile")).toHaveCount(expected, { timeout: 60_000 });
 }
 
-/** Imports a plan on the page of a site (PDF or image) under the given name. */
-export async function importPlan(page: Page, siteCode: string, file: string, name: string) {
+/** Where the pages of an imported plan go (« Affecter les pages », step 12 b). */
+export interface PlanAssignment {
+  /** New building receiving the levels (a unique name keeps the tests independent). */
+  building: string;
+  /** Labels of the levels, one per page used as a level (« RDC » by default). */
+  levels?: string[];
+  /** Page 1 becomes the exterior view of the site. */
+  exteriorFirst?: boolean;
+}
+
+/**
+ * Imports a plan on the page of a site (PDF or image) under the given name, then assigns its
+ * pages: optionally the exterior view, then the levels of a new building.
+ */
+export async function importPlan(
+  page: Page,
+  siteCode: string,
+  file: string,
+  name: string,
+  assignment: PlanAssignment = { building: `Bât. ${name}` },
+) {
   await page.goto(`/sites/${siteCode}`);
   await page.getByTestId("open-plan-import").click();
   const dialog = page.getByTestId("import-plan-dialog");
@@ -92,15 +111,50 @@ export async function importPlan(page: Page, siteCode: string, file: string, nam
   await dialog.getByTestId("plan-name-input").fill(name);
   await dialog.getByTestId("start-plan-import").click();
   await expect(dialog).toHaveCount(0, { timeout: 90_000 });
+  await assignPages(page, assignment);
 }
 
-/** Opens a plan in the Plans tab of a visit, image loaded. */
-export async function openPlan(page: Page, visitUrl: string, planName: string) {
-  await page.goto(`${visitUrl}?onglet=plans`);
-  await expect(page.getByTestId("plans-tab")).toHaveAttribute("data-ready", "true");
-  await page.getByRole("button", { name: new RegExp(`Ouvrir le plan.*${planName}`) }).click();
+/** Fills « Affecter les pages » (open after an import) and saves it. */
+export async function assignPages(page: Page, assignment: PlanAssignment) {
+  const assign = page.getByTestId("assign-pages-dialog");
+  await expect(assign).toBeVisible({ timeout: 30_000 });
+  const rows = await assign.getByTestId("assign-page").count();
+  let level = 0;
+  for (let index = 1; index <= rows; index += 1) {
+    if (assignment.exteriorFirst && index === 1) {
+      await assign.getByTestId(`assign-target-${index}`).selectOption("exterior");
+      continue;
+    }
+    await assign.getByTestId(`assign-target-${index}`).selectOption("new");
+    await assign.getByTestId(`assign-building-name-${index}`).fill(assignment.building);
+    await assign
+      .getByTestId(`assign-label-${index}`)
+      .fill(assignment.levels?.[level] ?? (level === 0 ? "RDC" : `R+${level}`));
+    level += 1;
+  }
+  await assign.getByTestId("assign-submit").click();
+  await expect(assign).toHaveCount(0, { timeout: 30_000 });
+}
+
+/** Waits until the plan screen shows a view with its image loaded. */
+export async function viewLoaded(page: Page) {
   await expect(page.getByTestId("plan-page-image")).toBeVisible();
   await expect(page.getByTestId("plan-page-image")).toHaveJSProperty("complete", true);
+}
+
+/**
+ * Opens a level of a building on the plan screen of a visit (list of the buildings, then the
+ * building, then the level tab when it has several), image loaded.
+ */
+export async function openView(page: Page, visitUrl: string, building: string, level?: string) {
+  await page.goto(`${visitUrl}?vue=batiments`);
+  await expect(page.getByTestId("plan-screen")).toHaveAttribute("data-ready", "true");
+  await page.locator(`[data-testid=building-card][data-name="${building}"]`).click();
+  if (level) {
+    const tab = page.locator(`[data-testid=level-tab][data-label="${level}"]`);
+    if ((await tab.count()) > 0) await tab.click();
+  }
+  await viewLoaded(page);
 }
 
 /** Taps the plan at a fraction of the canvas (touch when the page has touch, else a click). */
@@ -115,11 +169,31 @@ export async function tapPlan(page: Page, fx: number, fy: number) {
   else await page.mouse.click(x, y);
 }
 
-/** Places a plain marker on the open plan. */
-export async function placeMarker(page: Page, fx: number, fy: number) {
-  await page.getByTestId("toggle-place-marker").click();
+/** Touches a control (tap with touch, click with a mouse). */
+export async function touch(page: Page, locator: ReturnType<Page["getByTestId"]>) {
+  const hasTouch = await page.evaluate(() => navigator.maxTouchPoints > 0);
+  if (hasTouch) await locator.tap();
+  else await locator.click();
+}
+
+/** Quick menu « Photo » at a point: the camera gives the file, the photo sheet opens. */
+export async function addPhotoOnPlan(page: Page, fx: number, fy: number, file: string) {
   await tapPlan(page, fx, fy);
-  await expect(page.getByTestId("marker-sheet")).toBeVisible();
+  await expect(page.getByTestId("quick-menu")).toBeVisible();
+  const chooser = page.waitForEvent("filechooser");
+  await touch(page, page.getByTestId("quick-photo"));
+  await (await chooser).setFiles(file);
+  await expect(page.getByTestId("photo-sheet")).toBeVisible({ timeout: 30_000 });
+}
+
+/** Quick menu « Note » at a point, with its text. */
+export async function addNoteOnPlan(page: Page, fx: number, fy: number, text: string) {
+  await tapPlan(page, fx, fy);
+  await expect(page.getByTestId("quick-menu")).toBeVisible();
+  await touch(page, page.getByTestId("quick-note"));
+  await page.getByTestId("note-text").fill(text);
+  await touch(page, page.getByTestId("note-save"));
+  await expect(page.getByTestId("note-sheet")).toHaveCount(0);
 }
 
 /** Clicks « Générer le rapport » and waits for the download and the storage. */

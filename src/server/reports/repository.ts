@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { sql } from "kysely";
 
 import type { ReportOptions } from "@/lib/report/options";
+import type { ReportData } from "@/lib/report/types";
 import { type Trx, type UserRef, withSystem, withUser } from "@/server/db/context";
 import type {
   ReservePriority,
@@ -81,10 +82,14 @@ export interface ReportRawData {
     x: number;
     y: number;
     number: number;
+    kind: "photo" | "note";
     label: string | null;
     photoId: string | null;
     reserveId: string | null;
   }>;
+  /** Buildings and views of the site (step 12 b), archived ones included. */
+  buildings: ReportData["buildings"];
+  views: ReportData["views"];
   plans: Array<{
     id: string;
     name: string;
@@ -163,6 +168,7 @@ async function readRawData(trx: Trx, user: UserRef, visitId: string): Promise<Re
     .leftJoin("profiles as w", "w.id", "v.writer_id")
     .select([
       "v.id",
+      "v.site_id",
       "v.title",
       "v.type",
       "v.reason",
@@ -220,7 +226,18 @@ async function readRawData(trx: Trx, user: UserRef, visitId: string): Promise<Re
       .execute(),
     trx
       .selectFrom("plan_markers")
-      .select(["id", "plan_id", "page", "x", "y", "number", "label", "photo_id", "reserve_id"])
+      .select([
+        "id",
+        "plan_id",
+        "page",
+        "x",
+        "y",
+        "number",
+        "kind",
+        "label",
+        "photo_id",
+        "reserve_id",
+      ])
       .where("visit_id", "=", visitId)
       .orderBy("plan_id")
       .orderBy("number")
@@ -262,8 +279,42 @@ async function readRawData(trx: Trx, user: UserRef, visitId: string): Promise<Re
     trx.selectFrom("profiles").select("full_name").where("id", "=", user.id).executeTakeFirst(),
   ]);
 
-  // Plans used by the visit (archived included), with the pages that carry markers.
-  const planIds = [...new Set(markers.map((marker) => marker.plan_id))];
+  // Structure of the site (step 12 b): the plans section follows the views (exterior view,
+  // buildings, levels) and draws the outlines of the buildings on the exterior view.
+  const [buildings, views] = await Promise.all([
+    trx
+      .selectFrom("site_buildings")
+      .select(["id", "name", "sort_order", "outline", "is_archived"])
+      .where("site_id", "=", visit.site_id)
+      .orderBy("sort_order")
+      .execute(),
+    trx
+      .selectFrom("site_views")
+      .select([
+        "id",
+        "kind",
+        "building_id",
+        "label",
+        "sort_order",
+        "plan_id",
+        "page_number",
+        "replaced_by",
+        "is_archived",
+      ])
+      .where("site_id", "=", visit.site_id)
+      .orderBy("sort_order")
+      .execute(),
+  ]);
+  const exteriorView = views.find((view) => view.kind === "exterior" && !view.is_archived);
+
+  // Plans used by the visit (archived included), with the pages that carry markers, and the
+  // plan of the exterior view.
+  const planIds = [
+    ...new Set([
+      ...markers.map((marker) => marker.plan_id),
+      ...(exteriorView && markers.length > 0 ? [exteriorView.plan_id] : []),
+    ]),
+  ];
   const [plans, pages] =
     planIds.length > 0
       ? await Promise.all([
@@ -330,9 +381,28 @@ async function readRawData(trx: Trx, user: UserRef, visitId: string): Promise<Re
       x: Number(m.x),
       y: Number(m.y),
       number: m.number,
+      kind: m.kind === "note" ? ("note" as const) : ("photo" as const),
       label: m.label,
       photoId: m.photo_id,
       reserveId: m.reserve_id,
+    })),
+    buildings: buildings.map((b) => ({
+      id: b.id,
+      name: b.name,
+      sortOrder: b.sort_order,
+      outline: Array.isArray(b.outline) ? (b.outline as Array<{ x: number; y: number }>) : null,
+      isArchived: b.is_archived,
+    })),
+    views: views.map((v) => ({
+      id: v.id,
+      kind: v.kind === "exterior" ? ("exterior" as const) : ("level" as const),
+      buildingId: v.building_id,
+      label: v.label,
+      sortOrder: v.sort_order,
+      planId: v.plan_id,
+      pageNumber: v.page_number,
+      replacedBy: v.replaced_by,
+      isArchived: v.is_archived,
     })),
     plans: plans.map((plan) => ({
       id: plan.id,

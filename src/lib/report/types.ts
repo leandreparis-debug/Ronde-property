@@ -48,9 +48,33 @@ export interface ReportMarkerData {
   x: number;
   y: number;
   number: number;
+  /** « note »: a note on the plan (step 12 b), its text in `label`. */
+  kind: "photo" | "note";
   label: string | null;
   photoId: string | null;
   reserveId: string | null;
+}
+
+/** A building of the site, with its outline on the exterior view (relative points). */
+export interface ReportBuildingData {
+  id: string;
+  name: string;
+  sortOrder: number;
+  outline: Array<{ x: number; y: number }> | null;
+  isArchived: boolean;
+}
+
+/** A view of the site: the exterior view or a level of a building, i.e. a page of a plan. */
+export interface ReportViewData {
+  id: string;
+  kind: "exterior" | "level";
+  buildingId: string | null;
+  label: string;
+  sortOrder: number;
+  planId: string;
+  pageNumber: number;
+  replacedBy: string | null;
+  isArchived: boolean;
 }
 
 /** A plan used by the visit (at least one marker), with the pages that carry markers. */
@@ -115,6 +139,9 @@ export interface ReportData {
   zones: Array<{ key: string; label: string; content: string }>;
   photos: ReportPhotoData[];
   plans: ReportPlanData[];
+  /** Buildings and views of the site: order and titles of the plans section. */
+  buildings: ReportBuildingData[];
+  views: ReportViewData[];
   reserves: ReportReserveData[];
   /** The report being generated: its number in the visit and its author. */
   report: { id: string | null; number: number; generatedByName: string; isDraft: boolean };

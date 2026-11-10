@@ -124,6 +124,21 @@ describe("incompletePoints", () => {
     ).toEqual([
       { key: "markers", label: "2 repères sans photo", anchor: "plans", href: "?onglet=plans" },
     ]);
+    expect(
+      incompletePoints({
+        writerId: "x",
+        subject: "Objet",
+        participantsCount: 2,
+        toSortPhotosCount: 3,
+      }),
+    ).toEqual([
+      {
+        key: "to-sort",
+        label: "3 photos à ranger",
+        anchor: "plans",
+        href: "?onglet=plans&a-ranger=1",
+      },
+    ]);
     expect(photos).toEqual([
       {
         key: "photos",

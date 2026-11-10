@@ -239,9 +239,18 @@ export function VisitPlanScreen({
   const showDone = searchParams.get("levees") === "afficher";
   const toSort = useMemo(() => data.photos.filter((photo) => photo.toSort), [data.photos]);
 
+  const screenRef = useRef<HTMLDivElement>(null);
   const go = useCallback((next: PlanLocation, options: { keepSheet?: boolean } = {}) => {
     setLocation(next);
     setMenu(null);
+    // The plan takes the whole screen once the RT moves in it: the header of the visit scrolls
+    // away, the breadcrumb stays right under the top bar.
+    requestAnimationFrame(() => {
+      const element = screenRef.current;
+      if (element && element.getBoundingClientRect().top > 80) {
+        element.scrollIntoView({ block: "start", behavior: "instant" });
+      }
+    });
     if (!options.keepSheet) setSheet((s) => (s?.kind === "to-sort" ? s : null));
     const params = new URLSearchParams(window.location.search);
     params.set("vue", locationParam(next));
@@ -294,6 +303,16 @@ export function VisitPlanScreen({
       setSheet(null);
     }
   }, [placeParam, canEdit, data.reserves]);
+
+  // `?a-ranger=1` (incomplete point « N photos à ranger »): open the drawer.
+  const toSortParam = searchParams.get("a-ranger");
+  useEffect(() => {
+    if (!toSortParam) return;
+    setSheet({ kind: "to-sort" });
+    const params = new URLSearchParams(window.location.search);
+    params.delete("a-ranger");
+    replaceQuery(params);
+  }, [toSortParam]);
 
   // `?repere=` (legacy links, photo viewer, reserve detail): centre and open that marker.
   const repereParam = searchParams.get("repere");
@@ -680,7 +699,8 @@ export function VisitPlanScreen({
           if (patch.zoneKey) setLastZone(sheet.viewId, patch.zoneKey);
           void mutations.updatePhoto(sheet.photoId, patch, patch.caption).then(report);
         }}
-        onMakeReserve={() =>
+        onMakeReserve={() => {
+          setSheet(null);
           setReserveDraft({
             target: {
               kind: "create",
@@ -688,8 +708,8 @@ export function VisitPlanScreen({
               photoIds: [sheet.photoId],
             },
             attachMarkerId: sheet.markerId,
-          })
-        }
+          });
+        }}
         onClose={() => setSheet(null)}
       />
     );
@@ -857,7 +877,8 @@ export function VisitPlanScreen({
 
   return (
     <div
-      className="flex flex-col gap-2"
+      ref={screenRef}
+      className="flex scroll-mt-16 flex-col gap-2"
       data-testid="plan-screen"
       data-ready={ready ? "true" : undefined}
       data-thumb-side={side}
@@ -962,7 +983,7 @@ export function VisitPlanScreen({
                 showNumbers
                 canDragMarkers={canEdit}
                 initialTransform={memory.get(current.view.id)}
-                sizeClassName="h-[calc(100dvh-15rem)] min-h-[320px] lg:h-[calc(100dvh-12rem)]"
+                sizeClassName="h-[calc(100dvh-19rem)] min-h-[320px] lg:h-[calc(100dvh-14rem)]"
                 label={canvasLabel}
                 onTapPlan={(point, screen) => void tapPlan(point, screen)}
                 onSelectMarker={(marker) => {

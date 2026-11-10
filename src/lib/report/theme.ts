@@ -18,6 +18,8 @@ export const REPORT_COLORS = {
   craie: "#f6f6f4",
   galet: "#e9e9e6",
   rule: "#e4e4e0",
+  note: "#ffd84a",
+  "note-ink": "#4a3b00",
   "status-open": "#c0341f",
   "status-open-bg": "#fde4de",
   "status-open-dot": "#d63a22",

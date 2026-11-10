@@ -1,5 +1,6 @@
 import { formatDate, TIME_ZONE } from "@/lib/format";
 import { isZoneFilled, type NoteBlock, parseNoteContent } from "@/lib/notes/format";
+import { orderViews, viewTitle } from "@/lib/plans/structure";
 import { overdueLabel } from "@/lib/reserves/dates";
 import { sortReserves } from "@/lib/reserves/list";
 import {
@@ -12,7 +13,13 @@ import {
 
 import { chunk } from "./layout";
 import type { ReportOptions } from "./options";
-import type { ReportData, ReportImage, ReportPhotoData, ReportReserveData } from "./types";
+import type {
+  ReportData,
+  ReportImage,
+  ReportPhotoData,
+  ReportPlanData,
+  ReportReserveData,
+} from "./types";
 
 /*
  * buildReportModel: a pure function from the frozen data, the options and the generation time
@@ -72,7 +79,7 @@ export interface ZoneSection {
 
 /** A marker drawn on a plan page. */
 export interface PlanMarkerItem {
-  kind: "photo" | "reserve";
+  kind: "photo" | "reserve" | "note";
   /** « 3 » or « R-07 ». */
   label: string;
   x: number;
@@ -85,15 +92,24 @@ export interface PlanMarkerItem {
 /** One printed page of a plan. */
 export interface PlanPageSection {
   planId: string;
-  /** « Plan A ». */
+  /** « Vue extérieure », « Bâtiment B · R+1 », or « Plan A » for a page assigned to no view. */
   title: string;
+  /** The page is a view of the site (its title says where); otherwise « Plan A · name · page N ». */
+  isView: boolean;
   planName: string;
   isArchived: boolean;
   pageNumber: number;
   pageCount: number;
   image: ReportImage;
   markers: PlanMarkerItem[];
-  legend: Array<{ label: string; kind: "photo" | "reserve"; text: string; ref: string | null }>;
+  /** Outlines of the buildings, drawn on the exterior view (relative points). */
+  outlines: Array<{ name: string; points: Array<{ x: number; y: number }> }>;
+  legend: Array<{
+    label: string;
+    kind: "photo" | "reserve" | "note";
+    text: string;
+    ref: string | null;
+  }>;
 }
 
 /** Everything the PDF prints. */
@@ -339,85 +355,159 @@ export function buildReportModel(dto: ReportData, options: ReportOptions, now: D
       : null;
 
   // ---- Plans ------------------------------------------------------------------------------
+  // Printed in the order of the site (step 12 b): the exterior view with the outlines of the
+  // buildings, then each building with its levels from the bottom up (« Bâtiment B · R+1 »).
+  // A page assigned to no view keeps the former title « Plan A ».
   const plans: PlanPageSection[] = [];
   const planRefByReserve = new Map<string, string>();
   if (sections.has("plans")) {
-    dto.plans
-      .filter((plan) => plan.markers.length > 0)
-      .forEach((plan, index) => {
-        const title = `Plan ${planLetter(index)}`;
-        const pages = [...new Set(plan.markers.map((marker) => marker.page))].sort((a, b) => a - b);
-        for (const pageNumber of pages) {
-          const page = plan.pages.find((p) => p.pageNumber === pageNumber);
-          const markers = plan.markers
-            .filter((marker) => marker.page === pageNumber)
-            .filter((marker) => {
-              const reserve = marker.reserveId ? reserveById.get(marker.reserveId) : null;
-              return !reserve || options.includeDoneReserves || reserve.status !== "done";
-            })
-            .sort((a, b) => a.number - b.number);
-          if (markers.length === 0) continue;
-          const items: PlanMarkerItem[] = [];
-          const legend: PlanPageSection["legend"] = [];
-          for (const marker of markers) {
-            const reserve = marker.reserveId ? reserveById.get(marker.reserveId) : null;
-            if (reserve) {
-              planRefByReserve.set(reserve.id, `${title}, ${reserve.code}`);
-              items.push({
-                kind: "reserve",
-                label: reserve.code,
-                x: marker.x,
-                y: marker.y,
-                hasPhoto: false,
-                reserveStatus: reserve.status,
-                isOverdue: reserve.isOverdue,
-              });
-              const figuresOfReserve = reserve.photoIds
-                .map((id) => figureByPhoto.get(id)?.label)
-                .filter(Boolean);
-              legend.push({
-                label: reserve.code,
-                kind: "reserve",
-                text: pdfText(reserve.action),
-                ref: figuresOfReserve.length > 0 ? figuresOfReserve.join(", ") : null,
-              });
-            } else {
-              items.push({
-                kind: "photo",
-                label: String(marker.number),
-                x: marker.x,
-                y: marker.y,
-                hasPhoto: Boolean(marker.photoId),
-                reserveStatus: null,
-                isOverdue: false,
-              });
-              const figure = marker.photoId ? figureByPhoto.get(marker.photoId) : undefined;
-              legend.push({
-                label: String(marker.number),
-                kind: "photo",
-                text: pdfText(marker.label) || (figure ? figure.caption : "Repère sans libellé"),
-                ref: figure ? figure.label : null,
-              });
-            }
-          }
-          plans.push({
-            planId: plan.id,
-            title,
-            planName: pdfText(plan.name),
-            isArchived: plan.isArchived,
-            pageNumber,
-            pageCount: plan.pages.length,
-            image: page?.image ?? {
-              key: `page:${plan.id}:${pageNumber}`,
-              url: null,
-              width: null,
-              height: null,
-            },
-            markers: items,
-            legend,
+    const views = dto.views;
+    const buildings = dto.buildings;
+    const viewOfPage = (planId: string, pageNumber: number) => {
+      const candidates = views.filter((v) => v.planId === planId && v.pageNumber === pageNumber);
+      return candidates.find((v) => !v.isArchived) ?? candidates[0] ?? null;
+    };
+    const unassigned = dto.plans.filter((plan) =>
+      plan.markers.some((marker) => !viewOfPage(plan.id, marker.page)),
+    );
+    const letterOf = new Map(unassigned.map((plan, index) => [plan.id, planLetter(index)]));
+    const exterior = views.find((v) => v.kind === "exterior" && !v.isArchived) ?? null;
+    const outlines = buildings
+      .filter((b) => !b.isArchived && b.outline && b.outline.length >= 3)
+      .map((b) => ({ name: pdfText(b.name), points: b.outline! }));
+
+    interface Printed {
+      plan: ReportPlanData;
+      pageNumber: number;
+      title: string;
+      rank: number;
+      isExterior: boolean;
+      isView: boolean;
+    }
+    const printed: Printed[] = [];
+    const ordered = orderViews(views, buildings);
+    const rankOf = new Map(ordered.map((view, index) => [view.id, index]));
+    for (const plan of dto.plans) {
+      const pages = new Set(plan.markers.map((marker) => marker.page));
+      if (
+        exterior &&
+        exterior.planId === plan.id &&
+        outlines.length > 0 &&
+        dto.plans.some((p) => p.markers.length > 0)
+      ) {
+        pages.add(exterior.pageNumber);
+      }
+      for (const pageNumber of pages) {
+        const view = viewOfPage(plan.id, pageNumber);
+        printed.push({
+          plan,
+          pageNumber,
+          title: view
+            ? viewTitle(view, buildings) +
+              (view.isArchived && view.replacedBy ? " (ancienne image)" : "")
+            : `Plan ${letterOf.get(plan.id) ?? "?"}`,
+          rank: view ? (rankOf.get(view.id) ?? 0) : Number.MAX_SAFE_INTEGER,
+          isExterior: view?.kind === "exterior",
+          isView: view !== null,
+        });
+      }
+    }
+    const planOrder = new Map(dto.plans.map((plan, index) => [plan.id, index]));
+    printed.sort(
+      (a, b) =>
+        a.rank - b.rank ||
+        (planOrder.get(a.plan.id) ?? 0) - (planOrder.get(b.plan.id) ?? 0) ||
+        a.pageNumber - b.pageNumber,
+    );
+
+    for (const { plan, pageNumber, title, isExterior, isView } of printed) {
+      const page = plan.pages.find((p) => p.pageNumber === pageNumber);
+      const markers = plan.markers
+        .filter((marker) => marker.page === pageNumber)
+        .filter((marker) => {
+          const reserve = marker.reserveId ? reserveById.get(marker.reserveId) : null;
+          return !reserve || options.includeDoneReserves || reserve.status !== "done";
+        })
+        .sort((a, b) => a.number - b.number);
+      if (markers.length === 0 && !isExterior) continue;
+      const items: PlanMarkerItem[] = [];
+      const legend: PlanPageSection["legend"] = [];
+      for (const marker of markers) {
+        const reserve = marker.reserveId ? reserveById.get(marker.reserveId) : null;
+        if (reserve) {
+          planRefByReserve.set(reserve.id, `${title}, ${reserve.code}`);
+          items.push({
+            kind: "reserve",
+            label: reserve.code,
+            x: marker.x,
+            y: marker.y,
+            hasPhoto: false,
+            reserveStatus: reserve.status,
+            isOverdue: reserve.isOverdue,
+          });
+          const figuresOfReserve = reserve.photoIds
+            .map((id) => figureByPhoto.get(id)?.label)
+            .filter(Boolean);
+          legend.push({
+            label: reserve.code,
+            kind: "reserve",
+            text: pdfText(reserve.action),
+            ref: figuresOfReserve.length > 0 ? figuresOfReserve.join(", ") : null,
+          });
+        } else if (marker.kind === "note") {
+          items.push({
+            kind: "note",
+            label: String(marker.number),
+            x: marker.x,
+            y: marker.y,
+            hasPhoto: false,
+            reserveStatus: null,
+            isOverdue: false,
+          });
+          legend.push({
+            label: String(marker.number),
+            kind: "note",
+            text: pdfText(marker.label) || "Note",
+            ref: null,
+          });
+        } else {
+          items.push({
+            kind: "photo",
+            label: String(marker.number),
+            x: marker.x,
+            y: marker.y,
+            hasPhoto: Boolean(marker.photoId),
+            reserveStatus: null,
+            isOverdue: false,
+          });
+          const figure = marker.photoId ? figureByPhoto.get(marker.photoId) : undefined;
+          legend.push({
+            label: String(marker.number),
+            kind: "photo",
+            text: pdfText(marker.label) || (figure ? figure.caption : "Repère sans libellé"),
+            ref: figure ? figure.label : null,
           });
         }
+      }
+      plans.push({
+        planId: plan.id,
+        title,
+        isView,
+        planName: pdfText(plan.name),
+        isArchived: plan.isArchived,
+        pageNumber,
+        pageCount: plan.pages.length,
+        image: page?.image ?? {
+          key: `page:${plan.id}:${pageNumber}`,
+          url: null,
+          width: null,
+          height: null,
+        },
+        markers: items,
+        outlines: isExterior ? outlines : [],
+        legend,
       });
+    }
   }
 
   // ---- Reserves table ---------------------------------------------------------------------

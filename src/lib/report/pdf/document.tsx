@@ -3,6 +3,7 @@ import {
   Image as PdfImage,
   Page,
   Path,
+  Polygon,
   Rect,
   Circle,
   StyleSheet,
@@ -14,7 +15,7 @@ import type { ReactNode } from "react";
 
 import { GALET_BODY_PATH } from "@/components/brand/Galet";
 import { TRAIL_PATH } from "@/components/brand/Trail";
-import { PIN_PATH, RESERVE_PATH } from "@/lib/plans/pins";
+import { NOTE_PATH, PIN_PATH, RESERVE_PATH } from "@/lib/plans/pins";
 
 import {
   CAPTION_HEIGHT,
@@ -825,6 +826,15 @@ function MarkerDrawing({ marker }: { marker: PlanMarkerItem }) {
       </Svg>
     );
   }
+  if (marker.kind === "note") {
+    return (
+      <Svg viewBox="0 0 36 36" width={PDF_MARKER_SIZE} height={PDF_MARKER_SIZE}>
+        <Path d={NOTE_PATH} fill={C.note} stroke={C["note-ink"]} strokeWidth={2} />
+        <Rect x={9} y={10} width={16} height={2.4} rx={1.2} fill={C["note-ink"]} />
+        <Rect x={9} y={16} width={12} height={2.4} rx={1.2} fill={C["note-ink"]} />
+      </Svg>
+    );
+  }
   const eye = marker.hasPhoto ? C["on-brand"] : C.brand;
   return (
     <Svg viewBox="0 0 36 36" width={PDF_MARKER_SIZE} height={PDF_MARKER_SIZE}>
@@ -875,8 +885,9 @@ function PlanPage({
       <Frame model={model} section={section} />
       <View style={{ height: titleHeight }}>
         <Text style={[styles.h1, { fontSize: 14, marginBottom: 0 }]}>
-          {plan.title} · {plan.planName}
-          {plan.pageCount > 1 ? ` · page ${plan.pageNumber}` : ""}
+          {plan.title}
+          {plan.isView ? "" : ` · ${plan.planName}`}
+          {!plan.isView && plan.pageCount > 1 ? ` · page ${plan.pageNumber}` : ""}
           {plan.isArchived ? " (archivé)" : ""}
         </Text>
       </View>
@@ -897,6 +908,49 @@ function PlanPage({
             <Text>Plan indisponible</Text>
           </View>
         )}
+        {plan.outlines.length > 0 ? (
+          <Svg
+            width={fitted.width}
+            height={fitted.height}
+            style={{ position: "absolute", left: 0, top: 0 }}
+          >
+            {plan.outlines.map((outline) => (
+              <Polygon
+                key={outline.name}
+                points={outline.points
+                  .map((p) => `${p.x * fitted.width},${p.y * fitted.height}`)
+                  .join(" ")}
+                fill={C.brand}
+                fillOpacity={0.12}
+                stroke={C["brand-deep"]}
+                strokeWidth={1.5}
+              />
+            ))}
+          </Svg>
+        ) : null}
+        {plan.outlines.map((outline) => {
+          const cx = outline.points.reduce((sum, p) => sum + p.x, 0) / outline.points.length;
+          const cy = outline.points.reduce((sum, p) => sum + p.y, 0) / outline.points.length;
+          return (
+            <Text
+              key={`label-${outline.name}`}
+              style={{
+                position: "absolute",
+                left: cx * fitted.width - 40,
+                top: cy * fitted.height - 6,
+                width: 80,
+                textAlign: "center",
+                fontSize: 8,
+                fontWeight: 600,
+                color: C["brand-deep"],
+                backgroundColor: C.paper,
+                borderRadius: 4,
+              }}
+            >
+              {outline.name}
+            </Text>
+          );
+        })}
         {plan.markers.map((marker, index) => {
           const position = markerBox({ x: marker.x, y: marker.y }, fitted, page);
           const left = position.left - fitted.left;
@@ -914,7 +968,12 @@ function PlanPage({
                   backgroundColor: C.paper,
                   color: C.ink,
                   borderWidth: 0.6,
-                  borderColor: marker.kind === "reserve" ? C.ink : C.brand,
+                  borderColor:
+                    marker.kind === "reserve"
+                      ? C.ink
+                      : marker.kind === "note"
+                        ? C["note-ink"]
+                        : C.brand,
                   borderRadius: 4,
                   paddingHorizontal: 2,
                 }}
@@ -942,10 +1001,19 @@ function PlanPage({
                 width: 32,
                 fontSize: SIZES.small,
                 fontWeight: 600,
-                color: item.kind === "reserve" ? C["status-open"] : C["brand-deep"],
+                color:
+                  item.kind === "reserve"
+                    ? C["status-open"]
+                    : item.kind === "note"
+                      ? C["note-ink"]
+                      : C["brand-deep"],
               }}
             >
-              {item.kind === "reserve" ? item.label : `n° ${item.label}`}
+              {item.kind === "reserve"
+                ? item.label
+                : item.kind === "note"
+                  ? `Note ${item.label}`
+                  : `n° ${item.label}`}
             </Text>
             <Text style={{ flex: 1, fontSize: SIZES.small }}>
               {item.text}

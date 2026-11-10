@@ -23,6 +23,8 @@ export interface VisitInformationTabProps {
   uncaptionedPhotosCount: number;
   /** Plan markers without a photo (« N repères sans photo »). */
   markersWithoutPhotoCount: number;
+  /** Photos of « À ranger » (« N photos à ranger »). */
+  toSortPhotosCount?: number;
   /** Reserves not done without responsible, without due date, urgent without photo. */
   reserveCounts?: {
     withoutResponsible: number;
@@ -40,6 +42,7 @@ export function VisitInformationTab({
   filledZonesCount,
   uncaptionedPhotosCount,
   markersWithoutPhotoCount,
+  toSortPhotosCount,
   reserveCounts,
 }: VisitInformationTabProps) {
   const canEdit = visit.permissions.canEdit;
@@ -50,6 +53,7 @@ export function VisitInformationTab({
     filledZonesCount,
     uncaptionedPhotosCount,
     markersWithoutPhotoCount,
+    toSortPhotosCount,
     reserves: reserveCounts,
   });
 

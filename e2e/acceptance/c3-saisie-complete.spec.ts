@@ -6,20 +6,23 @@
 import { expect, test } from "../helpers/csp";
 
 import {
+  addNoteOnPlan,
+  addPhotoOnPlan,
   addPhotos,
   computerAndTablet,
   createReserve,
   createVisit,
   IMG,
   importPlan,
-  openPlan,
+  openView,
   PLAN,
-  placeMarker,
   tapPlan,
+  viewLoaded,
   writeNote,
 } from "./helpers";
 
 const PLAN_NAME = `Plan C3 ${Date.now().toString(36)}`;
+const BUILDING = `Bât. C3 ${Date.now().toString(36)}`;
 
 test("C3 · notes à puces, photos avec photo de garde, plan et repères, réserves, sur tablette", async ({
   browser,
@@ -29,7 +32,9 @@ test("C3 · notes à puces, photos avec photo de garde, plan et repères, réser
   await computer.close();
   const page = await tablet.newPage();
 
-  await importPlan(page, "TEST-003", PLAN("plan-5000x3500.png"), PLAN_NAME);
+  await importPlan(page, "TEST-003", PLAN("plan-5000x3500.png"), PLAN_NAME, {
+    building: BUILDING,
+  });
   const visitUrl = await createVisit(page, "TEST-003", "Visite C3 Marseille");
 
   // Notes de trois zones, avec des puces.
@@ -54,11 +59,11 @@ test("C3 · notes à puces, photos avec photo de garde, plan et repères, réser
   await viewer.getByRole("button", { name: "Fermer la visionneuse" }).click();
   await expect(page).not.toHaveURL(/photo=/);
 
-  // Un plan importé avec deux repères.
-  await openPlan(page, visitUrl, PLAN_NAME);
-  await placeMarker(page, 0.25, 0.3);
-  await page.getByRole("button", { name: "Fermer la feuille du repère" }).click();
-  await placeMarker(page, 0.7, 0.6);
+  // Sur l'écran Plan (étape 12 b) : une photo placée et une note, par le menu rapide.
+  await openView(page, visitUrl, BUILDING);
+  await addPhotoOnPlan(page, 0.25, 0.3, IMG("gradient.png"));
+  await page.getByTestId("photo-sheet-done").tap();
+  await addNoteOnPlan(page, 0.7, 0.6, "Odeur de gaz près du local de charge");
 
   // Trois réserves, dont une placée sur le plan.
   await createReserve(page, visitUrl, "Remplacer le butoir 4", {
@@ -73,9 +78,15 @@ test("C3 · notes à puces, photos avec photo de garde, plan et repères, réser
     .getByTestId("reserve-card-link")
     .click();
   await page.getByTestId("reserve-place").click();
-  await page.getByRole("button", { name: new RegExp(`Ouvrir le plan.*${PLAN_NAME}`) }).click();
-  await expect(page.getByTestId("place-reserve-hint")).toBeVisible();
-  await expect(page.getByTestId("plan-page-image")).toHaveJSProperty("complete", true);
+  await expect(page.getByTestId("placing-hint")).toBeVisible();
+  // The placement survives the navigation to the building.
+  await page.getByTestId("plan-screen").waitFor();
+  if ((await page.locator(`[data-testid=building-card][data-name="${BUILDING}"]`).count()) === 0) {
+    await page.goto(`${page.url()}&vue=batiments`);
+  }
+  await page.locator(`[data-testid=building-card][data-name="${BUILDING}"]`).click();
+  await viewLoaded(page);
+  await expect(page.getByTestId("placing-hint")).toBeVisible();
   await tapPlan(page, 0.5, 0.45);
   await expect(page.getByTestId("reserve-plan-link")).toContainText(PLAN_NAME);
 
@@ -85,10 +96,12 @@ test("C3 · notes à puces, photos avec photo de garde, plan et repères, réser
     await expect(page.getByTestId("zone-textarea")).toHaveValue(text);
   }
   await page.goto(`${visitUrl}?onglet=photos`);
-  await expect(page.getByTestId("photo-tile")).toHaveCount(3);
+  await expect(page.getByTestId("photo-tile")).toHaveCount(4);
   await expect(page.getByTestId("cover-star")).toHaveCount(1);
-  await openPlan(page, visitUrl, PLAN_NAME);
+  await openView(page, visitUrl, BUILDING);
   await expect(page.getByTestId("plan-marker")).toHaveCount(3);
+  await expect(page.locator("[data-testid=plan-marker][data-kind=note]")).toHaveCount(1);
+  await expect(page.locator("[data-testid=plan-marker][data-kind=photo]")).toHaveCount(1);
   await expect(page.locator("[data-testid=plan-marker][data-reserve]")).toHaveCount(1);
   await page.goto(`${visitUrl}?onglet=reserves`);
   await expect(page.getByTestId("reserve-card")).toHaveCount(3);

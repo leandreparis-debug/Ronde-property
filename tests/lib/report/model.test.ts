@@ -203,3 +203,96 @@ describe("helpers", () => {
     expect(pdfText(null)).toBe("");
   });
 });
+
+describe("buildReportModel · plans in the order of the site (step 12 b)", () => {
+  it("prints the exterior view with the outlines, then each building from the bottom up", () => {
+    const planId = tid("7", 9);
+    const image = (n: number) => ({
+      key: `page:${planId}:${n}`,
+      url: `https://images.test/p${n}.png`,
+      width: 3500,
+      height: 2475,
+    });
+    const marker = (n: number, page: number, kind: "photo" | "note" = "photo") => ({
+      id: tid("8", 90 + n),
+      planId,
+      page,
+      x: 0.5,
+      y: 0.5,
+      number: n,
+      kind,
+      label: kind === "note" ? "Odeur de gaz" : null,
+      photoId: null,
+      reserveId: null,
+    });
+    const view = (
+      id: string,
+      kind: "exterior" | "level",
+      buildingId: string | null,
+      label: string,
+      sortOrder: number,
+      pageNumber: number,
+    ) => ({
+      id,
+      kind,
+      buildingId,
+      label,
+      sortOrder,
+      planId,
+      pageNumber,
+      replacedBy: null,
+      isArchived: false,
+    });
+    const data = emptyData({
+      plans: [
+        {
+          id: planId,
+          name: "Plan général",
+          isArchived: false,
+          pages: [1, 2, 3, 4].map((n) => ({ pageNumber: n, image: image(n) })),
+          markers: [marker(1, 4), marker(2, 2, "note"), marker(3, 3)],
+        },
+      ],
+      buildings: [
+        {
+          id: "B",
+          name: "Bâtiment B",
+          sortOrder: 1,
+          outline: [
+            { x: 0.5, y: 0.1 },
+            { x: 0.9, y: 0.1 },
+            { x: 0.9, y: 0.5 },
+          ],
+          isArchived: false,
+        },
+        { id: "A", name: "Bâtiment A", sortOrder: 0, outline: null, isArchived: false },
+      ],
+      views: [
+        view("ext", "exterior", null, "Vue extérieure", 0, 1),
+        view("b1", "level", "B", "R+1", 1, 2),
+        view("b0", "level", "B", "RDC", 0, 4),
+        view("a0", "level", "A", "RDC", 0, 3),
+      ],
+    });
+    const model = buildReportModel(data, DEFAULT_REPORT_OPTIONS, NOW);
+    expect(model.plans.map((p) => p.title)).toEqual([
+      "Vue extérieure",
+      "Bâtiment A · RDC",
+      "Bâtiment B · RDC",
+      "Bâtiment B · R+1",
+    ]);
+    expect(model.plans[0]?.outlines).toEqual([
+      { name: "Bâtiment B", points: data.buildings[0]!.outline },
+    ]);
+    expect(model.plans[0]?.markers).toEqual([]);
+    expect(model.plans.every((p) => p.isView)).toBe(true);
+    const notes = model.plans[3]!;
+    expect(notes.markers[0]?.kind).toBe("note");
+    expect(notes.legend).toEqual([{ label: "2", kind: "note", text: "Odeur de gaz", ref: null }]);
+  });
+
+  it("keeps « Plan A » for a page assigned to no view", () => {
+    const model = build();
+    expect(model.plans[0]).toMatchObject({ title: "Plan A", isView: false, outlines: [] });
+  });
+});

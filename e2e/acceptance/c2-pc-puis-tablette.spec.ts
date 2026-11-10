@@ -5,21 +5,22 @@
 import { expect, test } from "../helpers/csp";
 
 import {
+  addNoteOnPlan,
   addPhotos,
   computerAndTablet,
   createReserve,
   createVisit,
   IMG,
   importPlan,
-  openPlan,
+  openView,
   PLAN,
-  placeMarker,
   writeNote,
 } from "./helpers";
 
 test.describe.configure({ mode: "serial" });
 
 const PLAN_NAME = `Plan C2 ${Date.now().toString(36)}`;
+const BUILDING = `Bât. C2 ${Date.now().toString(36)}`;
 
 test("C2 · commencée sur PC, poursuivie sur tablette, retrouvée sur PC, sans perte", async ({
   browser,
@@ -30,7 +31,7 @@ test("C2 · commencée sur PC, poursuivie sur tablette, retrouvée sur PC, sans 
   const tab = await tablet.newPage();
 
   // Sur le PC : informations, deux notes, une réserve (et le plan du site importé).
-  await importPlan(pc, "TEST-002", PLAN("plan-5000x3500.png"), PLAN_NAME);
+  await importPlan(pc, "TEST-002", PLAN("plan-5000x3500.png"), PLAN_NAME, { building: BUILDING });
   const visitUrl = await createVisit(pc, "TEST-002", "Visite C2 Lille");
   await pc.fill("#visit-subject", "Contrôle commencé au bureau.");
   await pc.locator("#visit-subject").blur();
@@ -39,8 +40,8 @@ test("C2 · commencée sur PC, poursuivie sur tablette, retrouvée sur PC, sans 
   await writeNote(pc, visitUrl, "docks", "Quais : rendez-vous à 14 h.");
   await createReserve(pc, visitUrl, "Réserve saisie sur PC", { priority: "high" });
 
-  // Sur la tablette : tout est là, puis photo, repère et réserve.
-  await tab.goto(visitUrl);
+  // Sur la tablette : tout est là, puis photo, note sur le plan et réserve.
+  await tab.goto(`${visitUrl}?onglet=information`);
   await expect(tab.locator("#visit-subject")).toHaveValue("Contrôle commencé au bureau.");
   await tab.goto(`${visitUrl}?onglet=notes&zone=roof`);
   await expect(tab.getByTestId("zone-textarea")).toHaveValue(
@@ -53,8 +54,8 @@ test("C2 · commencée sur PC, poursuivie sur tablette, retrouvée sur PC, sans 
     tab.getByTestId("reserve-card").filter({ hasText: "Réserve saisie sur PC" }),
   ).toBeVisible();
   await addPhotos(tab, visitUrl, [IMG("shapes.webp")], 1);
-  await openPlan(tab, visitUrl, PLAN_NAME);
-  await placeMarker(tab, 0.4, 0.5);
+  await openView(tab, visitUrl, BUILDING);
+  await addNoteOnPlan(tab, 0.4, 0.5, "Note posée sur la tablette");
   await createReserve(tab, visitUrl, "Réserve saisie sur tablette", { priority: "urgent" });
 
   // De retour sur le PC, après rechargement : tout y est.
@@ -64,8 +65,8 @@ test("C2 · commencée sur PC, poursuivie sur tablette, retrouvée sur PC, sans 
   }
   await pc.goto(`${visitUrl}?onglet=photos`);
   await expect(pc.getByTestId("photo-tile")).toHaveCount(1);
-  await openPlan(pc, visitUrl, PLAN_NAME);
-  await expect(pc.getByTestId("plan-marker")).toHaveCount(1);
+  await openView(pc, visitUrl, BUILDING);
+  await expect(pc.locator("[data-testid=plan-marker][data-kind=note]")).toHaveCount(1);
   await pc.goto(`${visitUrl}?onglet=notes&zone=roof`);
   await expect(pc.getByTestId("zone-textarea")).toHaveValue(/Lanterneau 2 à vérifier$/);
 

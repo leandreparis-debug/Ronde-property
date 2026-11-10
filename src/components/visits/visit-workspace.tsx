@@ -56,6 +56,7 @@ function useDerived(data: VisitData) {
         !marker.reserve &&
         (!marker.photoId || !photoIds.has(marker.photoId)),
     ).length;
+    const toSortPhotosCount = photos.filter((photo) => photo.toSort).length;
     const reserveCounts = reserveIncompleteCounts(reserves);
     const reservesByZone: Record<string, { open: number; done: number }> = {};
     for (const reserve of reserves) {
@@ -89,12 +90,14 @@ function useDerived(data: VisitData) {
       filledZonesCount,
       uncaptionedPhotosCount,
       markersWithoutPhotoCount,
+      toSortPhotosCount,
       reserves: reserveCounts,
     });
     return {
       filledZonesCount,
       uncaptionedPhotosCount,
       markersWithoutPhotoCount,
+      toSortPhotosCount,
       reserveCounts,
       reservesByZone,
       reservesByPhoto,
@@ -228,6 +231,7 @@ function VisitScreen({ snapshot }: { snapshot: VisitSnapshot | null }) {
             filledZonesCount={derived.filledZonesCount}
             uncaptionedPhotosCount={derived.uncaptionedPhotosCount}
             markersWithoutPhotoCount={derived.markersWithoutPhotoCount}
+            toSortPhotosCount={derived.toSortPhotosCount}
             reserveCounts={derived.reserveCounts}
           />
         }
