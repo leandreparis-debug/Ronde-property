@@ -110,7 +110,7 @@ export function VisitInfoForm({ visit, writers }: VisitInfoFormProps) {
       }
       inFlight.current = true;
       setStatus({ kind: "saving" });
-      const result = await mutations.saveVisit(parsed.data);
+      const result = await mutations.saveVisit(parsed.data, visit.version);
       inFlight.current = false;
       if (result.ok) {
         lastSaved.current = serialized;
@@ -132,7 +132,7 @@ export function VisitInfoForm({ visit, writers }: VisitInfoFormProps) {
         void save(queued);
       }
     },
-    [conflict, setConflict, mutations],
+    [conflict, setConflict, mutations, visit.version],
   );
 
   const scheduleSave = useCallback(

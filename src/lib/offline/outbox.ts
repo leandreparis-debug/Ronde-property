@@ -13,6 +13,11 @@ export interface NewOperation<K extends SyncKind = SyncKind> {
   baseVersion?: number;
   /** `visit:<id>`, `note:<id>` or `reserve:<id>` for versioned operations. */
   versionScope?: string;
+  /**
+   * Version the screen shows, used only when the local copy does not hold the entity yet (a
+   * change made right after the page appeared, before the snapshot is written to the store).
+   */
+  fallbackVersion?: number;
   label: string;
   /** Photo pipeline state (photo.create only). */
   photo?: OutboxEntry["photo"];
@@ -190,7 +195,8 @@ export async function enqueueOperation(
 ): Promise<EnqueueOutcome> {
   return db.transaction("rw", [db.outbox, db.meta, db.visits, db.notes, db.reserves], async () => {
     if (operation.versionScope && operation.baseVersion === undefined) {
-      operation = { ...operation, baseVersion: await scopeVersion(db, operation.versionScope) };
+      const stored = await scopeVersion(db, operation.versionScope);
+      operation = { ...operation, baseVersion: stored ?? operation.fallbackVersion };
     }
     const pending = await pendingOf(db, operation.visitId, operation.entityId);
     const creation = pending.find((entry) => CREATING_KINDS.includes(entry.kind));

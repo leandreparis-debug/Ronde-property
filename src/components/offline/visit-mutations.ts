@@ -80,8 +80,13 @@ export function useVisitMutations(visitId: string) {
     });
     return {
       run,
-      saveVisit: (patch: VisitUpdate) =>
-        run({ ...op("visit.update", visitId, { patch }), versionScope: visitScope }),
+      /** `knownVersion`: the version shown, in case the local copy is not written yet. */
+      saveVisit: (patch: VisitUpdate, knownVersion?: number) =>
+        run({
+          ...op("visit.update", visitId, { patch }),
+          versionScope: visitScope,
+          fallbackVersion: knownVersion,
+        }),
       addParticipant: (participant: ParticipantInput) => {
         const id = uuidv7();
         return run(

@@ -325,6 +325,106 @@ describe("identifiers chosen by the device", () => {
   });
 });
 
+describe("plan screen (step 12 b)", () => {
+  const SITE_LYON = "10000000-0000-4000-8000-000000000001";
+  const PLAN_LYON = "70000000-0000-4000-8000-000000000001";
+
+  it("creates a note on the plan (kind « note », 500 characters, never « sans photo »)", async () => {
+    const { id } = await newVisit(ALICE, SITE_LYON);
+    const markerId = uuid();
+    const text = `${"Odeur de gaz ".repeat(38).slice(0, 499)}!`;
+    const created = data(
+      await applySyncOperation(
+        ctx(ALICE),
+        op(id, "marker.create", {
+          id: markerId,
+          planId: PLAN_LYON,
+          page: 1,
+          x: 0.25,
+          y: 0.75,
+          kind: "note",
+          label: text,
+        }),
+      ),
+    );
+    expect(created.marker).toMatchObject({ id: markerId, kind: "note", label: text });
+    const empty = await applySyncOperation(
+      ctx(ALICE),
+      op(id, "marker.create", {
+        id: uuid(),
+        planId: PLAN_LYON,
+        page: 1,
+        x: 0.5,
+        y: 0.5,
+        kind: "note",
+        label: "  ",
+      }),
+    );
+    expect(empty.status).toBe("rejected");
+    const snapshot = await buildVisitSnapshot(ALICE, storage, id);
+    expect(snapshot!.markers.find((m) => m.id === markerId)?.kind).toBe("note");
+    // The structure of the site travels with the visit (backfilled « Bâtiment principal »).
+    expect(snapshot!.buildings.map((b) => b.name)).toContain("Bâtiment principal");
+    expect(snapshot!.views.filter((v) => v.planId === PLAN_LYON)).toHaveLength(2);
+  });
+
+  it("keeps a shutter photo « À ranger » with its view, then places it (marker + sorted)", async () => {
+    const { id } = await newVisit(ALICE, SITE_LYON);
+    const snapshot = await buildVisitSnapshot(ALICE, storage, id);
+    const view = snapshot!.views.find((v) => v.planId === PLAN_LYON && v.pageNumber === 1)!;
+    const photoId = uuid();
+    const prepared = data(
+      await applySyncOperation(
+        ctx(ALICE),
+        op(id, "photo.create", {
+          id: photoId,
+          item: {
+            originalFilename: null,
+            width: 10,
+            height: 10,
+            sizeBytes: JPEG.byteLength,
+            thumbSizeBytes: JPEG.byteLength,
+            takenAt: null,
+            zoneKey: null,
+            toSort: true,
+            hintViewId: view.id,
+          },
+        }),
+      ),
+    ).upload as {
+      main: { url: string; headers: Record<string, string> };
+      thumb: { url: string; headers: Record<string, string> };
+    };
+    await put(prepared.main, JPEG);
+    await put(prepared.thumb, JPEG);
+    data(await applySyncOperation(ctx(ALICE), op(id, "photo.confirm", { id: photoId })));
+    const listed = await createPhotoService(ALICE, storage).list(id);
+    expect(listed.find((p) => p.id === photoId)).toMatchObject({
+      toSort: true,
+      hintViewId: view.id,
+    });
+
+    const markerId = uuid();
+    const results = await applySyncBatch(ctx(ALICE), [
+      op(id, "marker.create", {
+        id: markerId,
+        planId: PLAN_LYON,
+        page: 1,
+        x: 0.4,
+        y: 0.4,
+        photoId,
+        kind: "photo",
+      }),
+      op(id, "photo.update", { id: photoId, patch: { toSort: false } }),
+    ]);
+    expect(results.map((r) => r.status)).toEqual(["applied", "applied"]);
+    const after = await createPhotoService(ALICE, storage).list(id);
+    expect(after.find((p) => p.id === photoId)?.toSort).toBe(false);
+    const markers = (await buildVisitSnapshot(ALICE, storage, id))!.markers;
+    expect(markers.find((m) => m.id === markerId)).toMatchObject({ photoId, kind: "photo" });
+  });
+});
+
 describe("snapshot", () => {
   it("reads the whole visit as the user, and nothing for a reader without access", async () => {
     const { id } = await newVisit(ALICE);

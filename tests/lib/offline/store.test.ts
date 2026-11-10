@@ -5,6 +5,7 @@ import { LOCAL_SCHEMA_VERSIONS, localDbName, RondeLocalDb } from "@/lib/offline/
 import { isUuid, uuidv7 } from "@/lib/offline/ids";
 import { estimateKeepSize, keepVisitOffline, planKeepItems, unkeepVisit } from "@/lib/offline/keep";
 import { mergeSnapshot, removeVisitLocally } from "@/lib/offline/merge";
+import type { SyncPayload } from "@/lib/offline/ops";
 import { enqueueOperation } from "@/lib/offline/outbox";
 import { computeUsage, formatBytes } from "@/lib/offline/storage";
 import { shouldWipeForInactivity, wipeLocalData } from "@/lib/offline/wipe";
@@ -55,6 +56,35 @@ describe("snapshot merge", () => {
     fresh.notes = [fresh.notes[0]!];
     await mergeSnapshot(db, fresh);
     expect(await db.notes.count()).toBe(1);
+  });
+});
+
+describe("version of a change made before the local copy is written", () => {
+  it("uses the version shown when the store does not hold the visit yet, the stored one otherwise", async () => {
+    const db = await freshDb();
+    const early = await enqueueOperation(db, {
+      visitId: VISIT,
+      kind: "visit.update",
+      entityId: VISIT,
+      payload: { patch: { subject: "Saisi tout de suite" } } as SyncPayload<"visit.update">,
+      versionScope: `visit:${VISIT}`,
+      fallbackVersion: 3,
+      label: "Informations",
+    });
+    expect(early.kind === "queued" && early.entry.baseVersion).toBe(3);
+    await db.outbox.clear();
+    await mergeSnapshot(db, snapshot());
+    const later = await enqueueOperation(db, {
+      visitId: VISIT,
+      kind: "visit.update",
+      entityId: VISIT,
+      payload: { patch: { subject: "Après la copie" } } as SyncPayload<"visit.update">,
+      versionScope: `visit:${VISIT}`,
+      fallbackVersion: 1,
+      label: "Informations",
+    });
+    const stored = (await db.visits.get(VISIT))!.version;
+    expect(later.kind === "queued" && later.entry.baseVersion).toBe(stored);
   });
 });
 

@@ -1108,123 +1108,131 @@ export function VisitPlanScreen({
             </div>
           )}
 
-          <div className="flex flex-wrap items-center gap-2">
-            {canEdit && current ? (
-              <label className="flex items-center gap-2 text-ui text-ink-2">
-                Zone
-                <Select
-                  value={currentZone}
-                  onChange={(event) => setLastZone(current.view.id, event.target.value || null)}
-                  aria-label="Zone par défaut sur cette vue"
-                  data-testid="plan-zone"
-                  className="w-48"
-                >
-                  <option value="">Sans zone</option>
-                  {zones.map((zone) => (
-                    <option key={zone.key} value={zone.key}>
-                      {zone.label}
-                    </option>
-                  ))}
-                </Select>
-              </label>
-            ) : null}
-            <Button
-              type="button"
-              variant="ghost"
-              aria-expanded={legendOpen}
-              onClick={() => setLegendOpen((v) => !v)}
-              data-testid="plan-legend-toggle"
-            >
-              <ListChecks className="size-5" aria-hidden="true" />
-              Légende
-            </Button>
-          </div>
-          {legendOpen ? (
-            <div
-              className="flex flex-col gap-2 rounded-lg border border-rule bg-paper p-3"
-              data-testid="plan-legend"
-            >
-              <div className="flex items-center justify-between">
-                <span className="label-caps text-ink-2">Légende</span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setLegendOpen(false)}
-                  aria-label="Fermer la légende"
-                >
-                  <X className="size-5" aria-hidden="true" />
-                </Button>
-              </div>
-              <ul
-                className="flex flex-wrap gap-x-5 gap-y-2 text-ui text-ink-2"
-                aria-label="Types de repères"
+          {/* Room for the shutter, fixed on the thumb side below 1024 px. */}
+          <div
+            className={cn(
+              "flex flex-col gap-2",
+              canEdit && current && (side === "left" ? "pl-20 lg:pl-0" : "pr-20 lg:pr-0"),
+            )}
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              {canEdit && current ? (
+                <label className="flex items-center gap-2 text-ui text-ink-2">
+                  Zone
+                  <Select
+                    value={currentZone}
+                    onChange={(event) => setLastZone(current.view.id, event.target.value || null)}
+                    aria-label="Zone par défaut sur cette vue"
+                    data-testid="plan-zone"
+                    className="w-48"
+                  >
+                    <option value="">Sans zone</option>
+                    {zones.map((zone) => (
+                      <option key={zone.key} value={zone.key}>
+                        {zone.label}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+              ) : null}
+              <Button
+                type="button"
+                variant="ghost"
+                aria-expanded={legendOpen}
+                onClick={() => setLegendOpen((v) => !v)}
+                data-testid="plan-legend-toggle"
               >
-                <li className="flex items-center gap-2">
-                  <MarkerPin number={1} hasPhoto showNumber={false} />
-                  Photo
-                </li>
-                <li className="flex items-center gap-2">
-                  <MarkerPin number={1} hasPhoto={false} showNumber={false} />
-                  Repère sans photo
-                </li>
-                <li className="flex items-center gap-2">
-                  <ReservePin
-                    reserve={{ code: "R", status: "open", isOverdue: false }}
-                    showCode={false}
-                  />
-                  Réserve ouverte ou en retard
-                </li>
-                <li className="flex items-center gap-2">
-                  <ReservePin
-                    reserve={{ code: "R", status: "done", isOverdue: false }}
-                    showCode={false}
-                  />
-                  Réserve levée
-                </li>
-                <li className="flex items-center gap-2">
-                  <NotePin />
-                  Note
-                </li>
-              </ul>
-              <label className="flex min-h-touch items-center gap-2 text-ui font-semibold text-ink">
-                <input
-                  type="checkbox"
-                  className="size-5 accent-brand"
-                  checked={!showDone}
-                  onChange={(event) => {
-                    const params = new URLSearchParams(window.location.search);
-                    if (event.target.checked) params.delete("levees");
-                    else params.set("levees", "afficher");
-                    replaceQuery(params);
-                  }}
-                  data-testid="plan-hide-done"
-                />
-                Masquer les levées
-              </label>
+                <ListChecks className="size-5" aria-hidden="true" />
+                Légende
+              </Button>
             </div>
-          ) : null}
+            {legendOpen ? (
+              <div
+                className="flex flex-col gap-2 rounded-lg border border-rule bg-paper p-3"
+                data-testid="plan-legend"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="label-caps text-ink-2">Légende</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setLegendOpen(false)}
+                    aria-label="Fermer la légende"
+                  >
+                    <X className="size-5" aria-hidden="true" />
+                  </Button>
+                </div>
+                <ul
+                  className="flex flex-wrap gap-x-5 gap-y-2 text-ui text-ink-2"
+                  aria-label="Types de repères"
+                >
+                  <li className="flex items-center gap-2">
+                    <MarkerPin number={1} hasPhoto showNumber={false} />
+                    Photo
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <MarkerPin number={1} hasPhoto={false} showNumber={false} />
+                    Repère sans photo
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <ReservePin
+                      reserve={{ code: "R", status: "open", isOverdue: false }}
+                      showCode={false}
+                    />
+                    Réserve ouverte ou en retard
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <ReservePin
+                      reserve={{ code: "R", status: "done", isOverdue: false }}
+                      showCode={false}
+                    />
+                    Réserve levée
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <NotePin />
+                    Note
+                  </li>
+                </ul>
+                <label className="flex min-h-touch items-center gap-2 text-ui font-semibold text-ink">
+                  <input
+                    type="checkbox"
+                    className="size-5 accent-brand"
+                    checked={!showDone}
+                    onChange={(event) => {
+                      const params = new URLSearchParams(window.location.search);
+                      if (event.target.checked) params.delete("levees");
+                      else params.set("levees", "afficher");
+                      replaceQuery(params);
+                    }}
+                    data-testid="plan-hide-done"
+                  />
+                  Masquer les levées
+                </label>
+              </div>
+            ) : null}
 
-          <VisitFeedBar
-            entries={feed}
-            open={feedOpen}
-            onToggle={() => setFeedOpen((v) => !v)}
-            onOpenEntry={openEntry}
-            undo={
-              undo && canEdit
-                ? {
-                    label: undo.label,
-                    run: () => {
-                      const action = undo.run;
-                      setUndo(null);
-                      setSheet(null);
-                      void action().then(() =>
-                        toast({ variant: "success", title: "Saisie annulée" }),
-                      );
-                    },
-                  }
-                : null
-            }
-          />
+            <VisitFeedBar
+              entries={feed}
+              open={feedOpen}
+              onToggle={() => setFeedOpen((v) => !v)}
+              onOpenEntry={openEntry}
+              undo={
+                undo && canEdit
+                  ? {
+                      label: undo.label,
+                      run: () => {
+                        const action = undo.run;
+                        setUndo(null);
+                        setSheet(null);
+                        void action().then(() =>
+                          toast({ variant: "success", title: "Saisie annulée" }),
+                        );
+                      },
+                    }
+                  : null
+              }
+            />
+          </div>
         </div>
         {sheetNode}
       </div>
