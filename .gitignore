@@ -25,6 +25,9 @@ e2e/fixtures/plans/
 .env*
 !.env.example
 
+# generated SQL scripts for the remote projects (pnpm db:prod-script)
+dist/
+
 # misc
 *.log
 .DS_Store

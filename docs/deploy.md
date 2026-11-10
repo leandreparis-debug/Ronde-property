@@ -67,33 +67,44 @@ migration 7.
 
 ## 3. Ordre de mise en production
 
-Depuis le PC Windows, avec la CLI Supabase (`pnpm exec supabase --version`) :
+> **Règle** : toute migration distante est appliquée **par Léandre**, dans l'**éditeur SQL de
+> Supabase** (projet → **SQL Editor** → **New query**), à partir d'un **script préparé** par
+> `pnpm db:prod-script`. Claude Code ne se connecte jamais à un projet distant (règle absolue de
+> `CLAUDE.md`). Depuis le 09/11/2026, l'historique `supabase_migrations.schema_migrations` de la
+> production correspond aux noms des fichiers du dépôt (migrations 1 à 20).
 
-1. **Projet de test d'abord.**
+**Préparer le script** (sur le PC, dans le dossier du dépôt ; ne se connecte à rien) :
 
-   ```bash
-   pnpm db:migrations:list
-   pnpm exec supabase link --project-ref <ref-du-projet-de-test>
-   pnpm exec supabase migration list
-   pnpm exec supabase db push
-   pnpm exec supabase migration list
-   ```
+```bash
+pnpm db:migrations:list
+pnpm db:prod-script <début> <fin>
+```
 
-   Puis ouvrez le déploiement de prévisualisation de la branche dans Vercel et déroulez le
-   scénario de la fonctionnalité (connexion, visite, photos, plans…).
+`<début>` et `<fin>` sont des numéros de migration (`22`), des versions (`20261110090000`) ou un
+début de nom de fichier. Le script est écrit dans `dist/ops/prod-migrations-<début>-<fin>.sql`
+(dossier ignoré par git). Il contient, dans **une seule transaction** :
 
-2. **Production.**
+1. un **garde-fou** : l'historique doit contenir **exactement** les migrations qui précèdent
+   l'intervalle, sinon le script s'arrête et rien ne change ;
+2. chaque fichier de migration, **tel quel**, suivi de son insertion dans
+   `supabase_migrations.schema_migrations` ;
+3. `commit`, puis une requête de vérification qui liste l'historique.
 
-   ```bash
-   pnpm exec supabase link --project-ref <ref-du-projet-de-production>
-   pnpm exec supabase migration list
-   pnpm exec supabase db push
-   pnpm exec supabase migration list
-   ```
+**Appliquer** :
 
-   `db push` n'applique que les versions absentes côté _Remote_ ; il ne modifie jamais une
-   migration déjà appliquée. Les migrations de RONDE sont écrites pour être appliquées **avant**
-   le code qui les utilise (colonnes ajoutées avec une valeur par défaut, vues recréées).
+1. **Projet de test d'abord** : SQL Editor du projet de test → coller **tout** le script →
+   **Run**. La dernière requête doit lister toutes les migrations jusqu'à `<fin>`. Si le
+   garde-fou s'arrête, ne rien forcer : comparer l'historique avec `pnpm db:migrations:list`.
+   Puis ouvrir le déploiement de prévisualisation de la branche et dérouler le scénario de la
+   fonctionnalité.
+2. **Production** : même script, même procédure, sur le projet de production.
+
+Les migrations de RONDE sont écrites pour être appliquées **avant** le code qui les utilise
+(colonnes ajoutées avec une valeur par défaut, vues recréées). Ne jamais utiliser l'outil
+`apply_migration` du connecteur Supabase : il enregistre l'heure d'application comme version,
+et l'historique ne correspondrait plus aux fichiers du dépôt. `supabase db push` (CLI) reste
+possible pour remplir un projet **neuf** (§ 0, point 4) ; ensuite, la procédure de référence
+est le script.
 
 3. **Fusion dans `main`** (pull request ou fusion locale puis `git push origin main`). Vercel
    déploie la production.
@@ -135,7 +146,7 @@ avion : le Galet redevient souriant et la réserve reçoit son numéro.
 > `NEXT_PUBLIC_SUPABASE_URL` pour les deux environnements), chaque déploiement de prévisualisation
 > écrit dans la base de production. Le projet de test (§ 0, point 4) reste à créer.
 
-Vérifiez les versions exactes avec `pnpm db:migrations:list` avant `db push`. La migration 16
+Vérifiez les versions exactes avec `pnpm db:migrations:list` avant de générer le script. La migration 16
 recrée la vue `reserves_with_state` (mêmes colonnes qu'avant plus les nouvelles) et ajoute
 `reserves.version` avec la valeur 1 par défaut : elle s'applique **avant** le déploiement du
 code de l'étape 9, sans interruption pour le code de l'étape 8. Scénario de vérification sur la
@@ -153,12 +164,12 @@ placer un nouveau : le numéro n'est pas réutilisé.
 ## 4. Liste de contrôle avant une mise en production
 
 - [ ] CI verte sur la branche (trois jobs).
-- [ ] `pnpm db:migrations:list` : la liste locale est celle attendue, et chaque version
-      apparaît dans `supabase migration list` du projet de **test** côté _Remote_.
+- [ ] `pnpm db:migrations:list` : la liste locale est celle attendue ;
+      `pnpm db:prod-script <début> <fin>` a produit le script dans `dist/ops/`.
+- [ ] Script appliqué sur le projet de **test** (éditeur SQL), dernière requête conforme.
 - [ ] Déploiement de prévisualisation vérifié à la main sur la fonctionnalité livrée.
-- [ ] `supabase migration list` sur la **production** : seules les nouvelles versions manquent.
-- [ ] `supabase db push` sur la production, puis `migration list` à nouveau : plus aucune
-      version manquante.
+- [ ] Script appliqué sur la **production** (éditeur SQL) : le garde-fou passe, la dernière
+      requête liste toutes les versions jusqu'à `<fin>`.
 - [ ] Variables Vercel de production complètes (tableau ci-dessus), aucune variable `LOCAL_*`.
 - [ ] Fusion dans `main`, déploiement « Ready », vérification manuelle.
 - [ ] Aucune donnée fictive en production (sites `TEST-…`, comptes `example.test`) :
