@@ -622,3 +622,57 @@ le rapport **PDF** de l'étape 10, et non par un document Word.
 **Motivation.** Décision de Léandre : un PDF est figé (preuve de l'état à une date), s'affiche à
 l'identique partout, se génère dans le navigateur sans serveur de rendu ni licence, et se
 retélécharge à l'identique (même empreinte, vérifié par la recette C4).
+
+## 2026-11-09 — Hors réseau : copie locale et chemin d'écriture unique (étape 12)
+
+**Décision.** Les écrans d'une visite lisent une copie locale par utilisateur (IndexedDB,
+Dexie, base `ronde-<userId>`) et **toute** écriture passe par une file d'envoi
+(`POST /api/sync`), en ligne comme hors ligne. Le serveur applique chaque opération dans sa
+propre transaction `withUser`, par les mêmes services que les écrans. Détail et alternatives
+écartées dans `docs/adr/0001-hors-reseau.md`.
+
+**Motivation.** Un seul chemin d'écriture : pas de comportement « hors ligne » qui ne serait
+testé que les jours de coupure. Les droits restent dans la base (RLS, triggers) : la file ne
+contourne rien.
+
+## 2026-11-09 — Idempotence par identifiant d'opération, numérotation au serveur
+
+**Décision.** Chaque opération porte un UUID v7 créé sur l'appareil ; `sync_operations`
+(migration 21, service seulement, purgée après 30 jours) garde le résultat de chaque opération
+appliquée : un renvoi (réponse perdue, page fermée pendant l'envoi) renvoie le même résultat.
+Les entités créées hors ligne ont aussi un UUID v7 accepté comme clé primaire. Les numéros
+(réserves par site, repères par plan) restent attribués par le serveur : « R-? » et « • »
+jusqu'à l'envoi.
+
+**Motivation.** Renvoyer doit toujours être sans risque sur un réseau de terrain ; deux
+tablettes hors ligne ne doivent jamais produire le même numéro de réserve.
+
+## 2026-11-09 — Conflits : la version du serveur reste, la mienne est mise de côté
+
+**Décision.** Une opération dont la version connue est dépassée n'écrase rien : la copie prend
+la version du serveur, ma saisie va dans « À arbitrer » (note : garder la mienne, celle du
+serveur, ou fusionner ; réserve et informations : champ par champ). Les opérations suivantes de
+la même entité attendent l'arbitrage.
+
+**Motivation.** « Rien n'est jamais perdu », et rien n'est écrasé en silence : le RT décide.
+
+## 2026-11-09 — Service worker écrit à la main
+
+**Décision.** `public/sw.js` (moins de 250 lignes) plutôt que Serwist : enveloppe hors ligne et
+fichiers statiques en cache, jamais `/api/*`, jamais une page avec des données ; version liée au
+build ; mise à jour proposée (« Nouvelle version disponible »), jamais forcée tant que la file
+n'est pas vide.
+
+**Motivation.** Des règles de cache lisibles et vérifiables en revue de sécurité, sans
+dépendance de build ; Serwist aurait demandé une configuration webpack dédiée pour un gain
+faible (pas de précache de pages à données).
+
+## 2026-11-10 — Sécurité de la copie locale
+
+**Décision.** Seules les visites en cours modifiables sont gardées ; aucun jeton dans IndexedDB
+ni `localStorage` ; base effacée à la déconnexion, au premier contact après une révocation ou
+une désactivation, et après 14 jours sans serveur ; une session expirée garde la file.
+
+**Motivation.** Limiter ce qu'une tablette perdue expose, sans faire perdre une saisie à un RT
+dont la session expire en zone blanche. Limite assumée : pas de chiffrement applicatif de la
+copie (le verrouillage de l'appareil la protège), voir `docs/security.md`.

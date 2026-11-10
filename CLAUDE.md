@@ -18,7 +18,7 @@ Utilisateurs : **RT** (saisie sur tablette au doigt et sur PC), **Direction** (l
 Étapes : 1 fondations et design system (faite) · 2 modèle de données Supabase et RLS (faite) ·
 3 authentification, rôles, audit (faite) · 4 référentiel des sites (CSV VIGIE, faite) · 5 visites (faite) · 6 notes
 par zone (faite) · 7 photos (faite) · 8 plans AutoCAD et repères (faite) · 9 réserves (faite) · 10 rapport PDF (faite) · 11 recette et
-déploiement.
+déploiement (faite) · 12 hors réseau et synchronisation (faite, phase 2).
 
 ## Stack et versions (exactes, pas de `^`)
 
@@ -62,7 +62,9 @@ docs/go-live.md            liste de contrôle de la mise en production (12 ligne
 docs/migration-serveur-interne.md  passage de Vercel + Supabase au serveur interne (V2)
 docs/reprise.md            reprise du projet par un autre développeur (architecture, règles expliquées)
 docs/design-system.md      règles de la direction artistique
-docs/pwa.md                application installable (manifeste, icônes, hors connexion)
+docs/pwa.md                application installable (manifeste, icônes, service worker, mise à jour)
+docs/offline.md            hors réseau : copie locale, file d'envoi, synchronisation, conflits, brancher une entité
+docs/adr/                  décisions d'architecture détaillées (0001 hors réseau)
 docs/security.md           en-têtes et CSP, sessions et révocation, audit RLS, dépendances, secrets, journaux
 docs/cron.md               tâches planifiées (purge nocturne, CRON_SECRET)
 docs/rgpd.md               données personnelles, durées, export, anonymisation, effacement des e-mails externes
@@ -93,6 +95,10 @@ src/server/reports/        dépôt (réservation pending, lecture figée, confir
 src/components/report/     onglet Rapport (options, progression, historique)
 src/lib/feedback/          avis du pilote : schéma, filtres d'URL, CSV ; src/server/services/feedback.ts
 src/lib/help/              Markdown minimal des guides (/aide), src/components/help/
+src/lib/offline/           copie locale (Dexie), file d'envoi, SyncEngine, fusion, résultats, garder hors réseau, effacement
+src/components/offline/    OfflineProvider, useVisitData / useVisitMutations, indicateur, panneau, « À arbitrer », enveloppe hors ligne, service worker
+src/server/sync/           application des opérations (POST /api/sync), idempotence (sync_operations), copie d'une visite
+public/sw.js               service worker écrit à la main (jamais /api, jamais de page à données)
 public/fonts/report/       polices TTF du rapport (OFL)
 scripts/fixtures/          génération des images de test synthétiques (jamais de vraie photo)
 docs/samples/              échantillons fictifs (export VIGIE)
@@ -208,3 +214,10 @@ tests/                     tests Vitest (miroir de src/)
     distante ; chacun passe par `scripts/ops/lib/target.mjs` (`--project-ref` vérifié contre
     `DATABASE_URL`, ou `--local` pour `ronde_test`), simule par défaut et n'écrit qu'après une
     confirmation saisie ; pas à pas Windows dans la doc correspondante.
+34. **Hors réseau** (étape 12, `docs/offline.md`) : un écran de visite lit la copie locale
+    (`useVisitData`, `useVisit`) et écrit **uniquement** par `useVisitMutations` (file d'envoi,
+    `POST /api/sync`), jamais par une action serveur ; toute nouvelle opération a son schéma zod
+    dans `src/lib/offline/ops.ts`, son `case` dans `src/server/sync/apply.ts` (mêmes services
+    que les écrans, `withUser`) et un rejeu idempotent ; un changement du schéma IndexedDB est une
+    **nouvelle version** de `LOCAL_SCHEMA_VERSIONS` ; aucun jeton ni secret dans IndexedDB ou
+    `localStorage` ; le service worker n'intercepte jamais `/api/*` ni une page à données.

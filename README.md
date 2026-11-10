@@ -73,7 +73,8 @@ La CI (`.github/workflows/ci.yml`) exécute à chaque push : `pnpm verify` et `p
 - Par fonctionnalité : [authentification](docs/auth.md), [import VIGIE](docs/sites-import.md),
   [visites](docs/visits.md), [notes](docs/notes.md), [photos](docs/photos.md),
   [plans](docs/plans.md), [réserves](docs/reserves.md), [rapport PDF](docs/report.md),
-  [stockage](docs/storage.md), [application installable](docs/pwa.md).
+  [stockage](docs/storage.md), [application installable](docs/pwa.md),
+  [hors réseau et synchronisation](docs/offline.md) ([ADR 0001](docs/adr/0001-hors-reseau.md)).
 - [Consignes de développement](CLAUDE.md).
 
 ## Pages
@@ -87,10 +88,11 @@ La CI (`.github/workflows/ci.yml`) exécute à chaque push : `pnpm verify` et `p
 | `/admin/comptes`, `/admin/avis`, `/admin/journal` | admin  | comptes (sessions, RGPD), avis du pilote, journal d'audit                            |
 | `/admin/sites/import`, `/admin/sites/imports`     | admin  | import CSV VIGIE, historique                                                         |
 | `/connexion`, `/hors-ligne`, `/design`            | public | connexion, aide hors connexion, design system (données fictives)                     |
+| `/hors-ligne/visite`                              | public | enveloppe hors ligne (sans données) : rend une visite gardée depuis la copie locale  |
 
 ## Base de données
 
-Le schéma est livré en migrations Supabase (`supabase/migrations/`, 20 migrations). En local, il
+Le schéma est livré en migrations Supabase (`supabase/migrations/`, 21 migrations). En local, il
 tourne sur un PostgreSQL 16 nu grâce à `supabase/tests/bootstrap.sql`, qui émule les rôles et
 les schémas `auth` et `storage` de Supabase. `seed.sql` (données fictives) refuse de s'exécuter
 ailleurs que dans `ronde_test` ; ni la seed ni `bootstrap.sql` ne s'appliquent à un vrai projet.

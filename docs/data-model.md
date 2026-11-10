@@ -323,6 +323,20 @@ Voir `docs/reserves.md` pour les règles d'écran.
 - `visit_summaries` : `last_report_at` et la nouvelle colonne `last_report_id` ne lisent que les
   rapports `ready`.
 
+## Idempotence de la synchronisation (migration 21, étape 12)
+
+- **`sync_operations (user_id, op_id, applied_at, result)`**, clé `(user_id, op_id)` : résultat
+  de chaque opération appliquée par `POST /api/sync`. Une opération renvoyée (réponse perdue,
+  page fermée pendant l'envoi) reçoit le même résultat sans être rejouée. Réservée au service :
+  RLS activée sans politique, aucun droit pour `anon` ni `authenticated`, `select` / `insert` /
+  `delete` pour `service_role` (`supabase/tests/rls-audit.test.ts`).
+- `user_id` référence `profiles` en `restrict` (un compte ne se supprime jamais).
+- `private.purge_sync_operations(max_age default '30 days')` (service_role) : appelée par la
+  purge de nuit (`/api/cron/purge`), renvoie le nombre de lignes supprimées.
+- Les identifiants des entités créées hors ligne (photos, réserves, repères, participants,
+  zones) sont des UUID v7 fournis par l'appareil, acceptés comme clés primaires ; une création
+  rejouée avec le même identifiant renvoie l'existant.
+
 ## Rôle de connexion et journal d'audit (migration 13)
 
 `private.audit` est exécutable par `service_role` : `withSystem` (session, comptes, import)

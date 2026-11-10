@@ -5,10 +5,45 @@ versions selon [SemVer](https://semver.org/lang/fr/).
 
 ## [Non publié]
 
+### Ajouté
+
+- **Étape 12, hors réseau et synchronisation** (ADR 0001, `docs/offline.md`) :
+  - copie locale par utilisateur (IndexedDB), « Garder hors réseau » avec la taille estimée,
+    automatique sur tablette, badge « Disponible hors réseau », « Mes visites » hors réseau ;
+  - toutes les saisies d'une visite (informations, participants, notes, zones, photos, repères,
+    réserves) passent par une file d'envoi persistante : regroupement, ordre, dépendances,
+    reprise de 1 s à 5 min, synchronisation automatique (retour du réseau, retour dans
+    l'application, toutes les 30 s) et « Synchroniser maintenant » ;
+  - `POST /api/sync` (lots de 50, idempotence par identifiant d'opération), copie d'une visite
+    par `GET /api/sync/visits/[id]`, migration 21 `sync_operations` purgée après 30 jours ;
+  - numéros provisoires « R-? » et « • » jusqu'à l'envoi ; conflits mis de côté dans
+    « À arbitrer » (note : garder la mienne, celle du serveur ou fusionner ; réserve et
+    informations : champ par champ) ; refus expliqués avec « Copier le texte » ;
+  - indicateur Galet (endormi, attentif, souriant, inquiet) avec le nombre en attente et
+    l'heure de la dernière synchronisation ; panneau de synchronisation ;
+  - service worker (enveloppe hors ligne, fichiers statiques ; jamais l'API) et invitation
+    « Nouvelle version disponible » ;
+  - effacement de la copie à la déconnexion, après une révocation ou une désactivation, et après
+    14 jours sans serveur ; une session expirée garde la file.
+- Tests : `e2e/offline.spec.ts`, critère de recette **C7 « Hors réseau »**, tests unitaires de
+  la file et du moteur (fake-indexeddb), intégration de la synchronisation.
+
+### Modifié
+
+- Les écritures des écrans de visite ne passent plus par des actions serveur mais par la file
+  (`/api/sync`) ; créer, terminer, rouvrir, dupliquer, supprimer une visite, importer un plan et
+  générer le rapport restent en ligne et sont désactivés hors réseau, avec la raison.
+- Terminer la visite et générer le rapport attendent que la file de la visite soit vide.
+- Page `/hors-ligne`, bandeau hors réseau et guide des RT (« Travailler sans réseau »).
+
+### Corrigé
+
+- Production : migrations 15 à 20 appliquées le 09/11/2026 (le code de l'étape 11 y tournait
+  sans elles).
+
 ### Prévu
 
-- Étape 12 (phase 2) : travail hors ligne complet (file persistante, service worker,
-  synchronisation), retours du pilote sur les rapports PDF.
+- Étape 13 : cycle des réserves avec photo de preuve, « Mes réserves ».
 
 ## [1.0.0] - 2026-11-05
 

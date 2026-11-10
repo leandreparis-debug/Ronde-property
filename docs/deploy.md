@@ -103,16 +103,37 @@ Depuis le PC Windows, avec la CLI Supabase (`pnpm exec supabase --version`) :
    **Vercel → Deployments → Promote** sur le déploiement précédent remet le code d'avant ; les
    migrations, elles, ne se retirent pas : écrivez-en une nouvelle (règle 8 de `CLAUDE.md`).
 
-### Migrations à appliquer par Léandre (état au 05/11/2026)
+### Migrations à appliquer par Léandre (état au 10/11/2026)
 
-| Version          | Fichier                                                     | Contenu                                                                                                                                    | Test    | Production |
-| ---------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------- | ---------- |
-| `20261104090000` | `20261104090000_site_plan_pages_and_marker_checks.sql`      | migration 15 : pages de plans, statut d'envoi, contrôles des repères, purge                                                                | à faire | à faire    |
-| `20261105090000` | `20261105090000_marker_counters_and_report_uploads.sql`     | migration 17 : compteur des repères, rapports `pending` → `ready` (numéro, nom, brouillon, pages), purge, `visit_summaries.last_report_id` | à faire | à faire    |
-| `20261104120000` | `20261104120000_reserves_version_markers_and_state.sql`     | migration 16 : version des réserves, responsable facultatif, repère de réserve, contrôle des photos, vue enrichie, index                   | à faire | à faire    |
-| `20261105150000` | `20261105150000_profile_sessions_revoked_at.sql`            | migration 18 : `profiles.sessions_revoked_at` (déconnexion de toutes les sessions, désactivation), vues en lecture seule, rien pour `anon` | à faire | à faire    |
-| `20261105160000` | `20261105160000_rgpd_anonymization_and_external_emails.sql` | migration 19 : e-mail externe jamais dans l'historique, `anonymize_profile`, `clear_external_responsible_emails`                           | à faire | à faire    |
-| `20261105170000` | `20261105170000_feedback.sql`                               | migration 20 : table `feedback` (« Donner mon avis »), RLS insertion par l'auteur actif, lecture admin                                     | à faire | à faire    |
+| Version          | Fichier                                                     | Contenu                                                                                                                                    | Test    | Production              |
+| ---------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------- | ----------------------- |
+| `20261104090000` | `20261104090000_site_plan_pages_and_marker_checks.sql`      | migration 15 : pages de plans, statut d'envoi, contrôles des repères, purge                                                                | à faire | appliquée le 09/11/2026 |
+| `20261104120000` | `20261104120000_reserves_version_markers_and_state.sql`     | migration 16 : version des réserves, responsable facultatif, repère de réserve, contrôle des photos, vue enrichie, index                   | à faire | appliquée le 09/11/2026 |
+| `20261105090000` | `20261105090000_marker_counters_and_report_uploads.sql`     | migration 17 : compteur des repères, rapports `pending` → `ready` (numéro, nom, brouillon, pages), purge, `visit_summaries.last_report_id` | à faire | appliquée le 09/11/2026 |
+| `20261105150000` | `20261105150000_profile_sessions_revoked_at.sql`            | migration 18 : `profiles.sessions_revoked_at` (déconnexion de toutes les sessions, désactivation), vues en lecture seule, rien pour `anon` | à faire | appliquée le 09/11/2026 |
+| `20261105160000` | `20261105160000_rgpd_anonymization_and_external_emails.sql` | migration 19 : e-mail externe jamais dans l'historique, `anonymize_profile`, `clear_external_responsible_emails`                           | à faire | appliquée le 09/11/2026 |
+| `20261105170000` | `20261105170000_feedback.sql`                               | migration 20 : table `feedback` (« Donner mon avis »), RLS insertion par l'auteur actif, lecture admin                                     | à faire | appliquée le 09/11/2026 |
+| `20261109100000` | `20261109100000_sync_operations.sql`                        | migration 21 (étape 12) : table `sync_operations` (idempotence de `POST /api/sync`, service seulement), `private.purge_sync_operations`    | à faire | **à faire**             |
+
+Les migrations 15 à 20 ont été appliquées sur la production le 09/11/2026, en une transaction,
+par une exception ponctuelle autorisée par Léandre (le code de l'étape 11 était en production
+sans elles : erreur `sessions_revoked_at does not exist`). L'historique `schema_migrations` a
+été réaligné sur les noms de fichiers du dépôt : `supabase migration list` doit montrer les
+20 versions de `20261102100000` à `20261105170000` des deux côtés.
+
+**Migration 21 (étape 12)** : à appliquer **avant** le déploiement du code de l'étape 12. Sans
+elle, `POST /api/sync` échoue (table `sync_operations` absente) : aucune saisie n'atteint le
+serveur, tout reste en attente sur les appareils (rien n'est perdu, mais rien n'est enregistré).
+Elle ne touche aucune table existante ; le code de l'étape 11 l'ignore. La purge de nuit
+(`/api/cron/purge`) efface les lignes de plus de 30 jours. Scénario de vérification sur la
+prévisualisation : ouvrir une visite sur une tablette (badge « Disponible hors réseau »), passer
+en mode avion, recharger, modifier une note et créer une réserve (« R-? »), quitter le mode
+avion : le Galet redevient souriant et la réserve reçoit son numéro.
+
+> **Attention, prévisualisations** : tant que les variables **Preview** de Vercel pointent sur
+> le projet Supabase de **production** (situation du 10/11/2026 : même
+> `NEXT_PUBLIC_SUPABASE_URL` pour les deux environnements), chaque déploiement de prévisualisation
+> écrit dans la base de production. Le projet de test (§ 0, point 4) reste à créer.
 
 Vérifiez les versions exactes avec `pnpm db:migrations:list` avant `db push`. La migration 16
 recrée la vue `reserves_with_state` (mêmes colonnes qu'avant plus les nouvelles) et ajoute

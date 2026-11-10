@@ -2,7 +2,9 @@
  * Screenshots of the guides (docs/guide-rt.md, docs/guide-admin.md), saved in
  * public/aide-images/. Fictitious data only: run against the local server (`pnpm start` on
  * port 3100 with the local providers) after `pnpm db:reset` and the demo visit of step 10
- * (tests/integration/demo-report-visit.test.ts, LOCAL_STORAGE_DIR=.storage/e2e).
+ * (tests/integration/demo-report-visit.test.ts, LOCAL_STORAGE_DIR=.storage/e2e). The step 12
+ * screenshots keep the demo visit offline, change two notes without network and arbitrate
+ * a note changed meanwhile on the computer.
  *
  *   node scripts/docs/capture-guides.mjs [baseUrl]
  */
@@ -29,9 +31,23 @@ async function signedIn(browser, email, viewport) {
   return page;
 }
 
+/** Waits for the fonts and for the end of the finite animations (dialogs, sheets, toasts). */
+async function settle(page) {
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForFunction(() =>
+    document
+      .getAnimations()
+      .every(
+        (animation) =>
+          animation.playState !== "running" ||
+          animation.effect?.getTiming().iterations === Infinity,
+      ),
+  );
+}
+
 async function shot(page, name, { fullPage = false } = {}) {
   await page.waitForLoadState("networkidle");
-  await page.evaluate(() => document.fonts.ready);
+  await settle(page);
   await page.screenshot({ path: path.join(OUT, `${name}.png`), fullPage });
   console.log(`public/aide-images/${name}.png`);
 }
@@ -92,6 +108,66 @@ try {
   await rt.screenshot({ path: path.join(OUT, "hors-connexion.png") });
   console.log("public/aide-images/hors-connexion.png");
   await rt.context().setOffline(false);
+
+  // Step 12: « Garder hors réseau », the Galet asleep, the waiting changes, « À arbitrer ».
+  await rt.goto(visit);
+  await rt.getByRole("button", { name: "Actions", exact: true }).click();
+  await rt.getByRole("dialog", { name: "Actions" }).getByTestId("visit-action-keep").click();
+  await rt.getByTestId("keep-offline-size").filter({ hasText: /o\b/ }).waitFor();
+  await shot(rt, "garder-hors-reseau");
+  await rt.getByTestId("keep-offline-start").click();
+  await rt.getByTestId("kept-offline-badge").waitFor({ timeout: 120_000 });
+
+  await rt.goto(`${visit}?onglet=notes&zone=roof`);
+  const roof = await rt.getByTestId("zone-textarea").inputValue();
+  await rt.context().setOffline(true);
+  await rt
+    .getByTestId("zone-textarea")
+    .fill(`${roof}\n- Lanterneau 2 : joint à reprendre (vu sur place)`);
+  await rt.getByRole("button", { name: /Zone suivante/ }).click();
+  const docks = await rt.getByTestId("zone-textarea").inputValue();
+  await rt.getByTestId("zone-textarea").fill(`${docks}\n- Quai 3 : butoir fendu`);
+  await rt.getByTestId("note-save-status").filter({ hasText: "Hors réseau" }).waitFor();
+  await rt.getByTestId("sync-indicator").filter({ visible: true }).click();
+  await rt.getByTestId("sync-panel").waitFor();
+  await rt.keyboard.press("Escape");
+  await rt.getByTestId("sync-panel").waitFor({ state: "hidden" });
+  await settle(rt);
+  await rt.screenshot({ path: path.join(OUT, "galet-hors-reseau.png") });
+  console.log("public/aide-images/galet-hors-reseau.png");
+  await rt.getByTestId("sync-indicator").filter({ visible: true }).click();
+  await rt.getByTestId("sync-waiting-item").first().waitFor();
+  await settle(rt);
+  await rt.screenshot({ path: path.join(OUT, "synchronisation.png") });
+  console.log("public/aide-images/synchronisation.png");
+  await rt.keyboard.press("Escape");
+
+  // Meanwhile, the same zone is changed on the computer.
+  const desk = await signedIn(browser, "rt.alice@example.test", PC);
+  await desk.goto(`${visit}?onglet=notes&zone=roof`);
+  await desk
+    .getByTestId("zone-textarea")
+    .fill(`${roof}\n- Lanterneau 2 : à surveiller (noté au bureau)`);
+  await desk.getByTestId("note-save-status").filter({ hasText: "Enregistré à" }).waitFor();
+  await desk.context().close();
+
+  await rt.getByRole("tab", { name: "Informations" }).click();
+  await rt.context().setOffline(false);
+  await rt
+    .locator("[data-testid=sync-indicator][data-mood=worried]")
+    .first()
+    .waitFor({ state: "attached" });
+  await rt.getByTestId("sync-indicator").filter({ visible: true }).click();
+  await rt.getByTestId("sync-arbitrate").first().click();
+  await rt.getByTestId("arbitration-dialog").waitFor();
+  await settle(rt);
+  await rt.screenshot({ path: path.join(OUT, "a-arbitrer.png") });
+  console.log("public/aide-images/a-arbitrer.png");
+  await rt.getByTestId("arbitration-mine-keep").click();
+  await rt
+    .locator("[data-testid=sync-indicator][data-mood=happy]")
+    .first()
+    .waitFor({ state: "attached" });
   await rt.context().close();
 
   // Admin on a PC.

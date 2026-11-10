@@ -117,6 +117,87 @@ retélécharge à l'identique. Tant que la visite n'est pas terminée, le rappor
 
 ![Onglet Rapport](../public/aide-images/visite-rapport.png)
 
+## Travailler sans réseau
+
+Dans un entrepôt, le réseau va et vient. RONDE continue de fonctionner : **tout ce que vous
+saisissez est enregistré sur la tablette**, puis envoyé tout seul dès que le réseau revient.
+
+### Avant de partir : garder la visite sur la tablette
+
+Ouvrez la visite **une fois avec le réseau** sur la tablette : elle est gardée
+automatiquement, le badge **« Disponible hors réseau »** apparaît. Sur l'ordinateur, ou pour
+une visite que vous n'avez pas encore ouverte, touchez **Actions → « Garder hors réseau »** :
+RONDE indique la place nécessaire (photos et plans compris), puis télécharge la visite.
+
+![Garder une visite hors réseau](../public/aide-images/garder-hors-reseau.png)
+
+Une visite gardée s'ouvre ensuite **même sans réseau**, même après avoir fermé et rouvert
+l'application. « Mes visites » montre alors les visites gardées sur la tablette.
+
+### Le Galet vous dit où vous en êtes
+
+En haut de l'écran, le Galet indique l'état de la synchronisation, avec le nombre de
+modifications qui attendent :
+
+| Galet    | Ce que cela veut dire                                                              |
+| -------- | ---------------------------------------------------------------------------------- |
+| endormi  | **hors réseau** : vos saisies sont gardées sur la tablette (le chiffre en attente) |
+| attentif | **envoi en cours**                                                                 |
+| souriant | **tout est à jour**, avec l'heure de la dernière synchronisation                   |
+| inquiet  | **à regarder** : une modification est à arbitrer ou a été refusée                  |
+
+![Galet hors réseau, avec deux modifications en attente](../public/aide-images/galet-hors-reseau.png)
+
+Touchez le Galet pour voir **la liste des modifications en attente**, en phrases simples
+(« Note : Toiture », « Réserve : Remplacer le lanterneau 2 »…), et **« Synchroniser
+maintenant »**. Une petite pastille signale aussi, dans la visite, ce qui n'est pas encore
+envoyé.
+
+![Modifications en attente](../public/aide-images/synchronisation.png)
+
+### Ce que vous pouvez faire sans réseau
+
+Tout ce qui sert pendant la visite : informations, participants, **notes**, **photos**,
+**repères** sur un plan déjà importé, **réserves** (création, modification, levée).
+
+- Une réserve créée sans réseau s'affiche **« R-? »** : son numéro est donné au retour du
+  réseau (deux tablettes ne peuvent pas prendre le même numéro).
+- Un repère posé sans réseau s'affiche **« • »** jusqu'à l'envoi.
+
+Demandent le réseau (le bouton est grisé et la raison affichée) : **créer une visite**,
+**importer un plan**, **générer le rapport**, **terminer la visite** (et la rouvrir, la
+dupliquer ou la supprimer).
+
+### Au retour du réseau
+
+Rien à faire : l'envoi part tout seul (au retour du réseau, au retour dans l'application, puis
+toutes les 30 s s'il reste quelque chose). Le Galet redevient souriant quand tout est arrivé.
+
+### « À arbitrer » : la même chose modifiée ailleurs
+
+Si quelqu'un (ou vous, sur l'ordinateur) a modifié **la même note** ou **la même réserve**
+pendant que vous étiez hors réseau, **rien n'est écrasé**. Le Galet devient inquiet ; touchez-le
+puis **« Arbitrer »** :
+
+- pour une note, les deux textes côte à côte : **« Garder la mienne »**, **« Garder celle du
+  serveur »** ou **« Fusionner »** (un champ contient les deux textes, à arranger) ;
+- pour une réserve ou les informations de la visite, choisissez champ par champ.
+
+![Arbitrer une note](../public/aide-images/a-arbitrer.png)
+
+Si la visite a été **terminée** entre-temps (sur l'ordinateur, par exemple), votre
+modification ne peut plus être enregistrée : elle reste dans la liste avec son texte et
+**« Copier le texte »**, pour la reprendre ailleurs.
+
+### À savoir
+
+- **Se déconnecter efface la copie de la tablette.** Si des modifications n'ont pas été
+  envoyées, RONDE vous prévient : synchronisez d'abord.
+- Si votre session expire pendant que vous êtes hors réseau, vos saisies restent sur la
+  tablette : reconnectez-vous, l'envoi reprend.
+- Une copie qui n'a pas vu le réseau depuis **14 jours** est effacée.
+- La place utilisée sur la tablette est indiquée dans le menu du compte.
+
 ## Ce qui change par rapport à CR Visites
 
 | CR Visites                          | RONDE                                                              |
@@ -132,20 +213,15 @@ retélécharge à l'identique. Tant que la visite n'est pas terminée, le rappor
 
 ### Il n'y a pas de réseau
 
-Un bandeau **« Hors connexion »** s'affiche.
+Continuez : vos saisies sont gardées sur la tablette et partiront seules (voir
+**« Travailler sans réseau »**). Un bandeau le rappelle.
 
-- Les **notes** restent sur la page et s'enregistrent d'elles-mêmes au retour du réseau.
-- Les **photos** sont réessayées trois fois, puis attendent que vous touchiez **« Réessayer »**.
-- Les **réserves** et les **informations** affichent « Hors connexion : votre saisie est
-  conservée » : enregistrez à nouveau quand le réseau revient.
-- **Gardez la page ouverte** : fermer l'onglet ferait perdre ce qui attend le réseau.
-
-![Bandeau hors connexion](../public/aide-images/hors-connexion.png)
+![Bandeau hors réseau](../public/aide-images/hors-connexion.png)
 
 ### RONDE annonce un conflit
 
-Quelqu'un (ou vous-même, sur un autre appareil) a modifié la même chose entre-temps. Lisez la
-version actuelle, puis choisissez **« Garder ma version »** ou rechargez.
+Quelqu'un (ou vous-même, sur un autre appareil) a modifié la même chose entre-temps. Rien n'est
+perdu : touchez le Galet puis **« Arbitrer »** (voir **« À arbitrer »** plus haut).
 
 ### Une photo ne part pas
 
@@ -155,8 +231,9 @@ pris en charge, photo trop lourde), le message l'indique : reprenez la photo dep
 ### La tablette est perdue ou volée
 
 Prévenez **tout de suite** l'administrateur : il déconnecte toutes vos sessions à distance
-(« Déconnecter toutes les sessions ») et réinitialise votre mot de passe. Rien n'est stocké sur
-la tablette en dehors de la page ouverte.
+(« Déconnecter toutes les sessions ») et réinitialise votre mot de passe. La copie des visites
+gardées sur la tablette est alors effacée dès qu'elle retrouve le réseau ; sans réseau, elle
+l'est au bout de 14 jours. Le code de verrouillage de la tablette protège la copie entre-temps.
 
 ### Autre chose
 

@@ -72,6 +72,48 @@ Léandre, listé dans `docs/go-live.md`) : Authentication → Sessions → _Time
   déconnectés, nouvelle connexion acceptée), base (`supabase/tests/migration18.test.ts`), e2e
   (`e2e/admin.spec.ts`).
 
+## Copie locale hors réseau (étape 12)
+
+Une visite gardée hors réseau est copiée sur l'appareil (IndexedDB, `docs/offline.md`). Ce que
+cela implique, et les limites posées :
+
+- **Ce qui est copié** : seulement les visites **en cours** que l'utilisateur peut modifier, et
+  seulement celles gardées (bouton, ou ouverture sur tablette). Jamais la liste des sites, les
+  comptes, le journal ni les visites des autres. Les e-mails des responsables externes d'une
+  réserve sont dans la copie (détail de la réserve), comme à l'écran ; ils ne sont dans aucun
+  journal ni aucune file.
+- **Aucun secret dans IndexedDB ni `localStorage`** : ni jeton, ni mot de passe, ni URL
+  signée durable. La session reste dans le cookie `httpOnly`. `localStorage` ne garde que
+  l'identifiant, le nom et le rôle du dernier utilisateur (`ronde.offline.user`), pour ouvrir
+  la bonne base hors ligne. Les URL signées des images ne servent qu'au téléchargement ; les
+  images gardées sont des `Blob` locaux.
+- **Une base par utilisateur** (`ronde-<userId>`) : un autre compte sur la même tablette ne voit
+  jamais la copie du précédent (test e2e « deux comptes »).
+- **Effacement** de la base de l'utilisateur :
+  - à la **déconnexion** (avec un avertissement si des modifications n'ont pas été envoyées :
+    elles seraient perdues). Si un autre onglet retient la base, l'effacement est terminé sur
+    la page de connexion (`ronde.offline.wipe`) ;
+  - au premier contact avec le serveur après **« Déconnecter toutes les sessions »** ou la
+    **désactivation** du compte (`401` avec la raison `revoked` / `inactive`, puis
+    `/connexion?session=revoquee|desactive`, qui l'annonce) ;
+  - après **14 jours sans contact** avec le serveur (vérifié à l'ouverture).
+- **Session expirée** pendant le travail hors réseau : la file est **gardée** (rien n'est
+  perdu) et mise en pause ; « Se reconnecter » la relance.
+- **Serveur** : `POST /api/sync` appelle `requireUser` puis exige le rôle `rt` ou `admin`
+  (direction : `403`) ; chaque opération est validée par le schéma zod partagé et appliquée
+  dans sa propre transaction `withUser` par les mêmes services que les écrans : la RLS, les
+  triggers et les règles métier s'appliquent à l'identique. `sync_operations` (idempotence) est
+  réservée au service (aucun droit pour `anon` / `authenticated`, test
+  `supabase/tests/rls-audit.test.ts`) et purgée après 30 jours.
+- **Service worker** : n'intercepte jamais `/api/*`, une requête autre que `GET` ni une autre
+  origine ; aucune page avec des données n'est mise en cache (`docs/pwa.md`).
+
+**Limites connues** : la copie n'est pas chiffrée au repos par l'application (elle dépend du
+chiffrement de l'appareil : code de verrouillage obligatoire sur les tablettes, à rappeler aux
+RT) ; une tablette volée **déverrouillée** et jamais reconnectée garde sa copie jusqu'à
+14 jours. En cas de perte : « Déconnecter toutes les sessions » sur le compte (la copie est
+effacée au premier contact), et changer le mot de passe.
+
 ## Audit RLS automatique
 
 `supabase/tests/rls-audit.test.ts` (dans `pnpm test:db`) fait échouer la CI si :
