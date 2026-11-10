@@ -2,8 +2,10 @@
 
 Liste de contrôle de Léandre, **dans l'ordre**. Chaque ligne indique la commande (PowerShell sur
 le PC Windows, dans le dossier du dépôt) ou l'écran Vercel / Supabase concerné. Claude Code n'a
-exécuté **aucune** de ces actions : elles touchent des environnements distants (règle absolue de
-`CLAUDE.md`).
+exécuté **aucune** de ces actions (elles touchent des environnements distants, règle absolue de
+`CLAUDE.md`), à deux exceptions ponctuelles autorisées par Léandre le 09/11/2026 : la ligne 5
+(migrations 15 à 20) et un redéploiement de la production après l'ajout de
+`SUPABASE_SERVICE_ROLE_KEY`.
 
 Conventions : `<ref-test>` et `<ref-prod>` sont les identifiants (20 caractères) des projets
 Supabase de test et de production (Supabase → projet → Settings → General → Reference ID).
