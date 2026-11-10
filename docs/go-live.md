@@ -84,7 +84,18 @@ Vercel → **Settings → Environment Variables** → environnement **Production
 `ALLOW_LOCAL_STORAGE`, `LOCAL_STORAGE_SECRET`, `LOCAL_STORAGE_DIR` (l'application refuse de
 démarrer avec un fournisseur `local` sur Vercel).
 
+> **État au 10/11/2026** (lu en lecture seule dans Vercel) : `SUPABASE_SERVICE_ROLE_KEY` ajoutée
+> le 09/11/2026 (Sensitive, Production) puis production redéployée ; **`CRON_SECRET` manque
+> encore** (la purge de nuit est refusée tant qu'il n'est pas défini) ; `STORAGE_PROVIDER` est
+> absente (valeur par défaut `supabase`, correcte).
+
 ## 5. Migrations 15 à 20 sur la production
+
+> **Fait le 09/11/2026** (exception ponctuelle autorisée par Léandre, une transaction, historique
+> réaligné : 20 migrations de `20261102100000` à `20261105170000`). Reste à vérifier avec
+> `supabase migration list` ci-dessous ; `db push` ne doit alors rien proposer. La migration 21
+> (étape 12) **n'est pas** à appliquer tant que l'étape 12 n'est pas mise en production
+> (`docs/deploy.md`).
 
 ```powershell
 pnpm exec supabase link --project-ref <ref-prod>
